@@ -31,16 +31,17 @@ Objectives
 ###Design and implement a library in Julia that can perform the following tasks:
 	- basis, state, and operator instantiation
 	- basic arithmetic operations 
-	- application of selection rules to extract subspace
+	- application of selection rules to extract subspaces
 	- convert state vector to density matrix
 	- take trace/partial trace of matrices (entanglement calculations)
 	- parameterization of matrices/matrix elements
 	- basis conversion for both operators and state vectors
 	- compute expectation values of the form <v|M|v>
 	- compute transition matrices of the form <u|M|v>
-	- binary operations on states/operators (i.e tensor/inner/outer product)
+	- binary operations on states/operators (e.g. inner/outer product)
+	- a fully realized tensor product structure for bases
 	- commutation relations of operators
-
+	- In-place operations (e.g. conjugate transpose)
 
 ###I also have a small list of optional goals which I would like to attempt, but may not have time for in a single semester:
 	- provide built-in REPL visualizations for DiracTools objects
