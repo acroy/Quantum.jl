@@ -4,6 +4,38 @@
 		"selected_items":
 		[
 			[
+				"tensor",
+				"tensor_array"
+			],
+			[
+				"label",
+				"label_array"
+			],
+			[
+				"basis",
+				"basis_array"
+			],
+			[
+				"ba",
+				"basis_array"
+			],
+			[
+				"labe",
+				"label_array"
+			],
+			[
+				"Te",
+				"TensorBasis"
+			],
+			[
+				"label_",
+				"label_dict"
+			],
+			[
+				"lab",
+				"label_dict"
+			],
+			[
 				"A",
 				"Array"
 			],
@@ -152,10 +184,6 @@
 				"bases_dict"
 			],
 			[
-				"ba",
-				"bases_dict"
-			],
-			[
 				"coeff",
 				"coeff_dict"
 			],
@@ -170,18 +198,6 @@
 			[
 				"la",
 				"labels"
-			],
-			[
-				"basis",
-				"basis_dict"
-			],
-			[
-				"label",
-				"label_array"
-			],
-			[
-				"lab",
-				"label_array"
 			],
 			[
 				"di",

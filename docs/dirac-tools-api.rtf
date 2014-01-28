@@ -57,61 +57,74 @@ Optional:\
 \i0\b0\fs24 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
 \pard\pardeftab720\sl240
 
-\b \cf0 Basis
+\b \cf0 \ul \ulc0 Basis
 \b0 \
-\pard\pardeftab720\sl240
+\ulnone ##########
+\i \
+Description\
 
-\i \cf0 Description
-\i0 \
+\i0 ##########\
 A basis is a mapping of labels onto the indices of a state vector representing a given Hilbert subspace. The basis is literally a subspace that has been selected according to some labeling or behavioral pattern. It provides a label for each position in a given state vector. Another way of thinking about it: a basis contains the information needed to traverse a state graph, whose nodes are the states forming a given Hilbert subspace. \
-\pard\pardeftab720
-\cf0 \
-\
-\
-\
+Taking the tensor product of Basis objects results in a new object of type TensorBasis, whose labels are built from combinations of the labels of the component bases. \
+##########\
 \pard\pardeftab720\sl240
 
-\i \cf0 Definition
+\i \cf0 Definition\
+\pard\pardeftab720\sl240
+
+\i0 \cf0 ##########
+\i \
+
+\i0 abstract AbstractBasis
+\i \
+
 \i0 \
-type Basis\{Labels<:Any\}\
+type Basis\{Labels<:Any\} <: AbstractBasis\
 	name::String\
 	label_dict::Dict\{Labels, Int\}\
 	label_array::Array\{Any\}\
 end\
 \
-type TensorBasis <: Basis\
+type TensorBasis <: AbstractBasis\
 	name::String\
 	label_dict::Dict\{Array\{Any\}, Array\{Int\}\}\
 	label_array::Array\{Any\}\
 	basis_array::Array\{Basis\}\
 end\
 \
-
-\i Constructors\
+##########\
 \pard\pardeftab720\sl240
 
-\i0 \cf0 Basis(name::String, labels::Dict\{Labels, Int\})\
-Basis(name::String, labels::Array\{Any\})\
+\i \cf0 Constructors\
+\pard\pardeftab720\sl240
+
+\i0 \cf0 ##########
+\i \
+
+\i0 Basis\{S<:String, Labels<:Any\}(name::S, label_dict::Dict\{Labels, Int64\})\
+Basis\{S<:String, A<:Array\}(name::S, label_array::A)\
+TensorBasis\{S<:String, B<:AbstractBasis\}(name::S, label_dict::Dict\{Array, Int\}, basis_array::Array\{B\})\
+TensorBasis\{S<:String, B<:AbstractBasis\}(name::S, label_array::Array, basis_array::Array\{B\})\
 \
-TensorBasis(name::String, label_dict::Array\{Any\}, basis_array::Array\{Basis\})\
-TensorBasis(name::String, label_array::Array\{Any\}, basis_array::Array\{Basis\})\
-\pard\pardeftab720\sl240
-
-\i \cf0 \
+##########
+\i \
 Related Methods\
-\pard\pardeftab720\sl240
 
-\i0 \cf0 vectensor(A::Vector, )\
+\i0 ##########\
+vectensor(A::Vector, B::Vector)\
+Takes the tensor product A cross B and returns the result, a vector whose elements are of the form \{A_i, B_j\}\
 \
-tensor(A::Vector\'85)\
-computes vectensor() on all vectors listed and returns the whole tensor product\
+tensor(A::Vector...)\
+recursively calls vectensor() on all vectors listed, effectively taking the tensor product A1 cross A2 cross\'85cross AN and returning the result. This vector has elements\
+of the form \{A1_i, A2_j,\'85,An_k\}.\
 \
-tensor(B::Basis\'85),\
-tensor(B::TensorBasis\'85):	\
+separate(A::Vector)\
+returns a Vector\{Any\} whose elements are the component basis of A. Note that A must be a vector whose elements follow the tensor product structure outlined above (\{A1_i, A2_j,\'85,An_k\}). No checking is done to insure that this is so.\
+tensor\{S<:String, B<:AbstractBasis\}(name::S, bases::B...)\
 returns a TensorBasis formed from the input bases\
 \
-separate(B::TensorBasis):	\
-returns basis_array\
+components(B::TensorBasis)\
+returns B.basis_array\
 \
 extract(B::Basis, rules): \
 returns a new basis which is a subspace of B extracted using the given rules \
@@ -119,7 +132,10 @@ returns a new basis which is a subspace of B extracted using the given rules \
 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
 \pard\pardeftab720\sl240
 \cf0 \
-\
+\pard\pardeftab720\sl240
+
+\i \cf0 From here on out is just an amalgamation of random ideas, to be organized later.
+\i0 \
 \
 \
 Everything in Hilbert space is a state or an operator, and the Hilbert space itself can only be finitely described in terms of subspaces defined by bases. \

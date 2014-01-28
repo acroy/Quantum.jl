@@ -94,7 +94,7 @@ function tensor{S<:String, B<:AbstractBasis}(name::S, bases::B...)
 	return TensorBasis(name, tensor_array, basis_array) 
 end
 
-function separate(labels::Array)
+function separate(labels::Vector)
 	basis_num = length(labels[1])
 	bases = {}
 	for i=1:basis_num
