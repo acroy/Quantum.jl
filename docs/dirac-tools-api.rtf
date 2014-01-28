@@ -1,7 +1,7 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1265
 {\fonttbl\f0\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;\red132\green0\blue2;\red251\green0\blue7;}
-\margl1440\margr1440\vieww17100\viewh17840\viewkind1
+\margl1440\margr1440\vieww16800\viewh17840\viewkind1
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
 \f0\i\b\fs42 \cf0 DiracTools API
@@ -75,14 +75,15 @@ A basis is a mapping of labels onto the indices of a state vector representing a
 \i0 \
 type Basis\{Labels<:Any\}\
 	name::String\
-	label_dict::Dict\{Labels, Int\}	#gives position index of label for a vector in this basis\
-	label_array::Array\{Any\}	#stores labels as an array with proper index\
+	label_dict::Dict\{Labels, Int\}\
+	label_array::Array\{Any\}\
 end\
 \
-type TensorBasis\{Labels<:Any\} <: Basis\
+type TensorBasis <: Basis\
 	name::String\
-	label_dict::Dict\{\{Labels\'85,\}, \{Int\'85,\}\}\
-	basis_array::Array\{Basis\}	#stores bases as an array with proper index\
+	label_dict::Dict\{Array\{Any\}, Array\{Int\}\}\
+	label_array::Array\{Any\}\
+	basis_array::Array\{Basis\}\
 end\
 \
 
@@ -92,18 +93,28 @@ end\
 \i0 \cf0 Basis(name::String, labels::Dict\{Labels, Int\})\
 Basis(name::String, labels::Array\{Any\})\
 \
+TensorBasis(name::String, label_dict::Array\{Any\}, basis_array::Array\{Basis\})\
+TensorBasis(name::String, label_array::Array\{Any\}, basis_array::Array\{Basis\})\
 \pard\pardeftab720\sl240
 
-\i \cf0 Related Methods\
+\i \cf0 \
+Related Methods\
 \pard\pardeftab720\sl240
 
-\i0 \cf0 size(B::TensorBasis):	returns a tuple containing the dimensions of B\
+\i0 \cf0 vectensor(A::Vector, )\
+\
+tensor(A::Vector\'85)\
+computes vectensor() on all vectors listed and returns the whole tensor product\
 \
 tensor(B::Basis\'85),\
-tensor(B::TensorBasis\'85):	returns a TensorBasis formed from the input bases\
+tensor(B::TensorBasis\'85):	\
+returns a TensorBasis formed from the input bases\
 \
-separate(B::TensorBasis):	Returns a tuple of the component bases of B\
-extract(basis, rules): 	extract subspace using rules \
+separate(B::TensorBasis):	\
+returns basis_array\
+\
+extract(B::Basis, rules): \
+returns a new basis which is a subspace of B extracted using the given rules \
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
 \pard\pardeftab720\sl240

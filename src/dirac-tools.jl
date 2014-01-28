@@ -1,21 +1,26 @@
 module d
 
-#export Basis, Converter
-#export Basis, State, Converter
 #####Basis##########################################################
-type Basis{Labels<:Any}
-	name::String
-	labels::Dict{Labels, Int}
-	length::Int
+abstract AbstractBasis
+
+type Basis{S<:String, Labels<:Any} <: AbstractBasis
+	name::S
+	label_dict::Dict{Labels, Int}
+	label_array::Array
 end
+
 	#labels is of the form [label1=>index1,label2=>index2...]
-	function Basis{S<:String, K<:Any}(name::S, labels::Dict{K, Int64})
-		sorted_vals = sort(collect(values(labels)))
+	function Basis{S<:String, Labels<:Any}(name::S, label_dict::Dict{Labels, Int64})
+		sorted_vals = sort(collect(values(label_dict)))
 		max_index = last(sorted_vals)
 		test_vals = Set([1:max_index]...)
 		setdiff!(test_vals, Set(sorted_vals...))
 		if length(test_vals)==0
-			Basis(name, labels, max_index)
+			label_array = Array(Labels, max_index)
+			for i=1:max_index
+				label_array[i] = label_dict[i]
+			end
+			Basis(name, label_dict, label_array)
 		else
 			error("The following indices are unaccounted for: \n", string(sort([test_vals...])))
 		end
@@ -23,16 +28,42 @@ end
 
 	#label_array is of the form {label1,label2...}
 	function Basis{S<:String, A<:Array}(name::S, label_array::A)
-		labels = Dict{Any,Int64}()
-		labels["A"] = 1
+		label_dict = Dict{Any,Int}()
 		len=length(label_array)
-		sizehint(labels, len)
+		sizehint(label_dict, len)
 		for i=1:len
-			labels[label_array[i]] = i
+			label_dict[label_array[i]] = i
 		end
-		Basis(name, labels, len)
+		Basis(name, label_dict, label_array)
 	end
-#####Tensor##########################################################
+
+type TensorBasis{S<:String, B<:Basis} <: AbstractBasis
+	name::S
+	label_dict::Dict{Array, Int}
+	label_array::Array
+	basis_array::Array{B}
+end
+
+function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_dict::Dict{Array, Int}, basis_array::Array{B})
+	label_array = Array(Any, length(label_dict))
+	for i in label_dict
+		label_array[i[2]] = i[1]
+	end
+	TensorBasis(name, label_dict, label_array, basis_array)
+end
+
+function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_array::Array, basis_array::Array{B})
+	label_dict = Dict{Array, Int}()
+	len=length(label_array)
+	sizehint(label_dict, len)
+	for i=1:len
+		label_dict[label_array[i]] = i
+	end
+	TensorBasis(name, label_dict, label_array, basis_array)
+end
+
+#####TensorFunctions##########################################################
+
 function vectensor(A::Vector, B::Vector)
 	result_length = length(A)*length(B)
 	result = {{} for i=1:result_length}
@@ -47,23 +78,33 @@ function vectensor(A::Vector, B::Vector)
 	return result
 end
 
-function tensor(A::Array)
+function tensor(A::Vector...)
 	if length(A)==2
 		return vectensor(A[1], A[2])
 	else
 		a=A[1]
 		b=A[2]
-		tensor({vectensor(a,b), A[3:end]...})
+		tensor({vectensor(a,b), A[3:end]...}...)
 	end
 end
 
-function separate(A::Array)
-	basis_num = length(A[1])
+function tensor{S<:String, B<:AbstractBasis}(name::S, bases::B...)
+	basis_array = [bases...]
+	tensor_array = tensor({i.label_array for i in bases}...)
+	return TensorBasis(name, tensor_array, basis_array) 
+end
+
+function separate(labels::Array)
+	basis_num = length(labels[1])
 	bases = {}
 	for i=1:basis_num
-		push!(bases, unique({A[j][i] for j=1:length(A)}))
+		push!(bases, unique({labels[j][i] for j=1:length(labels)}))
 	end
 	return bases
+end
+
+function components(B::TensorBasis)
+	return B.basis_array
 end
 # #####State##########################################################
 # type State
