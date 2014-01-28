@@ -27,7 +27,8 @@ states in terms of those bases.
 
 Objectives
 ==========
-Design and implement a library in Julia that can perform the following tasks:
+
+###Design and implement a library in Julia that can perform the following tasks:
 	- basis, state, and operator instantiation
 	- basic arithmetic operations 
 	- application of selection rules to extract subspace
@@ -41,7 +42,7 @@ Design and implement a library in Julia that can perform the following tasks:
 	- commutation relations of operators
 
 
-I also have a small list of optional goals which I would like to attempt, but may not have time for in a single semester:
+###I also have a small list of optional goals which I would like to attempt, but may not have time for in a single semester:
 	- provide built-in REPL visualizations for DiracTools objects
 	- design a system for data visualization of common state properties/operations
 	- create a function that automatically generates an eigenbasis from an operator
