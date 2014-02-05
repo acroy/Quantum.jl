@@ -80,30 +80,16 @@
 # 	end
 # end
 
+inds = [1:4]
+bob = [[1:5], [6:11], [12:18], [19:24]]
+#f(inds, bob)==[1, 7, 14, 22]
 
-function vectensor(A::Vector, B::Vector)
-	result_length = length(A)*length(B)
-	result = {{} for i=1:result_length}
-	count = 1
-	for i in A
-		for j in B
-			push!(result[count], i...)
-			push!(result[count], j...)
-			count+=1
-		end
+function map_inds(inds, bob)
+	result = Array(Any, length(bob))
+	for i=1:length(bob)
+		result[i] = bob[i][inds[i]]
 	end
 	return result
 end
-
-function tensor(A::Array)
-	if length(A)==2
-		return vectensor(A[1], A[2])
-	else
-		a=A[1]
-		b=A[2]
-		tensor({vectensor(a,b), A[3:end]...})
-	end
-end
-
 
 

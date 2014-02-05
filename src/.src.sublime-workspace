@@ -4,6 +4,22 @@
 		"selected_items":
 		[
 			[
+				"ten",
+				"tensor"
+			],
+			[
+				"result",
+				"result"
+			],
+			[
+				"i",
+				"i"
+			],
+			[
+				"bas",
+				"basis_array"
+			],
+			[
 				"tensor",
 				"tensor_array"
 			],
@@ -62,10 +78,6 @@
 			[
 				"b",
 				"basis"
-			],
-			[
-				"i",
-				"i"
 			],
 			[
 				"res",
@@ -138,10 +150,6 @@
 			[
 				"coef",
 				"coeffs"
-			],
-			[
-				"bas",
-				"basis"
 			],
 			[
 				"K",
@@ -521,7 +529,7 @@
 	},
 	"input":
 	{
-		"height": 0.0
+		"height": 33.0
 	},
 	"layout":
 	{
@@ -562,6 +570,10 @@
 		[
 			[
 				"",
+				"dirac.jl"
+			],
+			[
+				"d",
 				"dirac-tools.jl"
 			],
 			[
@@ -714,7 +726,7 @@
 	"show_minimap": false,
 	"show_open_files": false,
 	"show_tabs": true,
-	"side_bar_visible": true,
-	"side_bar_width": 204.0,
+	"side_bar_visible": false,
+	"side_bar_width": 98.0,
 	"status_bar_visible": true
 }

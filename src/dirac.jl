@@ -39,60 +39,106 @@ end
 
 type TensorBasis{S<:String, B<:Basis} <: AbstractBasis
 	name::S
-	label_dict::Dict{Array, Int}
+	label_dict::Dict{Array{Any}, Int}
 	label_array::Array
 	basis_array::Array{B}
 end
 
-function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_dict::Dict{Array, Int}, basis_array::Array{B})
-	label_array = Array(Any, length(label_dict))
-	for i in label_dict
-		label_array[i[2]] = i[1]
+	function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_dict::Dict{Array, Int}, basis_array::Array{B})
+		label_array = Array(Any, length(label_dict))
+		for i in label_dict
+			label_array[i[2]] = i[1]
+		end
+		TensorBasis(name, label_dict, label_array, basis_array)
 	end
-	TensorBasis(name, label_dict, label_array, basis_array)
-end
 
-function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_array::Array, basis_array::Array{B})
-	label_dict = Dict{Array, Int}()
-	len=length(label_array)
-	sizehint(label_dict, len)
-	for i=1:len
-		label_dict[label_array[i]] = i
+	function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_array::Array, basis_array::Array{B})
+		label_dict = Dict{Array{Any}, Int}()
+		len=length(label_array[:, 1])
+		sizehint(label_dict, len)
+		for i=1:len
+			label_dict[label_array[i]] = i
+		end
+		TensorBasis(name, label_dict, label_array, basis_array)
 	end
-	TensorBasis(name, label_dict, label_array, basis_array)
-end
 
 #####TensorFunctions##########################################################
 
-function vectensor(A::Vector, B::Vector)
-	result_length = length(A)*length(B)
-	result = {{} for i=1:result_length}
-	count = 1
-	for i in A
-		for j in B
-			push!(result[count], i...)
-			push!(result[count], j...)
+#  function vectensor(A::Vector, B::Vector)
+# 	result = cell(length(A)*length(B))
+# 	count=1
+# 	for i=1:length(A)
+# 		for j=1:length(B)
+# 			result[count]= {A[i], B[j]}
+# 			count+=1
+# 		end
+# 	end
+# 	return result
+# end
+
+function vectensor(A::Array{Int}, B::Vector{Int})
+	width_A = length(A[1, :])
+	result = Array(Int, length(A[:,1])*length(B), width_A+1)
+	count=1
+	for i=1:length(A[:,1])
+		for j=1:length(B)
+			for k=1:width_A
+				result[count, k]= A[i, k]
+			end
+			result[count, end]=B[j]
 			count+=1
 		end
 	end
 	return result
 end
 
-function tensor(A::Vector...)
+function vectensor(A::Array{Int}...)
 	if length(A)==2
 		return vectensor(A[1], A[2])
 	else
-		a=A[1]
-		b=A[2]
-		tensor({vectensor(a,b), A[3:end]...}...)
+		vectensor(vectensor(A[1],A[2]), A[3:end]...)
 	end
 end
 
-function tensor{S<:String, B<:AbstractBasis}(name::S, bases::B...)
-	basis_array = [bases...]
-	tensor_array = tensor({i.label_array for i in bases}...)
-	return TensorBasis(name, tensor_array, basis_array) 
+function map_inds(inds::Array{Int}, arr::Array)
+	result = Array(Any, length(arr))
+	for i=1:length(inds)
+		result[i] = arr[i][inds[i]]
+	end
+	return result
 end
+
+function tensor(A::Array{Any})
+	lens = [length(i) for i in A]
+	result = cell(*(lens...))
+	inds_array = vectensor([[1:i] for i in lens]...)
+	for i=1:length(inds_array[:,1])
+		result[i] = map_inds(inds_array[i, :], A)
+	end
+	return result
+end
+
+# function tensor()
+# 	error("tensor() needs arguments of type A::Vector... or B<:AbstractBasis...")
+# end
+
+# function tensor(A::Vector...)
+# 	if length(A)==2
+# 		return vectensor(A[1], A[2])
+# 	else
+# 		tensor({vectensor(A[1],A[2]), A[3:end]...}...)
+# 	end
+# end
+
+# function tensor{S<:String, B<:AbstractBasis}(name::S, bases::B...)
+# 	tensor_array = tensor({i.label_array for i in bases}...)
+# 	return TensorBasis(name, tensor_array, [bases...]) 
+# end
+
+# function tensor{B<:AbstractBasis}(bases::B...)
+# 	name = ["_$(i.name)" for i in bases]
+# 	return tensor(string(name...)[2:end], bases...)
+# end
 
 function separate(labels::Vector)
 	basis_num = length(labels[1])
@@ -264,18 +310,29 @@ end
 end
 #####Tests##########################################################
 using d
+inds = [1:4]
+bob = {[1:5], [6:11], [12:18], [19:24]}
 
-A = d.Basis("A", [1:100]);
-B = d.Basis("B", [1:100]);
+# println("Creating bases")
+# tic();
+# A = d.Basis("A", [1:100]);
+# B = d.Basis("B", ["$i" for i=1:100]);
+# C = d.Basis("C", ["%", "\$", "#"]);
+# toc()
+# println("Taking tensor product of bases")
+# tic();
+# D = d.tensor(A, B, C);
+# toc()
+
 # coeffs1 = [1:100 1:100];
 # coeffs2 = [100:200 100:200];
 # conv = d.Converter(A, B, coeffs1);
 # d.add_conversion!(A, B, sparse(coeffs2), conv);
-dave = {{"A","B"},{1,2,3},{"#",";"},{4,5,6}};
-bob = {"A"=>("B", "E"),
-	   "B"=>("A", "C"),
-	   "C"=>("B", "E", "D"),
-	   "D"=>("C",),
-	   "E"=>("A","F","C"),
-	   "F"=>("E",)};
-;
+# dave = {{"A","B"},{1,2,3},{"#",";"},{4,5,6}};
+# bob = {"A"=>("B", "E"),
+# 	   "B"=>("A", "C"),
+# 	   "C"=>("B", "E", "D"),
+# 	   "D"=>("C",),
+# 	   "E"=>("A","F","C"),
+# 	   "F"=>("E",)};
+# ;
