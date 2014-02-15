@@ -1,7 +1,7 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1265
 {\fonttbl\f0\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;\red132\green0\blue2;\red251\green0\blue7;}
-\margl1440\margr1440\vieww16800\viewh17840\viewkind1
+\margl1440\margr1440\vieww13100\viewh12840\viewkind1
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
 \f0\i\b\fs42 \cf0 DiracTools API
@@ -16,7 +16,6 @@
 \b \cf0 Dependencies:
 \b0 \
 HDF5.jl\
-Graphs.jl\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
@@ -67,15 +66,11 @@ Description\
 A basis is a mapping of labels onto the indices of a state vector representing a given Hilbert subspace. The basis is literally a subspace that has been selected according to some labeling or behavioral pattern. It provides a label for each position in a given state vector. Another way of thinking about it: a basis contains the information needed to traverse a state graph, whose nodes are the states forming a given Hilbert subspace. \
 Taking the tensor product of Basis objects results in a new object of type TensorBasis, whose labels are built from combinations of the labels of the component bases. \
 ##########\
-\pard\pardeftab720\sl240
 
-\i \cf0 Definition\
-\pard\pardeftab720\sl240
+\i Implementation\
 
-\i0 \cf0 ##########
-\i \
-
-\i0 abstract AbstractBasis
+\i0 ##########\
+abstract AbstractBasis
 \i \
 
 \i0 \
@@ -91,14 +86,11 @@ type TensorBasis <: AbstractBasis\
 	label_array::Array\{Any\}\
 	basis_array::Array\{Basis\}\
 end\
-\
 ##########\
-\pard\pardeftab720\sl240
 
-\i \cf0 Constructors\
-\pard\pardeftab720\sl240
+\i Constructors\
 
-\i0 \cf0 ##########
+\i0 ##########
 \i \
 
 \i0 Basis\{S<:String, Labels<:Any\}(name::S, label_dict::Dict\{Labels, Int64\})\
@@ -118,23 +110,26 @@ tensor(A::Vector...)\
 recursively calls vectensor() on all vectors listed, effectively taking the tensor product A1 cross A2 cross\'85cross AN and returning the result. This vector has elements\
 of the form \{A1_i, A2_j,\'85,An_k\}.\
 \
-separate(A::Vector)\
-returns a Vector\{Any\} whose elements are the component basis of A. Note that A must be a vector whose elements follow the tensor product structure outlined above (\{A1_i, A2_j,\'85,An_k\}). No checking is done to insure that this is so.\
 tensor\{S<:String, B<:AbstractBasis\}(name::S, bases::B...)\
 returns a TensorBasis formed from the input bases\
 \
 components(B::TensorBasis)\
 returns B.basis_array\
 \
-extract(B::Basis, rules): \
-returns a new basis which is a subspace of B extracted using the given rules \
+extract(B::Basis, f::Function): #Note: filter based on label_dict, not label_arr\
+returns a sub-basis formed from the basis labels of B for which f(state)==true\
+\
+\pard\pardeftab720\sl240
+\cf0 extract(B::Basis, f::Function, o::Function):\
+performs extract(B, f), then orders the labels of the resulting sub-basis using o.\
+\pard\pardeftab720\sl240
+\cf0 \
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
 \pard\pardeftab720\sl240
 \cf0 \
-\pard\pardeftab720\sl240
 
-\i \cf0 From here on out is just an amalgamation of random ideas, to be organized later.
+\i From here on out is just an amalgamation of random ideas, to be organized later.
 \i0 \
 \
 \
@@ -223,7 +218,7 @@ end\
 \cf0 \
 \
 \pard\pardeftab720\sl240
-\cf0 \ul \ulc0 A Note on Tensor Structure\ulnone \
+\cf0 \ul A Note on Tensor Structure\ulnone \
 Tensoring together two states is a multiplication of sorts; \
 |A> = I+J+K\
 |B> = F+G+H\

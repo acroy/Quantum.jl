@@ -4,12 +4,60 @@
 		"selected_items":
 		[
 			[
-				"ten",
-				"tensor"
+				"tenso",
+				"tensor_labels"
+			],
+			[
+				"V",
+				"Vector"
+			],
+			[
+				"fli",
+				"flip_arr"
+			],
+			[
+				"label_",
+				"label_arr"
+			],
+			[
+				"D",
+				"D"
+			],
+			[
+				"len",
+				"length"
+			],
+			[
+				"A",
+				"Any"
+			],
+			[
+				"fl",
+				"flip_arr"
+			],
+			[
+				"b",
+				"basis"
+			],
+			[
+				"bais",
+				"basis_array"
+			],
+			[
+				"label",
+				"label_arr"
+			],
+			[
+				"re",
+				"return"
 			],
 			[
 				"result",
-				"result"
+				"result_length"
+			],
+			[
+				"ten",
+				"tensor"
 			],
 			[
 				"i",
@@ -22,10 +70,6 @@
 			[
 				"tensor",
 				"tensor_array"
-			],
-			[
-				"label",
-				"label_array"
 			],
 			[
 				"basis",
@@ -44,16 +88,8 @@
 				"TensorBasis"
 			],
 			[
-				"label_",
-				"label_dict"
-			],
-			[
 				"lab",
 				"label_dict"
-			],
-			[
-				"A",
-				"Array"
 			],
 			[
 				"sep",
@@ -68,16 +104,8 @@
 				"return"
 			],
 			[
-				"re",
-				"result"
-			],
-			[
 				"is",
 				"isempty"
-			],
-			[
-				"b",
-				"basis"
 			],
 			[
 				"res",
@@ -170,10 +198,6 @@
 			[
 				"As",
 				"ASCIIString"
-			],
-			[
-				"V",
-				"V"
 			],
 			[
 				"I",
@@ -296,10 +320,6 @@
 				"valcomp"
 			],
 			[
-				"D",
-				"D"
-			],
-			[
 				"pda",
 				"pdata"
 			],
@@ -318,10 +338,6 @@
 			[
 				"wri",
 				"writepure"
-			],
-			[
-				"fl",
-				"Float64"
 			],
 			[
 				"k",
@@ -370,10 +386,6 @@
 			[
 				"bi",
 				"bilist"
-			],
-			[
-				"len",
-				"length"
 			],
 			[
 				"str",
@@ -429,6 +441,8 @@
 	},
 	"file_history":
 	[
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/README.md",
 		"/Users/jarrettrevels/data/repos/qho-sim/README.md",
 		"/Users/jarrettrevels/data/.bashrc",
@@ -489,6 +503,8 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"assign",
+			"label_array",
 			"i",
 			"label_dict",
 			"basis_name",
@@ -511,6 +527,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"label_arr",
 			"labels",
 			"name",
 			"ket",
@@ -569,12 +586,20 @@
 		"selected_items":
 		[
 			[
-				"",
+				"dir",
 				"dirac.jl"
 			],
 			[
+				"",
+				"test.jl"
+			],
+			[
+				"t",
+				"test.jl"
+			],
+			[
 				"d",
-				"dirac-tools.jl"
+				"dirac.jl"
 			],
 			[
 				"di",

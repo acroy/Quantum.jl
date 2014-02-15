@@ -6,80 +6,88 @@ abstract AbstractBasis
 type Basis{S<:String, Labels<:Any} <: AbstractBasis
 	name::S
 	label_dict::Dict{Labels, Int}
-	label_array::Array
+	label_arr::Array
 end
 
 	#labels is of the form [label1=>index1,label2=>index2...]
-	function Basis{S<:String, Labels<:Any}(name::S, label_dict::Dict{Labels, Int64})
-		sorted_vals = sort(collect(values(label_dict)))
-		max_index = last(sorted_vals)
-		test_vals = Set([1:max_index]...)
-		setdiff!(test_vals, Set(sorted_vals...))
-		if length(test_vals)==0
-			label_array = Array(Labels, max_index)
-			for i=1:max_index
-				label_array[i] = label_dict[i]
+	function Basis{S<:String, Labels<:Any}(name::S, label_dict::Dict{Labels, Int64}, errors=true) 
+		if errors #errors==true will cause the function to validate indices of label_dict
+			sorted_vals = sort(collect(values(label_dict)))
+			test_vals = [1:last(sorted_vals)]
+			missing = setdiff(test_vals, sorted_vals)
+			if length(missing)!=0
+				error("Can't form label array - the following indices are unaccounted for: \n", repr(missing))
 			end
-			Basis(name, label_dict, label_array)
-		else
-			error("The following indices are unaccounted for: \n", string(sort([test_vals...])))
+		end	
+		label_arr = Array(Labels, last(sorted_vals))
+		for (k,v) in label_dict
+			label_arr[v] = k
 		end
+		Basis(name, label_dict, label_arr)
 	end
 
-	#label_array is of the form {label1,label2...}
-	function Basis{S<:String, A<:Array}(name::S, label_array::A)
+	#label_arr is of the form {label1,label2...}
+	function Basis{S<:String, A<:Array}(name::S, label_arr::A)
 		label_dict = Dict{Any,Int}()
-		len=length(label_array)
+		len=length(label_arr)
 		sizehint(label_dict, len)
 		for i=1:len
-			label_dict[label_array[i]] = i
+			label_dict[label_arr[i]] = i
 		end
-		Basis(name, label_dict, label_array)
+		Basis(name, label_dict, label_arr)
 	end
 
 type TensorBasis{S<:String, B<:Basis} <: AbstractBasis
 	name::S
-	label_dict::Dict{Array{Any}, Int}
-	label_array::Array
+	label_dict::Dict{Vector{Any}, Int}
+	label_arr::Array #storing this allows taking quicker tensor products
 	basis_array::Array{B}
 end
 
-	function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_dict::Dict{Array, Int}, basis_array::Array{B})
-		label_array = Array(Any, length(label_dict))
-		for i in label_dict
-			label_array[i[2]] = i[1]
+	function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_dict::Dict{Vector{Any}, Int}, basis_array::Array{B}; errors=true)
+		if errors #errors==true will cause the function to validate indices of label_dict
+			sorted_vals = sort(collect(values(label_dict)))
+			test_vals = [1:last(sorted_vals)]
+			missing = setdiff(test_vals, sorted_vals)
+			if length(missing)!=0
+				error("Can't form label array - the following indices are unaccounted for: \n", repr(missing))
+			end
+		end	
+		width = length(first(label_dict)[1])
+		label_arr = cell(length(label_dict), width)
+		for (k,v) in label_dict
+			for i=1:width
+				label_arr[v, i] = k[i]
+			end
 		end
-		TensorBasis(name, label_dict, label_array, basis_array)
+		TensorBasis(name, label_dict, label_arr, basis_array)
 	end
-
-	function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_array::Array, basis_array::Array{B})
-		label_dict = Dict{Array{Any}, Int}()
-		len=length(label_array[:, 1])
+	function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_arr::Array, basis_array::Array{B})
+		label_dict = Dict{Vector{Any}, Int}()
+		len=length(label_arr[:, 1])
 		sizehint(label_dict, len)
+		flip_arr = flip_rows(label_arr)
 		for i=1:len
-			label_dict[label_array[i]] = i
+			label_dict[flip_arr[i]] = i
 		end
-		TensorBasis(name, label_dict, label_array, basis_array)
+		TensorBasis(name, label_dict, label_arr, basis_array)
 	end
 
-#####TensorFunctions##########################################################
+#####BasisFunctions##########################################################
+function flip_rows{T<:Any}(arr::Array{T,2})
+	len::Int = length(arr[:,1])
+	flipped::Array{T,2} =arr.'
+	result::Vector{Vector} = Array(Vector, len)
+	for i=1:len
+		result[i] = flipped[:,i]
+	end
+	return result
+end
 
-#  function vectensor(A::Vector, B::Vector)
-# 	result = cell(length(A)*length(B))
-# 	count=1
-# 	for i=1:length(A)
-# 		for j=1:length(B)
-# 			result[count]= {A[i], B[j]}
-# 			count+=1
-# 		end
-# 	end
-# 	return result
-# end
-
-function vectensor(A::Array{Int}, B::Vector{Int})
-	width_A = length(A[1, :])
-	result = Array(Int, length(A[:,1])*length(B), width_A+1)
-	count=1
+function vectensor(A::Array, B::Vector)
+	width_A::Int = length(A[1, :])
+	result::Array = cell(length(A[:,1])*length(B), width_A+1)
+	count::Int = 1
 	for i=1:length(A[:,1])
 		for j=1:length(B)
 			for k=1:width_A
@@ -92,83 +100,70 @@ function vectensor(A::Array{Int}, B::Vector{Int})
 	return result
 end
 
-function vectensor(A::Array{Int}...)
+function tensor(A::Array...)
 	if length(A)==2
 		return vectensor(A[1], A[2])
 	else
-		vectensor(vectensor(A[1],A[2]), A[3:end]...)
+		tensor(vectensor(A[1],A[2]), A[3:end]...)
 	end
 end
 
-function map_inds(inds::Array{Int}, arr::Array)
-	result = Array(Any, length(arr))
-	for i=1:length(inds)
-		result[i] = arr[i][inds[i]]
-	end
-	return result
+function tensor() #preventing ambiguities
+	error("tensor() needs arguments of type A::Vector... or B<:AbstractBasis...")
 end
 
-function tensor(A::Array{Any})
-	lens = [length(i) for i in A]
-	result = cell(*(lens...))
-	inds_array = vectensor([[1:i] for i in lens]...)
-	for i=1:length(inds_array[:,1])
-		result[i] = map_inds(inds_array[i, :], A)
-	end
-	return result
+function tensor{B<:AbstractBasis}(bases::B...)
+	name = string(["_$(i.name)" for i in bases])
+	return tensor(name[2:end], bases...)
 end
 
-# function tensor()
-# 	error("tensor() needs arguments of type A::Vector... or B<:AbstractBasis...")
-# end
-
-# function tensor(A::Vector...)
-# 	if length(A)==2
-# 		return vectensor(A[1], A[2])
-# 	else
-# 		tensor({vectensor(A[1],A[2]), A[3:end]...}...)
-# 	end
-# end
-
-# function tensor{S<:String, B<:AbstractBasis}(name::S, bases::B...)
-# 	tensor_array = tensor({i.label_array for i in bases}...)
-# 	return TensorBasis(name, tensor_array, [bases...]) 
-# end
-
-# function tensor{B<:AbstractBasis}(bases::B...)
-# 	name = ["_$(i.name)" for i in bases]
-# 	return tensor(string(name...)[2:end], bases...)
-# end
-
-function separate(labels::Vector)
-	basis_num = length(labels[1])
-	bases = {}
-	for i=1:basis_num
-		push!(bases, unique({labels[j][i] for j=1:length(labels)}))
-	end
-	return bases
+function tensor{S<:String, B<:AbstractBasis}(name::S, bases::B...)
+	label_arr = tensor([i.label_arr for i in bases]...)
+	return TensorBasis(name, label_arr, [bases...])
 end
 
 function components(B::TensorBasis)
 	return B.basis_array
 end
+
+function extract(f::Function, B::Basis, name=B.name)
+	sub_arr = filter(f, B.label_arr)
+	return Basis(name, sub_arr)
+end
+
+function extract(f::Function, B::TensorBasis, name=B.name)
+	sub_arr = filter(f, collect(keys(B.label_dict)))
+	sub_dict = Dict{Vector{Any}, Int}() 
+	for i=1:length(sub_arr)#insertion sort FTW
+		j=i
+		while j>1 && B.label_dict[sub_arr[j-1]]>B.label_dict[sub_arr[j]]
+			el = sub_arr[j]
+			sub_arr[j] = sub_arr[j-1]
+			sub_arr[j-1] = el		
+		end
+	end
+	for i=1:length(sub_arr)
+		sub_dict[sub_arr[i]] = i
+	end
+	return TensorBasis(name, sub_dict, B.basis_array, errors=false)
+end
+
 # #####State##########################################################
-# type State
-# 	label::String
-# 	content::Dict{String, SparseMatrixCSC}
-# 	bases::Dict{String, Basis}
-# end
+type State
+	label::String
+	content::Dict{String, SparseMatrixCSC}
+	bases::Dict{String, Basis}
+end
 
 # 	#########content only
-# 	function State{S1<:String, S2<:String, M<:SparseMatrixCSC}(label::S1, content::Dict{S2,M})
-# 		warn("No basis provided! Assuming sparse coefficient arrays match given basis names")
-# 		bases = Dict{String, Basis}()
-# 		for i in keys(content)
-
-# 			bases[i] = Basis(i, )
-# 		end
-# 		State(coeff_dict, bases_dict)
-# 	end
+	function State{S1<:String, S2<:String, M<:SparseMatrixCSC}(label::S1, content::Dict{S2,M})
+		warn("No basis provided! Assuming sparse coefficient arrays match given basis names")
+		bases = Dict{String, Basis}()
+		for i in getkeys(content)
+			bases[i] = Basis(i, Dict{Any, Int}(), cell(length(content)))
+		end
+		State(label, content, bases_dict)
+	end
 
 # 	function State{S<:String, N<:Number}(coeff_dict::Dict{S, Array{N,1}})
 # 		warn("No basis provided! Assuming coefficient arrays match input bases")
@@ -310,19 +305,17 @@ end
 end
 #####Tests##########################################################
 using d
-inds = [1:4]
-bob = {[1:5], [6:11], [12:18], [19:24]}
 
-# println("Creating bases")
-# tic();
-# A = d.Basis("A", [1:100]);
-# B = d.Basis("B", ["$i" for i=1:100]);
-# C = d.Basis("C", ["%", "\$", "#"]);
-# toc()
-# println("Taking tensor product of bases")
-# tic();
-# D = d.tensor(A, B, C);
-# toc()
+println("Creating bases")
+tic();
+A = d.Basis("A", [1:100]);
+B = d.Basis("B", ["$i" for i=1:1000]);
+C = d.Basis("C", ["%", "\$", "#"]);
+toc()
+println("Taking tensor product of bases")
+tic();
+D = d.tensor(A, B, C);
+toc()
 
 # coeffs1 = [1:100 1:100];
 # coeffs2 = [100:200 100:200];
