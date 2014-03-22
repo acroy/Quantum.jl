@@ -1,16 +1,23 @@
-module d
+module m
+
+const lang = "\u27E8"
+const rang = "\u27E9"
+
+import Base.show
 
 #####Basis##########################################################
 abstract AbstractBasis
 
-type Basis{S<:String, Labels<:Any} <: AbstractBasis
-	name::S
-	label_dict::Dict{Labels, Int}
-	label_arr::Array
+immutable Basis{T} <: AbstractBasis
+	name::String
+	bra_sym::String
+	ket_sym::String
+	label_dict::Dict{T, Int}
+	label_arr::Array{T}
 end
 
 	#labels is of the form [label1=>index1,label2=>index2...]
-	function Basis{S<:String, Labels<:Any}(name::S, label_dict::Dict{Labels, Int64}, errors=true) 
+	function Basis{T}(name::String, label_dict::Dict{T, Int}; bra_sym=lang, ket_sym=rang, errors=true) 
 		if errors #errors==true will cause the function to validate indices of label_dict
 			sorted_vals = sort(collect(values(label_dict)))
 			test_vals = [1:last(sorted_vals)]
@@ -23,29 +30,39 @@ end
 		for (k,v) in label_dict
 			label_arr[v] = k
 		end
-		Basis(name, label_dict, label_arr)
+		Basis(name, bra_sym, ket_sym, label_dict, label_arr)
 	end
 
 	#label_arr is of the form {label1,label2...}
-	function Basis{S<:String, A<:Array}(name::S, label_arr::A)
-		label_dict = Dict{Any,Int}()
+	function Basis(name::String, label_arr::Array; bra_sym=lang, ket_sym=rang)
+		label_dict = Dict{eltype(label_arr),Int}()
 		len=length(label_arr)
 		sizehint(label_dict, len)
 		for i=1:len
 			label_dict[label_arr[i]] = i
 		end
-		Basis(name, label_dict, label_arr)
+		Basis(name, bra_sym, ket_sym, label_dict, label_arr)
 	end
 
-type TensorBasis{S<:String, B<:Basis} <: AbstractBasis
-	name::S
-	label_dict::Dict{Vector{Any}, Int}
-	label_arr::Array #storing this allows taking quicker tensor products
-	basis_array::Array{B}
+immutable TensorBasis{B<:Basis, V<:Vector} <: AbstractBasis
+	name::String
+	label_dict::Dict{V, Int}
+	label_arr::Array #memoization for future tensor products
+	basis_arr::Vector{B}
+	bra_sym::String
+	ket_sym::String
 end
 
-	function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_dict::Dict{Vector{Any}, Int}, basis_array::Array{B}; errors=true)
-		if errors #errors==true will cause the function to validate indices of label_dict
+	function TensorBasis{B<:Basis, V<:Vector}(name::String, label_dict::Dict{V, Int}, basis_arr::Array{B}; bra_sym=lang, ket_sym=rang, errors=true)
+		if errors #errors==true will cause the function to validate properties label_dict
+			if B==Basis  
+				vec_type = Any
+			else
+				vec_type = eltype(basis_arr[1].label_arr)
+			end
+			if eltype(label_dict)[1]!=Vector{vec_type}	
+	  			error("parameters of keys in label_dict must match parameters of Bases in basis_arr")
+	  		end
 			sorted_vals = sort(collect(values(label_dict)))
 			test_vals = [1:last(sorted_vals)]
 			missing = setdiff(test_vals, sorted_vals)
@@ -60,21 +77,35 @@ end
 				label_arr[v, i] = k[i]
 			end
 		end
-		TensorBasis(name, label_dict, label_arr, basis_array)
+		TensorBasis(name, label_dict, label_arr, basis_arr, bra_sym, ket_sym)
 	end
-	function TensorBasis{S<:String, B<:AbstractBasis}(name::S, label_arr::Array, basis_array::Array{B})
-		label_dict = Dict{Vector{Any}, Int}()
+
+	function TensorBasis{B<:Basis}(name::String, label_arr::Array, basis_arr::Vector{B}; bra_sym=lang, ket_sym=rang)
+		if B==Basis  
+			vec_type = Any
+		else
+			vec_type = eltype(basis_arr[1].label_dict)[1]
+		end
+		label_dict = Dict{Vector{vec_type}, Int}()
 		len=length(label_arr[:, 1])
 		sizehint(label_dict, len)
-		flip_arr = flip_rows(label_arr)
+		nest_arr = nest_rows(label_arr)
 		for i=1:len
-			label_dict[flip_arr[i]] = i
+			label_dict[nest_arr[i]] = i
 		end
-		TensorBasis(name, label_dict, label_arr, basis_array)
+		TensorBasis(name, label_dict, label_arr, basis_arr, bra_sym, ket_sym)
 	end
 
 #####BasisFunctions##########################################################
-function flip_rows{T<:Any}(arr::Array{T,2})
+function components(B::TensorBasis)
+	return B.basis_arr
+end
+
+function components(B::Basis)
+	return B
+end
+
+function nest_rows{T}(arr::Array{T,2})
 	len::Int = length(arr[:,1])
 	flipped::Array{T,2} =arr.'
 	result::Vector{Vector} = Array(Vector, len)
@@ -100,6 +131,18 @@ function vectensor(A::Array, B::Vector)
 	return result
 end
 
+function vectensor(A::Array, B::Array)
+	result = A;
+	for i=1:length(B[1,:])
+		result = vectensor(result,B[:,i])
+	end
+	return result
+end
+
+function tensor() #preventing ambiguities
+	error("tensor() needs arguments of type A::Vector... or AbstractBasis...")
+end
+
 function tensor(A::Array...)
 	if length(A)==2
 		return vectensor(A[1], A[2])
@@ -108,22 +151,19 @@ function tensor(A::Array...)
 	end
 end
 
-function tensor() #preventing ambiguities
-	error("tensor() needs arguments of type A::Vector... or B<:AbstractBasis...")
+function tensor(bases::AbstractBasis...; bra_sym=lang, ket_sym=rang)
+	name = string(["_$(i.name)" for i in bases]...)
+	return tensor(name[2:end], bases..., bra_sym=bra_sym, ket_sym=ket_sym)
 end
 
-function tensor{B<:AbstractBasis}(bases::B...)
-	name = string(["_$(i.name)" for i in bases])
-	return tensor(name[2:end], bases...)
-end
-
-function tensor{S<:String, B<:AbstractBasis}(name::S, bases::B...)
+function tensor(name::String, bases::AbstractBasis...; bra_sym=lang, ket_sym=rang)
 	label_arr = tensor([i.label_arr for i in bases]...)
-	return TensorBasis(name, label_arr, [bases...])
+	return TensorBasis(name, label_arr, vcat([components(i) for i in bases]...);  bra_sym=bra_sym, ket_sym=ket_sym)
 end
 
-function components(B::TensorBasis)
-	return B.basis_array
+function tensor(name::String, bases::AbstractBasis...; bra_sym=lang, ket_sym=rang)
+	label_arr = tensor([i.label_arr for i in bases]...)
+	return TensorBasis(name, label_arr, vcat([components(i) for i in bases]...);  bra_sym=bra_sym, ket_sym=ket_sym)
 end
 
 function extract(f::Function, B::Basis, name=B.name)
@@ -145,7 +185,7 @@ function extract(f::Function, B::TensorBasis, name=B.name)
 	for i=1:length(sub_arr)
 		sub_dict[sub_arr[i]] = i
 	end
-	return TensorBasis(name, sub_dict, B.basis_array, errors=false)
+	return TensorBasis(name, sub_dict, B.basis_arr, errors=false)
 end
 
 # #####State##########################################################
@@ -157,7 +197,7 @@ end
 
 # 	#########content only
 	function State{S1<:String, S2<:String, M<:SparseMatrixCSC}(label::S1, content::Dict{S2,M})
-		warn("No basis provided! Assuming sparse coefficient arrays match given basis names")
+		warn("Basis is implicit; assuming sparse coefficient arrays match given basis names")
 		bases = Dict{String, Basis}()
 		for i in getkeys(content)
 			bases[i] = Basis(i, Dict{Any, Int}(), cell(length(content)))
@@ -301,31 +341,33 @@ end
 
 #   	end
 
-#end module
+#####REPL Representation############################################
+function show(io::IO, b::AbstractBasis)
+	println("$(typeof(b))")
+	println("Name: $(b.name)")
+	println("$(length(b.label_arr[:,1])) Basis States:")
+	for i=1:length(b.label_arr[:,1])
+		println("| $(repr([b.label_arr[i, :]...])[2:end-1]) $(b.ket_sym)")
+	end
 end
+
+
+end #module
 #####Tests##########################################################
-using d
+using m
 
-println("Creating bases")
-tic();
-A = d.Basis("A", [1:100]);
-B = d.Basis("B", ["$i" for i=1:1000]);
-C = d.Basis("C", ["%", "\$", "#"]);
-toc()
-println("Taking tensor product of bases")
-tic();
-D = d.tensor(A, B, C);
-toc()
+function main()
+	A = m.Basis("A", [1:3])
+	B = m.Basis("B", ["$i" for i=1:3])
+	C = m.Basis("C", ["%", "\$", "#"])
+	D = m.tensor(A, B, C)
+	return (A,B,C,D)
+end
 
-# coeffs1 = [1:100 1:100];
-# coeffs2 = [100:200 100:200];
-# conv = d.Converter(A, B, coeffs1);
-# d.add_conversion!(A, B, sparse(coeffs2), conv);
-# dave = {{"A","B"},{1,2,3},{"#",";"},{4,5,6}};
-# bob = {"A"=>("B", "E"),
-# 	   "B"=>("A", "C"),
-# 	   "C"=>("B", "E", "D"),
-# 	   "D"=>("C",),
-# 	   "E"=>("A","F","C"),
-# 	   "F"=>("E",)};
-# ;
+res = main();
+a = res[1]
+b = res[2]
+c = res[3]
+d = res[4]
+println("")
+

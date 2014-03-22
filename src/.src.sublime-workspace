@@ -4,16 +4,96 @@
 		"selected_items":
 		[
 			[
+				"B",
+				"Bar"
+			],
+			[
+				"A",
+				"Any"
+			],
+			[
+				"el",
+				"eltype"
+			],
+			[
+				"T",
+				"T"
+			],
+			[
+				"key",
+				"ket_sym"
+			],
+			[
+				"ke",
+				"ket_sym"
+			],
+			[
+				"label",
+				"label_arr"
+			],
+			[
+				"lab",
+				"label_arr"
+			],
+			[
+				"fli",
+				"flip_rows1"
+			],
+			[
+				"len",
+				"len"
+			],
+			[
+				"fl",
+				"flatten2D"
+			],
+			[
+				"c",
+				"c"
+			],
+			[
+				"comp",
+				"components"
+			],
+			[
+				"com",
+				"components"
+			],
+			[
+				"ba",
+				"bases"
+			],
+			[
+				"m",
+				"m"
+			],
+			[
+				"a",
+				"already"
+			],
+			[
+				"Pro",
+				"ProfileView"
+			],
+			[
+				"sub",
+				"sub_arr"
+			],
+			[
+				"la",
+				"label_dict"
+			],
+			[
+				"bass",
+				"basis_array"
+			],
+			[
 				"tenso",
 				"tensor_labels"
 			],
 			[
 				"V",
 				"Vector"
-			],
-			[
-				"fli",
-				"flip_arr"
 			],
 			[
 				"label_",
@@ -24,28 +104,12 @@
 				"D"
 			],
 			[
-				"len",
-				"length"
-			],
-			[
-				"A",
-				"Any"
-			],
-			[
-				"fl",
-				"flip_arr"
-			],
-			[
 				"b",
 				"basis"
 			],
 			[
 				"bais",
 				"basis_array"
-			],
-			[
-				"label",
-				"label_arr"
 			],
 			[
 				"re",
@@ -76,20 +140,12 @@
 				"basis_array"
 			],
 			[
-				"ba",
-				"basis_array"
-			],
-			[
 				"labe",
 				"label_array"
 			],
 			[
 				"Te",
 				"TensorBasis"
-			],
-			[
-				"lab",
-				"label_dict"
 			],
 			[
 				"sep",
@@ -160,10 +216,6 @@
 				"neighbors"
 			],
 			[
-				"c",
-				"conv"
-			],
-			[
 				"co",
 				"coeffs"
 			],
@@ -212,10 +264,6 @@
 				"spval"
 			],
 			[
-				"bass",
-				"bases_dict"
-			],
-			[
 				"coeff",
 				"coeff_dict"
 			],
@@ -226,10 +274,6 @@
 			[
 				"max",
 				"max_index"
-			],
-			[
-				"la",
-				"labels"
 			],
 			[
 				"di",
@@ -268,24 +312,12 @@
 				"readdict"
 			],
 			[
-				"comp",
-				"complex"
-			],
-			[
 				"append",
 				"appendlist"
 			],
 			[
-				"a",
-				"append"
-			],
-			[
 				"cy",
 				"cylco"
-			],
-			[
-				"ke",
-				"ketlist"
 			],
 			[
 				"l",
@@ -358,10 +390,6 @@
 			[
 				"en",
 				"energy"
-			],
-			[
-				"m",
-				"mat"
 			],
 			[
 				"n",
@@ -442,6 +470,7 @@
 	"file_history":
 	[
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
+		"/Users/jarrettrevels/data/comp-sci/operating-systems/helloworld-project/kernel.c",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/README.md",
 		"/Users/jarrettrevels/data/repos/qho-sim/README.md",
@@ -503,6 +532,9 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"basis_array",
+			"flip",
+			"<:Any",
 			"assign",
 			"label_array",
 			"i",
@@ -527,6 +559,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"basis_arr",
 			"label_arr",
 			"labels",
 			"name",
@@ -586,7 +619,15 @@
 		"selected_items":
 		[
 			[
+				"te",
+				"test.jl"
+			],
+			[
 				"dir",
+				"dirac.jl"
+			],
+			[
+				"d",
 				"dirac.jl"
 			],
 			[
@@ -594,16 +635,12 @@
 				"test.jl"
 			],
 			[
-				"t",
-				"test.jl"
-			],
-			[
-				"d",
+				"di",
 				"dirac.jl"
 			],
 			[
-				"di",
-				"dirac-tools.jl"
+				"t",
+				"test.jl"
 			],
 			[
 				"coeff",
