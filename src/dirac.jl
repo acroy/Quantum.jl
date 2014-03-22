@@ -4,7 +4,11 @@ const lang = "\u27E8"
 const rang = "\u27E9"
 
 import Base.show
-
+import Base.getindex
+import Base.ndims
+import Base.size
+import Base.length
+import Base.slice
 #####Basis##########################################################
 abstract AbstractBasis
 
@@ -341,7 +345,7 @@ end
 
 #   	end
 
-#####REPL Representation############################################
+#####Base.function Overloading############################################
 function show(io::IO, b::AbstractBasis)
 	println("$(typeof(b))")
 	println("Name: $(b.name)")
@@ -350,6 +354,14 @@ function show(io::IO, b::AbstractBasis)
 		println("| $(repr([b.label_arr[i, :]...])[2:end-1]) $(b.ket_sym)")
 	end
 end
+
+length(b::AbstractBasis) = length(b.label_dict)
+size(b::AbstractBasis) = size(b.label_arr)
+ndims(b::AbstractBasis) = ndims(b.label_arr)
+getindex(b::TensorBasis, x::Int) = TensorBasis("$(b.name)_$x", b.label_arr[x,:], b.basis_arr, bra_sym=b.bra_sym, ket_sym=b.ket_sym)
+getindex(b::TensorBasis, x::Range1{Int}) = TensorBasis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", b.label_arr[x,:], b.basis_arr, bra_sym=b.bra_sym, ket_sym=b.ket_sym)
+getindex(b::Basis, x::Int) = Basis("$(b.name)_$x", b.label_arr[x,:], bra_sym=b.bra_sym, ket_sym=b.ket_sym)
+getindex(b::Basis, x::Range1{Int}) = Basis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", b.label_arr[x,:], bra_sym=b.bra_sym, ket_sym=b.ket_sym)
 
 
 end #module
