@@ -1,4 +1,6 @@
+
 module m
+include("rep.jl")
 
 const lang = "\u27E8"
 const rang = "\u27E9"
@@ -9,6 +11,51 @@ import Base.ndims
 import Base.size
 import Base.length
 import Base.slice
+#####Utility##########################################################
+function todict(A::Array)
+	res = Dict{Tuple,Int}()
+	sizehint(res, size(A,1))
+	for i=1:size(A,1)
+		res[A[i,:]...] = i
+	end
+	return res
+end	
+
+function todict(A::Vector)
+	res = Dict{eltype(A),Int}()
+	len=length(A)
+	sizehint(res, len)
+	for i=1:len
+		res[A[i]] = i
+	end
+	return res
+end	
+
+function crossjoin(A::Array, B::Vector)
+    r1, r2 = size(A, 1), size(B, 1)
+    columns = [[rep(A[:,c], 1, r2) for c=1:size(A,2)],
+               [rep(B[:,c], r1, 1) for c=1:size(B,2)]]
+    hcat(columns...)
+end
+
+function crossjoin(A::Array, B::Array)
+	result = A;
+	for i=1:length(B[1,:])
+		result = crossjoin(result,B[:,i])
+	end
+	return result
+end
+
+tensor()=error("tensor() needs an argument of the form A::Array...")
+
+function tensor(arr::Array...)
+	if length(arr) == 2
+		return crossjoin(arr[1], arr[2])
+	else
+		tensor(crossjoin(arr[1], arr[2]), arr[3:end]...)
+	end
+end
+
 #####Basis##########################################################
 abstract AbstractBasis
 
@@ -16,88 +63,42 @@ immutable Basis{T} <: AbstractBasis
 	name::String
 	bra_sym::String
 	ket_sym::String
-	label_dict::Dict{T, Int}
+	label_map::Dict{T, Int}
 	label_arr::Array{T}
 end
 
-	#labels is of the form [label1=>index1,label2=>index2...]
-	function Basis{T}(name::String, label_dict::Dict{T, Int}; bra_sym=lang, ket_sym=rang, errors=true) 
-		if errors #errors==true will cause the function to validate indices of label_dict
-			sorted_vals = sort(collect(values(label_dict)))
-			test_vals = [1:last(sorted_vals)]
-			missing = setdiff(test_vals, sorted_vals)
-			if length(missing)!=0
-				error("Can't form label array - the following indices are unaccounted for: \n", repr(missing))
-			end
-		end	
-		label_arr = Array(Labels, last(sorted_vals))
-		for (k,v) in label_dict
-			label_arr[v] = k
-		end
-		Basis(name, bra_sym, ket_sym, label_dict, label_arr)
-	end
-
 	#label_arr is of the form {label1,label2...}
 	function Basis(name::String, label_arr::Array; bra_sym=lang, ket_sym=rang)
-		label_dict = Dict{eltype(label_arr),Int}()
-		len=length(label_arr)
-		sizehint(label_dict, len)
-		for i=1:len
-			label_dict[label_arr[i]] = i
-		end
-		Basis(name, bra_sym, ket_sym, label_dict, label_arr)
+		label_map = todict(label_arr)
+		Basis(name, bra_sym, ket_sym, label_map, label_arr)
 	end
 
-immutable TensorBasis{B<:Basis, V<:Vector} <: AbstractBasis
+immutable TensorBasis{B<:Basis} <: AbstractBasis
 	name::String
-	label_dict::Dict{V, Int}
+	label_map::Dict{Tuple, Int}
 	label_arr::Array #memoization for future tensor products
 	basis_arr::Vector{B}
 	bra_sym::String
 	ket_sym::String
 end
 
-	function TensorBasis{B<:Basis, V<:Vector}(name::String, label_dict::Dict{V, Int}, basis_arr::Array{B}; bra_sym=lang, ket_sym=rang, errors=true)
-		if errors #errors==true will cause the function to validate properties label_dict
-			if B==Basis  
-				vec_type = Any
-			else
-				vec_type = eltype(basis_arr[1].label_arr)
-			end
-			if eltype(label_dict)[1]!=Vector{vec_type}	
-	  			error("parameters of keys in label_dict must match parameters of Bases in basis_arr")
-	  		end
-			sorted_vals = sort(collect(values(label_dict)))
-			test_vals = [1:last(sorted_vals)]
-			missing = setdiff(test_vals, sorted_vals)
-			if length(missing)!=0
-				error("Can't form label array - the following indices are unaccounted for: \n", repr(missing))
-			end
-		end	
-		width = length(first(label_dict)[1])
-		label_arr = cell(length(label_dict), width)
-		for (k,v) in label_dict
-			for i=1:width
-				label_arr[v, i] = k[i]
-			end
-		end
-		TensorBasis(name, label_dict, label_arr, basis_arr, bra_sym, ket_sym)
+	function TensorBasis{B<:Basis}(name::String, label_arr::Array, basis_arr::Vector{B}; bra_sym=lang, ket_sym=rang)
+		label_map = todict(label_arr)
+		TensorBasis(name, label_map, label_arr, basis_arr, bra_sym, ket_sym)
 	end
 
-	function TensorBasis{B<:Basis}(name::String, label_arr::Array, basis_arr::Vector{B}; bra_sym=lang, ket_sym=rang)
-		if B==Basis  
-			vec_type = Any
-		else
-			vec_type = eltype(basis_arr[1].label_dict)[1]
-		end
-		label_dict = Dict{Vector{vec_type}, Int}()
-		len=length(label_arr[:, 1])
-		sizehint(label_dict, len)
-		nest_arr = nest_rows(label_arr)
-		for i=1:len
-			label_dict[nest_arr[i]] = i
-		end
-		TensorBasis(name, label_dict, label_arr, basis_arr, bra_sym, ket_sym)
+	function TensorBasis{B<:Basis}(name::String, basis_arr::Vector{B}; bra_sym=lang, ket_sym=rang)
+		label_arr = tensor([i.label_arr for i in basis_arr]...)
+		TensorBasis(name, label_arr, basis_arr, bra_sym=bra_sym, ket_sym=ket_sym)
+	end
+
+	function TensorBasis{B<:Basis}(basis_arr::Vector{B}; bra_sym=lang, ket_sym=rang)
+		name = string(["_$(i.name)" for i in basis_arr]...)
+		TensorBasis(name[2:end], basis_arr, bra_sym=bra_sym, ket_sym=ket_sym)
+	end
+
+	function tensor(bases::AbstractBasis...)
+		TensorBasis(vcat([components(i) for i in bases]...))
 	end
 
 #####BasisFunctions##########################################################
@@ -109,65 +110,31 @@ function components(B::Basis)
 	return B
 end
 
-function nest_rows{T}(arr::Array{T,2})
-	len::Int = length(arr[:,1])
-	flipped::Array{T,2} =arr.'
-	result::Vector{Vector} = Array(Vector, len)
-	for i=1:len
-		result[i] = flipped[:,i]
-	end
-	return result
-end
+# function extract(f::Function, B::TensorBasis, name=B.name)
+# 	sub_arr = filter(f, collect(keys(B.label_map)))
+# 	sub_dict = Dict{Vector, Int}() 
+# 	for i=1:length(sub_arr)#insertion sort for order consistency
+# 		j=i
+# 		while j>1 && B.label_map[sub_arr[j-1]]>B.label_map[sub_arr[j]]
+# 			el = sub_arr[j]
+# 			sub_arr[j] = sub_arr[j-1]
+# 			sub_arr[j-1] = el		
+# 		end
+# 	end
+# 	for i=1:length(sub_arr)
+# 		sub_dict[sub_arr[i]] = i
+# 	end
+# 	return TensorBasis(name, sub_dict, sub_arr, B.basis_arr, errors=false)
+# end
 
-function vectensor(A::Array, B::Vector)
-	width_A::Int = length(A[1, :])
-	result::Array = cell(length(A[:,1])*length(B), width_A+1)
-	count::Int = 1
-	for i=1:length(A[:,1])
-		for j=1:length(B)
-			for k=1:width_A
-				result[count, k]= A[i, k]
-			end
-			result[count, end]=B[j]
-			count+=1
-		end
-	end
-	return result
-end
-
-function vectensor(A::Array, B::Array)
-	result = A;
-	for i=1:length(B[1,:])
-		result = vectensor(result,B[:,i])
-	end
-	return result
-end
-
-function tensor() #preventing ambiguities
-	error("tensor() needs arguments of type A::Vector... or AbstractBasis...")
-end
-
-function tensor(A::Array...)
-	if length(A)==2
-		return vectensor(A[1], A[2])
-	else
-		tensor(vectensor(A[1],A[2]), A[3:end]...)
-	end
-end
-
-function tensor(bases::AbstractBasis...; bra_sym=lang, ket_sym=rang)
-	name = string(["_$(i.name)" for i in bases]...)
-	return tensor(name[2:end], bases..., bra_sym=bra_sym, ket_sym=ket_sym)
-end
-
-function tensor(name::String, bases::AbstractBasis...; bra_sym=lang, ket_sym=rang)
-	label_arr = tensor([i.label_arr for i in bases]...)
-	return TensorBasis(name, label_arr, vcat([components(i) for i in bases]...);  bra_sym=bra_sym, ket_sym=ket_sym)
-end
-
-function tensor(name::String, bases::AbstractBasis...; bra_sym=lang, ket_sym=rang)
-	label_arr = tensor([i.label_arr for i in bases]...)
-	return TensorBasis(name, label_arr, vcat([components(i) for i in bases]...);  bra_sym=bra_sym, ket_sym=ket_sym)
+function extract(f::Function, A::Array)
+    res = Array(eltype(A), 0)
+    for i=1:size(A,1)
+	    if f(A[i, :])
+            push!(res, A[i,:])
+        end
+    end
+    return vcat(res...)
 end
 
 function extract(f::Function, B::Basis, name=B.name)
@@ -175,21 +142,9 @@ function extract(f::Function, B::Basis, name=B.name)
 	return Basis(name, sub_arr)
 end
 
-function extract(f::Function, B::TensorBasis, name=B.name)
-	sub_arr = filter(f, collect(keys(B.label_dict)))
-	sub_dict = Dict{Vector{Any}, Int}() 
-	for i=1:length(sub_arr)#insertion sort FTW
-		j=i
-		while j>1 && B.label_dict[sub_arr[j-1]]>B.label_dict[sub_arr[j]]
-			el = sub_arr[j]
-			sub_arr[j] = sub_arr[j-1]
-			sub_arr[j-1] = el		
-		end
-	end
-	for i=1:length(sub_arr)
-		sub_dict[sub_arr[i]] = i
-	end
-	return TensorBasis(name, sub_dict, B.basis_arr, errors=false)
+function extract(f::Function, B::TensorBasis)
+	sub_arr = extract(f, B.label_arr)
+	return TensorBasis(B.name, sub_arr, B.basis_arr, bra_sym=B.bra_sym, ket_sym=B.ket_sym)
 end
 
 # #####State##########################################################
@@ -355,14 +310,13 @@ function show(io::IO, b::AbstractBasis)
 	end
 end
 
-length(b::AbstractBasis) = length(b.label_dict)
+length(b::AbstractBasis) = size(b.label_arr, 1)
 size(b::AbstractBasis) = size(b.label_arr)
 ndims(b::AbstractBasis) = ndims(b.label_arr)
 getindex(b::TensorBasis, x::Int) = TensorBasis("$(b.name)_$x", b.label_arr[x,:], b.basis_arr, bra_sym=b.bra_sym, ket_sym=b.ket_sym)
 getindex(b::TensorBasis, x::Range1{Int}) = TensorBasis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", b.label_arr[x,:], b.basis_arr, bra_sym=b.bra_sym, ket_sym=b.ket_sym)
 getindex(b::Basis, x::Int) = Basis("$(b.name)_$x", b.label_arr[x,:], bra_sym=b.bra_sym, ket_sym=b.ket_sym)
 getindex(b::Basis, x::Range1{Int}) = Basis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", b.label_arr[x,:], bra_sym=b.bra_sym, ket_sym=b.ket_sym)
-
 
 end #module
 #####Tests##########################################################
