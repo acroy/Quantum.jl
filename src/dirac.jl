@@ -11,24 +11,16 @@ import Base.ndims
 import Base.size
 import Base.length
 import Base.slice
+import Base.+
+import Base.-
+import Base.in
 #####Utility##########################################################
-function todict(A::Array)
-	res = Dict{Tuple,Int}()
-	sizehint(res, size(A,1))
+function todict(A::Array; d=Dict{eltype(A),Int}())
+	sizehint(d, size(A,1))
 	for i=1:size(A,1)
-		res[A[i,:]...] = i
+		d[A[i,:]...] = i
 	end
-	return res
-end	
-
-function todict(A::Vector)
-	res = Dict{eltype(A),Int}()
-	len=length(A)
-	sizehint(res, len)
-	for i=1:len
-		res[A[i]] = i
-	end
-	return res
+	return d
 end	
 
 function crossjoin(A::Array, B::Vector)
@@ -83,7 +75,7 @@ immutable TensorBasis{B<:Basis} <: AbstractBasis
 end
 
 	function TensorBasis{B<:Basis}(name::String, label_arr::Array, basis_arr::Vector{B}; bra_sym=lang, ket_sym=rang)
-		label_map = todict(label_arr)
+		label_map = todict(label_arr, d=Dict{Tuple, Int}())
 		TensorBasis(name, label_map, label_arr, basis_arr, bra_sym, ket_sym)
 	end
 
@@ -110,23 +102,6 @@ function components(B::Basis)
 	return B
 end
 
-# function extract(f::Function, B::TensorBasis, name=B.name)
-# 	sub_arr = filter(f, collect(keys(B.label_map)))
-# 	sub_dict = Dict{Vector, Int}() 
-# 	for i=1:length(sub_arr)#insertion sort for order consistency
-# 		j=i
-# 		while j>1 && B.label_map[sub_arr[j-1]]>B.label_map[sub_arr[j]]
-# 			el = sub_arr[j]
-# 			sub_arr[j] = sub_arr[j-1]
-# 			sub_arr[j-1] = el		
-# 		end
-# 	end
-# 	for i=1:length(sub_arr)
-# 		sub_dict[sub_arr[i]] = i
-# 	end
-# 	return TensorBasis(name, sub_dict, sub_arr, B.basis_arr, errors=false)
-# end
-
 function extract(f::Function, A::Array)
     res = Array(eltype(A), 0)
     for i=1:size(A,1)
@@ -137,14 +112,14 @@ function extract(f::Function, A::Array)
     return vcat(res...)
 end
 
-function extract(f::Function, B::Basis, name=B.name)
+function extract(f::Function, B::Basis; name=B.name)
 	sub_arr = filter(f, B.label_arr)
 	return Basis(name, sub_arr)
 end
 
-function extract(f::Function, B::TensorBasis)
+function extract(f::Function, B::TensorBasis; name=B.name)
 	sub_arr = extract(f, B.label_arr)
-	return TensorBasis(B.name, sub_arr, B.basis_arr, bra_sym=B.bra_sym, ket_sym=B.ket_sym)
+	return TensorBasis(name, sub_arr, B.basis_arr, bra_sym=B.bra_sym, ket_sym=B.ket_sym)
 end
 
 # #####State##########################################################
@@ -310,13 +285,19 @@ function show(io::IO, b::AbstractBasis)
 	end
 end
 
-length(b::AbstractBasis) = size(b.label_arr, 1)
-size(b::AbstractBasis) = size(b.label_arr)
+size(b::AbstractBasis, x::Int...) = size(b.label_arr, x...)
+length(b::AbstractBasis) = size(b, 1)
 ndims(b::AbstractBasis) = ndims(b.label_arr)
+in(a, b::Basis)=in(a, collect(keys(b.label_map)))
+in(a, b::TensorBasis)=in(tuple(a...), collect(keys(b.label_map)))
 getindex(b::TensorBasis, x::Int) = TensorBasis("$(b.name)_$x", b.label_arr[x,:], b.basis_arr, bra_sym=b.bra_sym, ket_sym=b.ket_sym)
 getindex(b::TensorBasis, x::Range1{Int}) = TensorBasis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", b.label_arr[x,:], b.basis_arr, bra_sym=b.bra_sym, ket_sym=b.ket_sym)
 getindex(b::Basis, x::Int) = Basis("$(b.name)_$x", b.label_arr[x,:], bra_sym=b.bra_sym, ket_sym=b.ket_sym)
 getindex(b::Basis, x::Range1{Int}) = Basis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", b.label_arr[x,:], bra_sym=b.bra_sym, ket_sym=b.ket_sym)
++(a::Basis,b::Basis) = Basis("$(a.name)+$(b.name)", vcat(a.label_arr,b.label_arr), bra_sym=a.bra_sym, ket_sym=a.ket_sym)
++(a::TensorBasis,b::TensorBasis) = size(a,2)==size(b,2) ? TensorBasis("$(a.name)+$(b.name)", vcat(a.label_arr,b.label_arr), bra_sym=a.bra_sym, ket_sym=a.ket_sym) : error("dimension mismatch; label lengths differ")
+-(a::Basis,b::Basis) = extract(x->!in(x,b), a, name="$(a.name)-$(b.name)")
+-(a::TensorBasis,b::TensorBasis) = size(a,2)==size(b,2) ? extract(x->!in(x,b),a, name="$(a.name)-$(b.name)") : error("dimension mismatch; label lengths differ")
 
 end #module
 #####Tests##########################################################
