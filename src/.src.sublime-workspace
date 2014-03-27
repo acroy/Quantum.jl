@@ -4,8 +4,24 @@
 		"selected_items":
 		[
 			[
+				"S",
+				"STRING"
+			],
+			[
+				"b",
+				"b"
+			],
+			[
 				"B",
-				"Bar"
+				"Base"
+			],
+			[
+				"label",
+				"label_map"
+			],
+			[
+				"lab",
+				"label_map"
 			],
 			[
 				"A",
@@ -26,14 +42,6 @@
 			[
 				"ke",
 				"ket_sym"
-			],
-			[
-				"label",
-				"label_arr"
-			],
-			[
-				"lab",
-				"label_arr"
 			],
 			[
 				"fli",
@@ -102,10 +110,6 @@
 			[
 				"D",
 				"D"
-			],
-			[
-				"b",
-				"basis"
 			],
 			[
 				"bais",
@@ -198,10 +202,6 @@
 			[
 				"con",
 				"conv"
-			],
-			[
-				"S",
-				"String"
 			],
 			[
 				"e",
@@ -469,6 +469,7 @@
 	},
 	"file_history":
 	[
+		"/Users/jarrettrevels/test.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
 		"/Users/jarrettrevels/data/comp-sci/operating-systems/helloworld-project/kernel.c",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
@@ -532,6 +533,7 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"todict",
 			"basis_array",
 			"flip",
 			"<:Any",
@@ -619,15 +621,15 @@
 		"selected_items":
 		[
 			[
+				"d",
+				"dirac.jl"
+			],
+			[
 				"te",
 				"test.jl"
 			],
 			[
 				"dir",
-				"dirac.jl"
-			],
-			[
-				"d",
 				"dirac.jl"
 			],
 			[

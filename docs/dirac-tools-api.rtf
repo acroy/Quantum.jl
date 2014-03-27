@@ -26,12 +26,13 @@ HDF5.jl\
 
 \b0 \cf0 Finished:\
 	- basis instantiation\
+	- automatic basis redundancy reduction (remove redundant labels upon basis 	  instantiation)\
 	- tensor product structure for bases\
 	- application of selection rules to extract arbitrary subspaces\
+	- normalization function (for vectors of numbers, not states yet)\
 \
-In progress:\
-	- refactor label_dict and related methods (i.e. extract) using the DataFrames\
-	  package\
+In progress/Current Issues:\
+	- Composite states (states of multiple bases)\
 Proposed:\
 	- state instantiation\
 	- operator instantiation\
@@ -162,7 +163,7 @@ abstract \cf2 AbstractState
 \i0 \
 type \cf2 State\cf0 \{Labels<:Any\} <: AbstractBasis\
 	name::String\
-	label_dict::Dict\{Labels, Int\}\
+	coeffs::Dict\{, Int\}\
 	label_array::Array\{Any\}\
 end\
 \
@@ -174,11 +175,30 @@ type \cf2 ParamState\{T\}\cf0  <: AbstractBasis\
 end\
 \pard\pardeftab720
 \cf0 \
-\
 \pard\pardeftab720\sl240
-\cf0 typeof(bob.label): Any\
-typeof(bob.content): Dict\{Basis Name, Array\{Any\}\}:\'94basis 1\'94 => \{vector\}\
-typeof(bob.bases): Dict\{Basis Name, Basis\}\
+\cf0 \
+
+\b Related Methods\
+\pard\pardeftab720\sl240
+
+\b0 \cf3 normalize\cf0 (S::State)\
+normalizes the coefficients of S\
+\
+\cf3 tensor\cf0 (A::Vector...)\
+recursively calls vectensor() on all vectors listed, effectively taking the tensor product A1 cross A2 cross\'85cross AN and returning the result. This vector has elements\
+of the form \{A1_i, A2_j,\'85,An_k\}.\
+\
+\cf3 tensor\cf0 \{S<:String, B<:AbstractBasis\}(name::S, bases::B...)\
+returns a TensorBasis formed from the input bases\
+\
+\cf3 components\cf0 (B::TensorBasis)\
+returns B.basis_array\
+\
+\cf4 extract\cf0 \{B::AbstractBasis\}(B<:Basis, f::Function, name=B.name): \
+#Note: filter based on label_dict, not label_arr\
+returns a sub-basis formed from the basis labels of B for which f(label)==true. The ordering of the sub-basis follows that of the original basis\
+\pard\pardeftab720\sl240
+\cf0 \
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
 \pard\pardeftab720\sl240

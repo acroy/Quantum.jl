@@ -1,19 +1,20 @@
-
 module m
 include("rep.jl")
 
 const lang = "\u27E8"
 const rang = "\u27E9"
 
-import Base.show
-import Base.getindex
-import Base.ndims
-import Base.size
-import Base.length
-import Base.slice
-import Base.+
-import Base.-
-import Base.in
+import Base.show,
+	   Base.getindex,
+	   Base.ndims,
+	   Base.size,
+	   Base.length,
+	   Base.slice,
+	   Base.+,
+	   Base.-,
+	   Base.*,
+	   Base.in,
+	   Base.setdiff
 #####Utility##########################################################
 function todict(A::Array; d=Dict{eltype(A),Int}())
 	sizehint(d, size(A,1))
@@ -56,11 +57,12 @@ immutable Basis{T} <: AbstractBasis
 	bra_sym::String
 	ket_sym::String
 	label_map::Dict{T, Int}
-	label_arr::Array{T}
+	label_arr::Vector{T}
 end
 
-	#label_arr is of the form {label1,label2...}
-	function Basis(name::String, label_arr::Array; bra_sym=lang, ket_sym=rang)
+	#label_arr is of the form [label1,label2...]
+	function Basis(name::String, label_arr::Vector; bra_sym=lang, ket_sym=rang)
+		label_arr = unique(label_arr)
 		label_map = todict(label_arr)
 		Basis(name, bra_sym, ket_sym, label_map, label_arr)
 	end
@@ -126,18 +128,8 @@ end
 type State
 	label::String
 	content::Dict{String, SparseMatrixCSC}
-	bases::Dict{String, Basis}
+	basis::Dict{String, Basis}
 end
-
-# 	#########content only
-	function State{S1<:String, S2<:String, M<:SparseMatrixCSC}(label::S1, content::Dict{S2,M})
-		warn("Basis is implicit; assuming sparse coefficient arrays match given basis names")
-		bases = Dict{String, Basis}()
-		for i in getkeys(content)
-			bases[i] = Basis(i, Dict{Any, Int}(), cell(length(content)))
-		end
-		State(label, content, bases_dict)
-	end
 
 # 	function State{S<:String, N<:Number}(coeff_dict::Dict{S, Array{N,1}})
 # 		warn("No basis provided! Assuming coefficient arrays match input bases")
@@ -182,6 +174,20 @@ end
 	# function State{K<:Any, V<:Number}(basis::(dirac.Basis...,), coeffs::Dict{K, V})
 	# 	basis_dict = 
 	# ends
+#####StateFunctions##########################################################
+
+function magnitude(A::Number...)
+	if length(A)==2
+		return hypot(A[1], A[2])
+	end
+	return magnitude(hypot(A[1], A[2]), A[3:end]...)
+end
+
+magnitude{N<:Number}(A::Vector{N}) = magnitude(A...)
+
+function normalize{N<:Number}(A::Vector{N})
+	return (1/magnitude(A))*A
+end
 
 #####Converter##########################################################
 
@@ -275,6 +281,8 @@ end
 
 #   	end
 
+
+
 #####Base.function Overloading############################################
 function show(io::IO, b::AbstractBasis)
 	println("$(typeof(b))")
@@ -297,7 +305,9 @@ getindex(b::Basis, x::Range1{Int}) = Basis("$(b.name)_$(x[1]) to $(b.name)_$(las
 +(a::Basis,b::Basis) = Basis("$(a.name)+$(b.name)", vcat(a.label_arr,b.label_arr), bra_sym=a.bra_sym, ket_sym=a.ket_sym)
 +(a::TensorBasis,b::TensorBasis) = size(a,2)==size(b,2) ? TensorBasis("$(a.name)+$(b.name)", vcat(a.label_arr,b.label_arr), bra_sym=a.bra_sym, ket_sym=a.ket_sym) : error("dimension mismatch; label lengths differ")
 -(a::Basis,b::Basis) = extract(x->!in(x,b), a, name="$(a.name)-$(b.name)")
--(a::TensorBasis,b::TensorBasis) = size(a,2)==size(b,2) ? extract(x->!in(x,b),a, name="$(a.name)-$(b.name)") : error("dimension mismatch; label lengths differ")
+-(a::TensorBasis, b::TensorBasis) = size(a,2)==size(b,2) ? extract(x->!in(x,b),a, name="$(a.name)-$(b.name)") : error("dimension mismatch; label lengths differ")
+*(a::AbstractBasis, b::AbstractBasis) = tensor(a,b)
+setdiff(a::AbstractBasis,b::AbstractBasis) = a-b
 
 end #module
 #####Tests##########################################################
