@@ -4,16 +4,88 @@
 		"selected_items":
 		[
 			[
-				"S",
-				"STRING"
+				"row",
+				"row_div"
+			],
+			[
+				"prin",
+				"print"
+			],
+			[
+				"col",
+				"col_lim"
+			],
+			[
+				"wind",
+				"wind_limit"
+			],
+			[
+				"ro",
+				"row_off"
+			],
+			[
+				"off",
+				"col_off"
+			],
+			[
+				"col_",
+				"col_limit"
+			],
+			[
+				"nex",
+				"next_j"
+			],
+			[
+				"ne",
+				"next_i"
+			],
+			[
+				"l",
+				"length"
+			],
+			[
+				"end",
+				"end"
 			],
 			[
 				"b",
-				"b"
+				"basis"
+			],
+			[
+				"ba",
+				"basis"
+			],
+			[
+				"A",
+				"AbstractBasis"
+			],
+			[
+				"Bra",
+				"Bra"
+			],
+			[
+				"S",
+				"State"
+			],
+			[
+				"St",
+				"State"
+			],
+			[
+				"tran",
+				"tran_s"
 			],
 			[
 				"B",
-				"Base"
+				"B"
+			],
+			[
+				"is",
+				"is_ket"
+			],
+			[
+				"coeff",
+				"coefficients"
 			],
 			[
 				"label",
@@ -22,10 +94,6 @@
 			[
 				"lab",
 				"label_map"
-			],
-			[
-				"A",
-				"Any"
 			],
 			[
 				"el",
@@ -66,10 +134,6 @@
 			[
 				"com",
 				"components"
-			],
-			[
-				"ba",
-				"bases"
 			],
 			[
 				"m",
@@ -164,10 +228,6 @@
 				"return"
 			],
 			[
-				"is",
-				"isempty"
-			],
-			[
 				"res",
 				"result_length"
 			],
@@ -178,10 +238,6 @@
 			[
 				"in",
 				"intersect"
-			],
-			[
-				"prin",
-				"println"
 			],
 			[
 				"v",
@@ -206,14 +262,6 @@
 			[
 				"e",
 				"edges"
-			],
-			[
-				"St",
-				"String"
-			],
-			[
-				"ne",
-				"neighbors"
 			],
 			[
 				"co",
@@ -262,10 +310,6 @@
 			[
 				"sp",
 				"spval"
-			],
-			[
-				"coeff",
-				"coeff_dict"
 			],
 			[
 				"sor",
@@ -318,10 +362,6 @@
 			[
 				"cy",
 				"cylco"
-			],
-			[
-				"l",
-				"label"
 			],
 			[
 				"Co",
@@ -469,10 +509,10 @@
 	},
 	"file_history":
 	[
-		"/Users/jarrettrevels/test.jl",
-		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
-		"/Users/jarrettrevels/data/comp-sci/operating-systems/helloworld-project/kernel.c",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
+		"/Users/jarrettrevels/test.jl",
+		"/Users/jarrettrevels/data/comp-sci/operating-systems/helloworld-project/kernel.c",
 		"/Users/jarrettrevels/data/repos/dirac-tools/README.md",
 		"/Users/jarrettrevels/data/repos/qho-sim/README.md",
 		"/Users/jarrettrevels/data/.bashrc",
@@ -533,6 +573,8 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"is_ket",
+			"content",
 			"todict",
 			"basis_array",
 			"flip",
@@ -561,6 +603,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"coeffs",
 			"basis_arr",
 			"label_arr",
 			"labels",
@@ -621,19 +664,19 @@
 		"selected_items":
 		[
 			[
-				"d",
-				"dirac.jl"
-			],
-			[
-				"te",
-				"test.jl"
-			],
-			[
 				"dir",
 				"dirac.jl"
 			],
 			[
 				"",
+				"test.jl"
+			],
+			[
+				"d",
+				"dirac.jl"
+			],
+			[
+				"te",
 				"test.jl"
 			],
 			[

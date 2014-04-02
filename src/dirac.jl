@@ -1,9 +1,12 @@
 module m
 include("rep.jl")
+nfilled(S::SparseMatrixCSC) = int(S.colptr[end]-1)
 
 const lang = "\u27E8"
 const rang = "\u27E9"
-
+const vert_ell = "\u22EE"
+const horiz_ell = "\u2026"
+using Base.print
 import Base.show,
 	   Base.getindex,
 	   Base.ndims,
@@ -14,7 +17,9 @@ import Base.show,
 	   Base.-,
 	   Base.*,
 	   Base.in,
-	   Base.setdiff
+	   Base.setdiff,
+	   Base.get,
+	   Base.!
 #####Utility##########################################################
 function todict(A::Array; d=Dict{eltype(A),Int}())
 	sizehint(d, size(A,1))
@@ -124,56 +129,39 @@ function extract(f::Function, B::TensorBasis; name=B.name)
 	return TensorBasis(name, sub_arr, B.basis_arr, bra_sym=B.bra_sym, ket_sym=B.ket_sym)
 end
 
-# #####State##########################################################
-type State
+######State##########################################################
+abstract AbstractState
+abstract BraKet
+abstract Bra <: BraKet
+abstract Ket <: BraKet
+
+type State{B<:AbstractBasis, K<:BraKet} <: AbstractState
+	kind::Type{K}
 	label::String
-	content::Dict{String, SparseMatrixCSC}
-	basis::Dict{String, Basis}
+	coeffs::SparseMatrixCSC
+	basis::B
+	function State(kind::Type{K}, label::String, coeffs::SparseMatrixCSC, basis)
+		if length(basis)==length(coeffs)
+			new(kind, label, coeffs, basis)
+		elseif length(basis)>length(coeffs)
+			error("coefficiemnts unspecified for $(length(basis)-length(coeffs)) basis states")
+		else
+			error("basis labels unspecified for $(length(coeffs)-length(basis)) coefficients")
+		end	
+	end	
 end
 
-# 	function State{S<:String, N<:Number}(coeff_dict::Dict{S, Array{N,1}})
-# 		warn("No basis provided! Assuming coefficient arrays match input bases")
-# 		bases_dict = Dict{String, Dict{Any, Int64}}()
-# 		new_coeffs = Dict{String, SparseMatrixCSC}()
-# 		for i in keys(coeff_dict)
-# 			bases_dict[i] = Dict{Any, Int64}()
-# 			new_coeffs[i] = sparse(coeff_dict[i])
-# 		end
-# 		State(new_coeffs, bases_dict)
-# 	end
-	###########coeff_dict, bases_dict input	
-	# function State{N<:Number, K<:Any, V<:Integer}(coeff_dict::Dict{String, Array{N, Int64}}, bases_dict::Dict{String, Dict{K, V}})
-	# 	warn("Assuming coefficient arrays match input bases")
-	# 	new_coeffs = Dict{String, SparseMatrixCSC}()
-	# 	for i in keys(coeff_dict)
-	# 		new_coeffs[i] = sparse(coeff_dict[i])
-	# 	end
-	# 	State(new_coeffs, bases_dict)
-	# end
-	# #########Single Basis Input
-	# function State{N<:Number}(basis::Basis, coeffs::Array{N})
-	# 	warn("Assuming coefficient array matches input basis")
-	# 	State([basis.name=>sparse(coeffs)], [basis.name=>basis.labels])
-	# end
-	# function State{N<:Number}(basis::Basis, coeffs::SparseMatrixCSC{N})
-	# 	warn("Assuming sparse coefficient array matches input basis")
-	# 	State([basis.name=>coeffs], [basis.name=>basis.labels])
-	# end
-	# function State{K<:Any, V<:Number}(basis::Basis, coeffs::Dict{K, V})
-	# 	coeff_array = zeros(Number, basis.max_index)
-	# 	for i in coeffs
-	# 		coeff_array[basis.labels[i[1]]] = i[2]
-	# 	end
-	# 	State([basis.name=>coeff_array], [basis.name=>basis.labels])
-	# end
+State{B<:AbstractBasis,N<:Number}(label::String, coeffs::Vector{N}, basis::B)= State{B, Ket}(Ket, label, sparsevec(coeffs), basis)
+State{B<:AbstractBasis,N<:Number}(label::String, coeffs::Array{N}, basis::B)= State{B, Bra}(Bra, label, sparse(coeffs), basis)
 
-	#Multiple Bases Input
-	# function State{K<:Any, V<:Number}(basis::Array{Basis}, coeffs::Dict{K, V})
-	# 	basis_dict = 
-	# end
-	# function State{K<:Any, V<:Number}(basis::(dirac.Basis...,), coeffs::Dict{K, V})
-	# 	basis_dict = 
-	# ends
+function State{B<:AbstractBasis}(label::String, coeffs::SparseMatrixCSC, basis::B)
+	if size(coeffs)[2]==1
+		return State{B, Ket}(Ket, label, coeffs, basis)
+	else
+		return State{B, Bra}(Bra, label, coeffs, basis)
+	end
+end
+
 #####StateFunctions##########################################################
 
 function magnitude(A::Number...)
@@ -184,130 +172,197 @@ function magnitude(A::Number...)
 end
 
 magnitude{N<:Number}(A::Vector{N}) = magnitude(A...)
+magnitude(A::SparseMatrixCSC) = magnitude(A...)
+magnitude(S::AbstractState) = magnitude(S.coeffs)
+
 
 function normalize{N<:Number}(A::Vector{N})
 	return (1/magnitude(A))*A
 end
 
-#####Converter##########################################################
+function normalize!(S::AbstractState)
+	S.coeffs = (1/magnitude(S))*S.coeffs;
+	return S
+end
 
-# type Converter
-# 	neighbors::Dict{String, (String...,)}
-# 	edges::Dict{String, SparseMatrixCSC}
-# end
+isnorm(S::AbstractState) = magnitude(S)==1
 
-# 	function Converter()
-# 		Converter(Dict{String, (String...,)}(), Dict{String, SparseMatrixCSC}())
-# 	end
+######Operator######################################################
 
-#   	function Converter{S<:String}(b1::S, b2::S, coeffs::SparseMatrixCSC)
-#   		neighbors = Dict{String, (String...,)}()
-#   		neighbors[b1]=(b2,)
-#   		neighbors[b2]=(b1,)
-  		
-#   		edges = Dict{String, SparseMatrixCSC}()
-#   		edges["$b1_$b2"]=coeffs
-  		
-#   		Converter(neighbors, edges)
-#   	end
-  	
-#   	function Converter(b1::Basis, b2::Basis, coeffs::SparseMatrixCSC)
-#   		Converter(b1.name, b2.name, coeffs)
-#   	end
+abstract AbstractOperator
 
-#   	function Converter(b1::Basis, b2::Basis, coeffs::Matrix)
-#   		Converter(b1.name, b2.name, sparse(coeffs))
-#   	end
-#   	###Adding conversions
-#   	function add_conversion!{S<:String}(b1::S, b2::S, coeffs::SparseMatrixCSC, conv::Converter)
-#   		if !in(b1, collect(keys(conv.neighbors)))
-#   			conv.neighbors[b1] = (b2)
-#   		elseif !in(b1, conv.neighbors[b2])
-#   			push!(conv.neighbors[b2], b1)
-#   		end
-
-#   		if !in(b2, collect(keys(conv.neighbors)))
-#   			conv.neighbors[b2] = (b1)
-#   		elseif !in(b2, conv.neighbors[b1])
-#   			push!(conv.neighbors[b1], b2)
-#   		end
-
-#   		conv.edges["$b1_$b2"]=coeffs;
-#   	end
-
-#   	function add_conversion!(b1::Basis, b2::Basis, coeffs::SparseMatrixCSC, conv::Converter)
-#   		add_conversion!(b1.name, b2.name, coeffs, conv)
-#   	end
-#   	function add_conversion!(b1::Basis, b2::Basis, coeffs::Matrix, conv::Converter)
-#   		add_conversion!(b1.name, b2.name, sparse(coeffs), conv)
-#   	end
-#   	###Performing conversions
-
-#   	function generate_conv{S<:String}(start::S, dest::S, conv::Converter)
-#   		if start == dest
-#   			error("Source and target bases are the same")
-#   		end
-#   		if !in(start, collect(keys(conv.neighbors))) || !in(dest, collect(keys(conv.neighbors)))
-#   			error("Either the source or target basis is missing from the given Converter")
-#   		end
-#   		init = conv.neighbors[start][1]
-#   		coeffs = spones(conv.edges["$start_$init"])
-#   		dest_reached = false
-#   		visited = {}
-#   		current = start
-#   		while !dest_reached
-#   			shared = intersect(conv.neighbors[current], conv.neighbors[dest]) 
-#   			if !isempty(shared)
-# 				coeffs = coeffs * conv.edges["$current_$(shared[1])"] * conv.edges["$(shared[1])_$dest"] 
-#   				add_conversion!(start, dest, coeffs, conv)
-#   				dest_reached=true
-#   			end
-#   			push!(visited, current)
-#   			current = setdiff(conv.neighbors[current], visited)[1]
-#   		end
-#   	end
-
-#   	function convert{S<:String}(state::State, new_basis::S, conv::Converter)
-#   		# old_bases = collect(keys(state.contents))
-#   		for i in state.contents
-# 	  		try #if conversion already directly exists
-# 	  			state.contents[new_basis] = conv.edges["$(i[1])_$(new_basis)"]*i[2]
-# 	  			delete!(state.contents, i[1])
-# 	  		catch
-
-# 	  		end
-# 	  	end
-
-
-#   	end
+type Operator{B1<:AbstractBasis, B2<:AbstractBasis} <:AbstractOperator
+	label::String
+	coeffs::SparseMatrixCSC
+	row_basis::B1
+	col_basis::B2
+	function Operator(label::String, coeffs::SparseMatrixCSC, row_basis::B1, col_basis::B2)
+		if (length(row_basis)*length(col_basis))==length(coeffs)
+			new(label, coeffs, row_basis, col_basis)
+		elseif length(basis)>length(coeffs)
+			error("basis is larger than representation by $((length(row_basis)*length(col_basis))-length(coeffs)) labels")
+		else
+			error("representation is larger than basis by $(length(coeffs)-(length(row_basis)*length(col_basis))) coefficients")
+		end
+	end	
+end
 
 
 
-#####Base.function Overloading############################################
+function Operator{B1<:AbstractBasis, B2<:AbstractBasis}(label::String, coeffs::SparseMatrixCSC, row_basis::B1, col_basis::B2)
+	return Operator{B1, B2}(label, coeffs, row_basis, col_basis)
+end
+
+function Operator{B<:AbstractBasis}(label::String, coeffs::SparseMatrixCSC, both_basis::B)
+	return Operator{B, B}(label, sparse(coeffs), both_basis, both_basis)
+end
+
+function Operator{B1<:AbstractBasis, B2<:AbstractBasis, N<:Number}(label::String, coeffs::Array{N, 2}, row_basis::B1, col_basis::B2)
+	return Operator{B1, B2}(label, sparse(coeffs), row_basis, col_basis)
+end
+
+function Operator{B<:AbstractBasis, N<:Number}(label::String, coeffs::Array{N, 2}, both_basis::B)
+	return Operator(label, coeffs, both_basis, both_basis)
+end
+
+
+#####FunctionOverloading############################################
 function show(io::IO, b::AbstractBasis)
-	println("$(typeof(b))")
-	println("Name: $(b.name)")
+	println("$(typeof(b)) \"$(b.name)\"")
 	println("$(length(b.label_arr[:,1])) Basis States:")
 	for i=1:length(b.label_arr[:,1])
 		println("| $(repr([b.label_arr[i, :]...])[2:end-1]) $(b.ket_sym)")
 	end
 end
 
+function show(io::IO, s::AbstractState)
+	if s.kind == Ket
+		left = '|'
+		right = s.basis.ket_sym
+	else
+		left = s.basis.bra_sym
+		right = '|'
+	end 
+	println("$(typeof(s)) $left $(s.label) $right:")
+	for i in find(s.coeffs)
+		println("$(s.coeffs[i])	$left $(repr([s.basis.label_arr[i, :]...])[2:end-1]) $right")
+	end
+end
+
+function show(io::IO, op::AbstractOperator)
+	println("$(typeof(op)) \"$(op.label)\":")
+	table = cell(length(op.row_basis)+1, length(op.col_basis)+1)	
+	for i = 1:length(op.row_basis)
+		table[i+1,1] = replace("| $(repr([op.row_basis.label_arr[i, :]...])[2:end-1]) $(op.row_basis.ket_sym)",r"\\", "")
+	end
+	for j = 1:length(op.col_basis)
+		table[1,j+1] = replace("$(op.col_basis.bra_sym) $(repr([op.col_basis.label_arr[j, :]...])[2:end-1]) |",r"\\", "")
+	end
+
+	indent = ""
+	for i=1:length(table[2])
+		indent = " $indent"
+	end	
+	table[1,1] = indent
+	table[2:end, 2:end] = full(op.coeffs)
+	
+	io = IOBuffer()
+	show(io, table)
+	io_str = takebuf_string(io)
+	io_str = io_str[searchindex(io_str, "\n")+3:end]
+
+
+	r_ket = "\"(?=$(op.col_basis.bra_sym))|(?<=$(op.row_basis.ket_sym))\""
+	r = Regex(r_ket)
+	io_str = replace(io_str,r"\"(?=\|)|\|\K\"",  " ")
+	io_str = replace(io_str,r,  " ")
+	io_str = replace(io_str,r"\\(?=\")",  " ")
+	io_str = replace(io_str,r"\s\"\s|\s\"(?=,)",  "\" ")
+	io_str = replace(io_str,r"\s\K\"(?=\s)", " ")
+	print(io_str)
+end
+
 size(b::AbstractBasis, x::Int...) = size(b.label_arr, x...)
 length(b::AbstractBasis) = size(b, 1)
 ndims(b::AbstractBasis) = ndims(b.label_arr)
+
 in(a, b::Basis)=in(a, collect(keys(b.label_map)))
 in(a, b::TensorBasis)=in(tuple(a...), collect(keys(b.label_map)))
+
 getindex(b::TensorBasis, x::Int) = TensorBasis("$(b.name)_$x", b.label_arr[x,:], b.basis_arr, bra_sym=b.bra_sym, ket_sym=b.ket_sym)
 getindex(b::TensorBasis, x::Range1{Int}) = TensorBasis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", b.label_arr[x,:], b.basis_arr, bra_sym=b.bra_sym, ket_sym=b.ket_sym)
-getindex(b::Basis, x::Int) = Basis("$(b.name)_$x", b.label_arr[x,:], bra_sym=b.bra_sym, ket_sym=b.ket_sym)
-getindex(b::Basis, x::Range1{Int}) = Basis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", b.label_arr[x,:], bra_sym=b.bra_sym, ket_sym=b.ket_sym)
+getindex(b::Basis, x::Int) = Basis("$(b.name)_$x", vec(b.label_arr[x,:]), bra_sym=b.bra_sym, ket_sym=b.ket_sym)
+getindex(b::Basis, x::Range1{Int}) = Basis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", vec(b.label_arr[x,:]), bra_sym=b.bra_sym, ket_sym=b.ket_sym)
+
+*(a::AbstractBasis, b::AbstractBasis) = tensor(a,b)
 +(a::Basis,b::Basis) = Basis("$(a.name)+$(b.name)", vcat(a.label_arr,b.label_arr), bra_sym=a.bra_sym, ket_sym=a.ket_sym)
 +(a::TensorBasis,b::TensorBasis) = size(a,2)==size(b,2) ? TensorBasis("$(a.name)+$(b.name)", vcat(a.label_arr,b.label_arr), bra_sym=a.bra_sym, ket_sym=a.ket_sym) : error("dimension mismatch; label lengths differ")
 -(a::Basis,b::Basis) = extract(x->!in(x,b), a, name="$(a.name)-$(b.name)")
 -(a::TensorBasis, b::TensorBasis) = size(a,2)==size(b,2) ? extract(x->!in(x,b),a, name="$(a.name)-$(b.name)") : error("dimension mismatch; label lengths differ")
-*(a::AbstractBasis, b::AbstractBasis) = tensor(a,b)
 setdiff(a::AbstractBasis,b::AbstractBasis) = a-b
+
+length(S::AbstractState) = nfilled(S.coeffs)
+size(S::AbstractState) = length(S)
+
+#The following redundancies are implemented for the sake 
+#of allowing a[(key)] notation for state coefficient retrieval.
+#It arises from the fact that the dicts for Basis and TensorBasis
+#have keys of types T and Tuple respectively, rather than
+#both having keys of type Tuple.
+
+function get(b::AbstractBasis, key)
+	v = get(b.label_map, key, "not found")
+	if v=="not found"
+		throw(KeyError(key))
+	end
+	return v
+end
+
+function get(b::AbstractBasis, key...)
+	v = get(b.label_map, key, "not found")
+	if v=="not found"
+		throw(KeyError(key))
+	end
+	return v
+end
+
+get(b::TensorBasis, key::Array) = get(b, key...)
+get{B<:Basis}(S::State{B}, key) = S.coeffs[get(S.basis, key)]
+get{B<:TensorBasis}(S::State{B}, key) = S.coeffs[get(S.basis, key)]
+get{B<:TensorBasis}(S::State{B}, key...) = S.coeffs[get(S.basis, key)]
+getindex(S::State, x::Int) = S.coeffs[x]
+getindex(S::State, x::Range1{Int}) = S.coeffs[x,:]
+getindex{B<:Basis}(S::State{B}, x::Tuple) = get(S, x[1])
+getindex{B<:TensorBasis}(S::State{B}, x::Tuple) = get(S, x)
+!(K::Type{Ket}) = Bra
+!(B::Type{Bra}) = Ket
+
+function transpose(S::State)
+	return State(S.label, S.coeffs.', S.basis)
+
+end
+
+function ctranspose(S::State)
+	return State(S.label, S.coeffs', S.basis)
+end
+
+function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Bra}, b::State{B2, Ket})
+	return (a.coeffs*b.coeffs)[1]
+end
+
+function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Ket}, b::State{B2, Ket})
+	new_coeffs = tensor(full(a.coeffs), full(b.coeffs))
+	return State("$(a.label),$(b.label)", new_coeffs[:,1].*new_coeffs[:,2], a.basis*b.basis)
+end
+
+function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Bra}, b::State{B2, Bra})
+	new_coeffs = tensor(full(a.coeffs)', full(b.coeffs)')'
+	return State("$(a.label),$(b.label)", new_coeffs[1,:].*new_coeffs[2,:], a.basis*b.basis)
+end
+
+function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Ket}, b::State{B2, Bra})
+	return Operator("|$(a.label) $(a.basis.ket_sym) $(b.basis.bra_sym) $(b.label)|", a.coeffs*b.coeffs, a.basis, b.basis)
+end
 
 end #module
 #####Tests##########################################################
@@ -326,5 +381,8 @@ a = res[1]
 b = res[2]
 c = res[3]
 d = res[4]
+ds = m.State("dState", [1:27], d);
+a = m.Basis("a", [1:10], ket_sym="}")
+as = m.State("as", [1:10], a)
 println("")
 
