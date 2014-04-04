@@ -6,9 +6,9 @@ const lang = "\u27E8"
 const rang = "\u27E9"
 const vert_ell = "\u22EE"
 const horiz_ell = "\u2026"
-using Base.print
 import Base.show,
 	   Base.getindex,
+	   Base.setindex!,
 	   Base.ndims,
 	   Base.size,
 	   Base.length,
@@ -19,7 +19,12 @@ import Base.show,
 	   Base.in,
 	   Base.setdiff,
 	   Base.get,
-	   Base.!
+	   Base.!,
+	   Base.exp,
+	   Base.map,
+	   Base.map!,
+	   Base.filter,
+	   Base.copy
 #####Utility##########################################################
 function todict(A::Array; d=Dict{eltype(A),Int}())
 	sizehint(d, size(A,1))
@@ -118,17 +123,6 @@ function extract(f::Function, A::Array)
     end
     return vcat(res...)
 end
-
-function extract(f::Function, B::Basis; name=B.name)
-	sub_arr = filter(f, B.label_arr)
-	return Basis(name, sub_arr)
-end
-
-function extract(f::Function, B::TensorBasis; name=B.name)
-	sub_arr = extract(f, B.label_arr)
-	return TensorBasis(name, sub_arr, B.basis_arr, bra_sym=B.bra_sym, ket_sym=B.ket_sym)
-end
-
 ######State##########################################################
 abstract AbstractState
 abstract BraKet
@@ -163,6 +157,7 @@ function State{B<:AbstractBasis}(label::String, coeffs::SparseMatrixCSC, basis::
 end
 
 #####StateFunctions##########################################################
+getcoeffs(S::State) = S.coeffs
 
 function magnitude(A::Number...)
 	if length(A)==2
@@ -175,7 +170,6 @@ magnitude{N<:Number}(A::Vector{N}) = magnitude(A...)
 magnitude(A::SparseMatrixCSC) = magnitude(A...)
 magnitude(S::AbstractState) = magnitude(S.coeffs)
 
-
 function normalize{N<:Number}(A::Vector{N})
 	return (1/magnitude(A))*A
 end
@@ -185,7 +179,11 @@ function normalize!(S::AbstractState)
 	return S
 end
 
+normalize(S::AbstractState) = normalize!(State(S.label, S.coeffs, S.basis))
+
 isnorm(S::AbstractState) = magnitude(S)==1
+
+getlabel(S::AbstractState) = S.kind==Ket ? "| $(S.label) $(S.basis.ket_sym)" : "$(S.basis.bra_sym) $(S.label) |"
 
 ######Operator######################################################
 
@@ -235,7 +233,7 @@ function show(io::IO, b::AbstractBasis)
 	end
 end
 
-function show(io::IO, s::AbstractState)
+function show(io::IO, s::State)
 	if s.kind == Ket
 		left = '|'
 		right = s.basis.ket_sym
@@ -243,14 +241,33 @@ function show(io::IO, s::AbstractState)
 		left = s.basis.bra_sym
 		right = '|'
 	end 
-	println("$(typeof(s)) $left $(s.label) $right:")
-	for i in find(s.coeffs)
-		println("$(s.coeffs[i])	$left $(repr([s.basis.label_arr[i, :]...])[2:end-1]) $right")
+	println("$(typeof(s)) $(getlabel(s)):")
+	if length(s)!=0
+		filled = find(s.coeffs)
+		table = cell(length(filled), 2)	
+		for i in 1:length(filled)
+			table[i,1]= s.coeffs[filled[i]]
+			table[i,2]= replace("$left $(repr([s.basis.label_arr[filled[i], :]...])[2:end-1]) $right",r"\\", "")
+		end
+		io = IOBuffer()
+		show(io, table)
+		io_str = takebuf_string(io)
+		io_str = io_str[searchindex(io_str, "\n")+1:end]
+		r_ket = "\"(?=$(s.basis.bra_sym))|(?<=$(s.basis.ket_sym))\""
+		r = Regex(r_ket)
+		io_str = replace(io_str,r"\"(?=\|)|\|\K\"",  "")
+		io_str = replace(io_str,r,  "")
+		io_str = replace(io_str,r"\\(?=\")",  "")
+		io_str = replace(io_str,r"\s\"\s|\s\"(?=,)",  "\"")
+		io_str = replace(io_str,r"\s\K\"(?=\s)", "")
+		print(io_str)
+	else
+		println("(all coefficients are zero)")
 	end
 end
 
 function show(io::IO, op::AbstractOperator)
-	println("$(typeof(op)) \"$(op.label)\":")
+	println("$(typeof(op)) $(op.label):")
 	table = cell(length(op.row_basis)+1, length(op.col_basis)+1)	
 	for i = 1:length(op.row_basis)
 		table[i+1,1] = replace("| $(repr([op.row_basis.label_arr[i, :]...])[2:end-1]) $(op.row_basis.ket_sym)",r"\\", "")
@@ -301,15 +318,21 @@ getindex(b::Basis, x::Range1{Int}) = Basis("$(b.name)_$(x[1]) to $(b.name)_$(las
 -(a::TensorBasis, b::TensorBasis) = size(a,2)==size(b,2) ? extract(x->!in(x,b),a, name="$(a.name)-$(b.name)") : error("dimension mismatch; label lengths differ")
 setdiff(a::AbstractBasis,b::AbstractBasis) = a-b
 
-length(S::AbstractState) = nfilled(S.coeffs)
-size(S::AbstractState) = length(S)
+function filter(f::Function, B::Basis; name=B.name)
+	sub_arr = filter(f, B.label_arr)
+	return Basis(name, sub_arr)
+end
+
+function filter(f::Function, B::TensorBasis; name=B.name)
+	sub_arr = extract(f, B.label_arr)
+	return TensorBasis(name, sub_arr, B.basis_arr, bra_sym=B.bra_sym, ket_sym=B.ket_sym)
+end
 
 #The following redundancies are implemented for the sake 
 #of allowing a[(key)] notation for state coefficient retrieval.
 #It arises from the fact that the dicts for Basis and TensorBasis
 #have keys of types T and Tuple respectively, rather than
 #both having keys of type Tuple.
-
 function get(b::AbstractBasis, key)
 	v = get(b.label_map, key, "not found")
 	if v=="not found"
@@ -327,23 +350,48 @@ function get(b::AbstractBasis, key...)
 end
 
 get(b::TensorBasis, key::Array) = get(b, key...)
+
+
+copy(S::State) = State(copy(S.label), copy(S.coeffs), copy(S.basis))
+copy(S::State, coeffs::SparseMatrixCSC) = State(copy(S.label), coeffs, copy(S.basis))
+length(S::AbstractState) = nfilled(S.coeffs)
+size(S::AbstractState) = length(S)
+
 get{B<:Basis}(S::State{B}, key) = S.coeffs[get(S.basis, key)]
 get{B<:TensorBasis}(S::State{B}, key) = S.coeffs[get(S.basis, key)]
 get{B<:TensorBasis}(S::State{B}, key...) = S.coeffs[get(S.basis, key)]
-getindex(S::State, x::Int) = S.coeffs[x]
+getindex(S::State, x) = S.coeffs[x]
 getindex(S::State, x::Range1{Int}) = S.coeffs[x,:]
 getindex{B<:Basis}(S::State{B}, x::Tuple) = get(S, x[1])
 getindex{B<:TensorBasis}(S::State{B}, x::Tuple) = get(S, x)
+setindex!(S::State, y, x) = setindex!(S.coeffs, y, x)
+
+function setindex!(S::State, y::Int, x::Range1{Int})
+	for i in x
+		setindex!(S, y, i)
+	end
+end
+
+function setindex!(S::State, y::Array, x::Range1{Int})
+	if length(y) != length(x)
+		throw(BoundsError())
+	else
+		for i=1:length(x)
+			setindex!(S, y[i], x[i])
+		end
+	end
+end
+
+
 !(K::Type{Ket}) = Bra
 !(B::Type{Bra}) = Ket
 
 function transpose(S::State)
-	return State(S.label, S.coeffs.', S.basis)
-
+	return copy(S, S.coeffs.')
 end
 
 function ctranspose(S::State)
-	return State(S.label, S.coeffs', S.basis)
+	return copy(S, S.coeffs')
 end
 
 function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Bra}, b::State{B2, Ket})
@@ -361,10 +409,78 @@ function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Bra}, b::State{B2,
 end
 
 function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Ket}, b::State{B2, Bra})
-	return Operator("|$(a.label) $(a.basis.ket_sym) $(b.basis.bra_sym) $(b.label)|", a.coeffs*b.coeffs, a.basis, b.basis)
+	return Operator("$(getlabel(a))$(getlabel(b))", a.coeffs*b.coeffs, a.basis, b.basis)
 end
 
-end #module
+*(n::Number, s::State) = copy(s, n*s.coeffs) 
+*(s::State, n::Number) = copy(s, s.coeffs*n) 
++(s::State, n::Number) = copy(s, s.coeffs+n)
++(n::Number, s::State) = copy(s, n+s.coeffs)
+-(s::State, n::Number) = copy(s, s.coeffs-n)
+-(n::Number, s::State) = copy(s, n-s.coeffs)
+/(s::State, n::Number) = copy(s, s.coeffs/n)
+/(n::Number, s::State) = error("cannot divide number by vector")
+function +(a::State, b::State)
+	if a.basis==b.basis && a.kind==b.kind
+		State("$(a.label) + $(b.label)", a.coeffs+b.coeffs, a.basis)
+	else
+		error("composite states not yet supported :(")
+	end
+end
+
+function -(a::State, b::State)
+	if a.basis==b.basis && a.kind==b.kind
+		State("$(a.label) - $(b.label)", a.coeffs-b.coeffs, a.basis)
+	else
+		error("composite states not yet supported :(")
+	end
+end
+
+function exp_sparse(csc::SparseMatrixCSC) 
+	ex_csc = copy(csc)
+	for i in find(csc)
+		ex_csc[i] = exp(csc[i])
+	end
+	return ex_csc
+end
+
+exp{N<:Number}(csc::SparseMatrixCSC{Complex{Float64}, N}) = exp_sparse(csc)
+exp{N<:Number}(csc::SparseMatrixCSC{Float64, N}) = exp_sparse(csc)
+
+function exp{N1<:Number, N2<:Number}(csc::SparseMatrixCSC{Complex{N1}, N2})
+	ex_csc = convert(SparseMatrixCSC{Complex{Float64}, N2}, csc)
+	return exp(ex_csc)
+end
+
+function exp{N1<:Number, N2<:Number}(csc::SparseMatrixCSC{N1, N2})
+	ex_csc = convert(SparseMatrixCSC{Float64, N2}, csc)
+	return exp(ex_csc)
+end
+
+exp(s::State)=copy(s, exp(s.coeffs))
+
+exp(op::Operator) = Operator(op.label, exp(op.coeffs), op.row_basis, op.col_basis)
+
+function map!(f::Function, s::State)
+	for i=1:length(s.coeffs)
+		s.coeffs[i] = apply(f,s.coeffs[i])
+	end
+	return s
+end 
+
+map(f::Function, s::State) = map!(f, copy(s))
+
+function maplabel!(f_coeffs::Function, f_labels::Function, s::State)
+	labels = filter(f_labels, collect(keys(s.basis.label_map)))	
+	for i in labels
+		s[get(s.basis, i)] = apply(f_coeffs, get(s, i))
+	end
+	return s
+end
+
+maplabel(f_coeffs::Function, f_labels::Function, s::State) = maplabel!(f_coeffs, f_labels, copy(s))
+
+end#module
 #####Tests##########################################################
 using m
 
@@ -381,8 +497,8 @@ a = res[1]
 b = res[2]
 c = res[3]
 d = res[4]
-ds = m.State("dState", [1:27], d);
-a = m.Basis("a", [1:10], ket_sym="}")
-as = m.State("as", [1:10], a)
+ds = m.State("dS", [1:27], d);
+a = m.Basis("a", [1:10], bra_sym="{", ket_sym="}")
+as = m.State("aS", [1:10], a)
 println("")
 

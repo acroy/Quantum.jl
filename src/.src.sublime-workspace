@@ -4,16 +4,32 @@
 		"selected_items":
 		[
 			[
-				"row",
-				"row_div"
+				"prin",
+				"println"
 			],
 			[
-				"prin",
+				"i",
+				"io"
+			],
+			[
+				"p",
 				"print"
 			],
 			[
+				"io",
+				"io_str"
+			],
+			[
 				"col",
-				"col_lim"
+				"col_div1"
+			],
+			[
+				"in",
+				"indent"
+			],
+			[
+				"row",
+				"row_div"
 			],
 			[
 				"wind",
@@ -192,10 +208,6 @@
 				"tensor"
 			],
 			[
-				"i",
-				"i"
-			],
-			[
 				"bas",
 				"basis_array"
 			],
@@ -236,16 +248,8 @@
 				"shared"
 			],
 			[
-				"in",
-				"intersect"
-			],
-			[
 				"v",
 				"visited"
-			],
-			[
-				"p",
-				"println"
 			],
 			[
 				"d",
@@ -509,8 +513,8 @@
 	},
 	"file_history":
 	[
-		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
 		"/Users/jarrettrevels/test.jl",
 		"/Users/jarrettrevels/data/comp-sci/operating-systems/helloworld-project/kernel.c",
 		"/Users/jarrettrevels/data/repos/dirac-tools/README.md",
@@ -664,6 +668,10 @@
 		"selected_items":
 		[
 			[
+				"di",
+				"dirac.jl"
+			],
+			[
 				"dir",
 				"dirac.jl"
 			],
@@ -678,10 +686,6 @@
 			[
 				"te",
 				"test.jl"
-			],
-			[
-				"di",
-				"dirac.jl"
 			],
 			[
 				"t",
