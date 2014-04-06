@@ -4,6 +4,62 @@
 		"selected_items":
 		[
 			[
+				"A",
+				"AbstractOperator"
+			],
+			[
+				"t",
+				"type"
+			],
+			[
+				"c",
+				"copy"
+			],
+			[
+				"key",
+				"key"
+			],
+			[
+				"l",
+				"labels"
+			],
+			[
+				"fil",
+				"filter"
+			],
+			[
+				"label",
+				"label_map"
+			],
+			[
+				"S",
+				"State"
+			],
+			[
+				"end",
+				"end"
+			],
+			[
+				"csc",
+				"SparseMatrixCSC"
+			],
+			[
+				"exp",
+				"exp_sparse"
+			],
+			[
+				"ex",
+				"ex_csc"
+			],
+			[
+				"new",
+				"new_label"
+			],
+			[
+				"n",
+				"N"
+			],
+			[
 				"prin",
 				"println"
 			],
@@ -56,14 +112,6 @@
 				"next_i"
 			],
 			[
-				"l",
-				"length"
-			],
-			[
-				"end",
-				"end"
-			],
-			[
 				"b",
 				"basis"
 			],
@@ -72,16 +120,8 @@
 				"basis"
 			],
 			[
-				"A",
-				"AbstractBasis"
-			],
-			[
 				"Bra",
 				"Bra"
-			],
-			[
-				"S",
-				"State"
 			],
 			[
 				"St",
@@ -104,10 +144,6 @@
 				"coefficients"
 			],
 			[
-				"label",
-				"label_map"
-			],
-			[
 				"lab",
 				"label_map"
 			],
@@ -118,10 +154,6 @@
 			[
 				"T",
 				"T"
-			],
-			[
-				"key",
-				"ket_sym"
 			],
 			[
 				"ke",
@@ -138,10 +170,6 @@
 			[
 				"fl",
 				"flatten2D"
-			],
-			[
-				"c",
-				"c"
 			],
 			[
 				"comp",
@@ -308,10 +336,6 @@
 				"I"
 			],
 			[
-				"new",
-				"new_coeffs"
-			],
-			[
 				"sp",
 				"spval"
 			],
@@ -434,10 +458,6 @@
 			[
 				"en",
 				"energy"
-			],
-			[
-				"n",
-				"n12p"
 			],
 			[
 				"n1",
@@ -577,6 +597,13 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"AbstractOperatorRep",
+			"Operator",
+			"AbstractStateRep",
+			"State",
+			"map",
+			"KeyError",
+			"deepcopy",
 			"is_ket",
 			"content",
 			"todict",
@@ -607,6 +634,10 @@
 		"regex": false,
 		"replace_history":
 		[
+			"AbstractOperator",
+			"OperatorRep",
+			"AbstractState",
+			"StateRep",
 			"coeffs",
 			"basis_arr",
 			"label_arr",
@@ -670,6 +701,10 @@
 			[
 				"di",
 				"dirac.jl"
+			],
+			[
+				"tes",
+				"test.jl"
 			],
 			[
 				"dir",

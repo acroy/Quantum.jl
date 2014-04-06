@@ -1,7 +1,6 @@
-module m
+module d
 include("rep.jl")
-nfilled(S::SparseMatrixCSC) = int(S.colptr[end]-1)
-
+#includes,imports,consts#############################
 const lang = "\u27E8"
 const rang = "\u27E9"
 const vert_ell = "\u22EE"
@@ -13,8 +12,10 @@ import Base.show,
 	   Base.size,
 	   Base.length,
 	   Base.slice,
-	   Base.+,
-	   Base.-,
+	   Base.(.+),
+	   Base.(.^),
+	   Base.(.-),
+	   Base.^,
 	   Base.*,
 	   Base.in,
 	   Base.setdiff,
@@ -24,16 +25,10 @@ import Base.show,
 	   Base.map,
 	   Base.map!,
 	   Base.filter,
-	   Base.copy
-#####Utility##########################################################
-function todict(A::Array; d=Dict{eltype(A),Int}())
-	sizehint(d, size(A,1))
-	for i=1:size(A,1)
-		d[A[i,:]...] = i
-	end
-	return d
-end	
-
+	   Base.isequal,
+	   Base.copy,
+	   Base.endof  
+#Utility######################################
 function crossjoin(A::Array, B::Vector)
     r1, r2 = size(A, 1), size(B, 1)
     columns = [[rep(A[:,c], 1, r2) for c=1:size(A,2)],
@@ -49,456 +44,139 @@ function crossjoin(A::Array, B::Array)
 	return result
 end
 
-tensor()=error("tensor() needs an argument of the form A::Array...")
-
-function tensor(arr::Array...)
+function crossjoin(arr::Array...)
 	if length(arr) == 2
 		return crossjoin(arr[1], arr[2])
 	else
-		tensor(crossjoin(arr[1], arr[2]), arr[3:end]...)
+		crossjoin(crossjoin(arr[1], arr[2]), arr[3:end]...)
 	end
 end
 
-#####Basis##########################################################
+#Basisless States###################################
+abstract AbstractState
+abstract BraKet
+abstract Bra <: BraKet
+abstract Ket <: BraKet
+!(K::Type{Ket}) = Bra
+!(B::Type{Bra}) = Ket
+
+immutable State{K<:BraKet,T}
+  label::Vector{T}
+  kind::Type{K}
+end
+
+State(label::Vector) = State(label, Ket)
+State{T}(label::T) = State(T[label], Ket)
+State(label...) = State([label...], Ket)
+
+function statevec(v::Vector)
+	svec = Array(State, length(v))
+	for i=1:length(v)
+		svec[i] = State(v[i])
+	end
+	return svec
+end
+
+function statevec(arr::Array)
+	svec = Array(State, size(arr,1))
+	for i=1:size(arr, 1)
+		svec[i] = State(vec(arr[i,:]))
+	end
+	return svec
+end
+
+tensor() = nothing
+tensor{K<:BraKet}(s::State{K}...) = State(vcat([i.label for i in s]...), K)
+statejoin(v::Vector{State}...) = broadcast(tensor, v...)
+function statejoin(state_arr::Array{State}) 
+	result = statejoin(state_arr[:,1], state_arr[:,2])
+	for i=3:size(state_arr, 2)
+		result = statejoin(result, state_arr[:,i])
+	end
+	return result
+end
+tensor(state_arrs::Array{State}...) = statejoin(crossjoin(state_arrs...))
+
+ctranspose(s::State) = State(s.label, !s.kind)
+getindex(s::State, x) = s.label[x]
+endof(s::State) = endof(s.label)
+#Bases#############################################
 abstract AbstractBasis
 
-immutable Basis{T} <: AbstractBasis
-	name::String
+function mapstates{S<:State}(svec::Vector{S})
+	dict = Dict{S, Int}()
+	sizehint(dict, length(svec))
+	for i=1:length(svec)
+		dict[svec[i]] = i
+	end
+	return dict
+end	
+
+immutable Basis{S<:State} <: AbstractBasis
+	label
+	states::Vector{S}
+	state_map::Dict{S, Int}
 	bra_sym::String
 	ket_sym::String
-	label_map::Dict{T, Int}
-	label_arr::Vector{T}
 end
 
-	#label_arr is of the form [label1,label2...]
-	function Basis(name::String, label_arr::Vector; bra_sym=lang, ket_sym=rang)
-		label_arr = unique(label_arr)
-		label_map = todict(label_arr)
-		Basis(name, bra_sym, ket_sym, label_map, label_arr)
-	end
+function Basis{S<:State}(label, states::Vector{S}; bra_sym=lang, ket_sym=rang)
+	state_map = mapstates(states)
+	Basis(label, states, state_map, bra_sym, ket_sym)
+end
+
+function Basis(label, label_vec::Vector; bra_sym=lang, ket_sym=rang)
+	states = statevec(unique(label_vec))
+	Basis(label, states, bra_sym=bra_sym, ket_sym=ket_sym)
+end
+
+Basis{S<:State}(label, states::S...; bra_sym=lang, ket_sym=rang) = Basis(label, vcat(states...), bra_sym=bra_sym, ket_sym=ket_sym)
 
 immutable TensorBasis{B<:Basis} <: AbstractBasis
-	name::String
-	label_map::Dict{Tuple, Int}
-	label_arr::Array #memoization for future tensor products
-	basis_arr::Vector{B}
+	label
+	bases::Vector{B}
+	states::Vector{State}
+	state_map::Dict{State, Int}
 	bra_sym::String
 	ket_sym::String
 end
 
-	function TensorBasis{B<:Basis}(name::String, label_arr::Array, basis_arr::Vector{B}; bra_sym=lang, ket_sym=rang)
-		label_map = todict(label_arr, d=Dict{Tuple, Int}())
-		TensorBasis(name, label_map, label_arr, basis_arr, bra_sym, ket_sym)
-	end
+function TensorBasis{B<:Basis, S<:State}(label, bases::Vector{B}, states::Vector{S}; bra_sym=lang, ket_sym=rang)
+	state_map = mapstates(states)
+	TensorBasis(label, bases, states, state_map, bra_sym, ket_sym)
+end
 
-	function TensorBasis{B<:Basis}(name::String, basis_arr::Vector{B}; bra_sym=lang, ket_sym=rang)
-		label_arr = tensor([i.label_arr for i in basis_arr]...)
-		TensorBasis(name, label_arr, basis_arr, bra_sym=bra_sym, ket_sym=ket_sym)
-	end
+function TensorBasis{B<:Basis}(label, bases::Vector{B}; bra_sym=lang, ket_sym=rang)
+	states = tensor([i.states for i in bases]...)
+	TensorBasis(label, bases, states, bra_sym=bra_sym, ket_sym=ket_sym)
+end
 
-	function TensorBasis{B<:Basis}(basis_arr::Vector{B}; bra_sym=lang, ket_sym=rang)
-		name = string(["_$(i.name)" for i in basis_arr]...)
-		TensorBasis(name[2:end], basis_arr, bra_sym=bra_sym, ket_sym=ket_sym)
-	end
+function TensorBasis{B<:Basis}(bases::Vector{B}; bra_sym=lang, ket_sym=rang)
+	label = [i.label for i in bases]
+	TensorBasis(label, bases, bra_sym=bra_sym, ket_sym=ket_sym)
+end
 
-	function tensor(bases::AbstractBasis...)
-		TensorBasis(vcat([components(i) for i in bases]...))
-	end
+function tensor(bases::AbstractBasis...)
+	TensorBasis(vcat([components(i) for i in bases]...))
+end
 
-#####BasisFunctions##########################################################
 function components(B::TensorBasis)
-	return B.basis_arr
+	return B.bases
 end
 
 function components(B::Basis)
 	return B
 end
 
-function extract(f::Function, A::Array)
-    res = Array(eltype(A), 0)
-    for i=1:size(A,1)
-	    if f(A[i, :])
-            push!(res, A[i,:])
-        end
-    end
-    return vcat(res...)
-end
-######State##########################################################
-abstract AbstractState
-abstract BraKet
-abstract Bra <: BraKet
-abstract Ket <: BraKet
 
-type State{B<:AbstractBasis, K<:BraKet} <: AbstractState
-	kind::Type{K}
-	label::String
-	coeffs::SparseMatrixCSC
-	basis::B
-	function State(kind::Type{K}, label::String, coeffs::SparseMatrixCSC, basis)
-		if length(basis)==length(coeffs)
-			new(kind, label, coeffs, basis)
-		elseif length(basis)>length(coeffs)
-			error("coefficiemnts unspecified for $(length(basis)-length(coeffs)) basis states")
-		else
-			error("basis labels unspecified for $(length(coeffs)-length(basis)) coefficients")
-		end	
-	end	
+
+#module ends#######################################
 end
 
-State{B<:AbstractBasis,N<:Number}(label::String, coeffs::Vector{N}, basis::B)= State{B, Ket}(Ket, label, sparsevec(coeffs), basis)
-State{B<:AbstractBasis,N<:Number}(label::String, coeffs::Array{N}, basis::B)= State{B, Bra}(Bra, label, sparse(coeffs), basis)
+using d
 
-function State{B<:AbstractBasis}(label::String, coeffs::SparseMatrixCSC, basis::B)
-	if size(coeffs)[2]==1
-		return State{B, Ket}(Ket, label, coeffs, basis)
-	else
-		return State{B, Bra}(Bra, label, coeffs, basis)
-	end
-end
-
-#####StateFunctions##########################################################
-getcoeffs(S::State) = S.coeffs
-
-function magnitude(A::Number...)
-	if length(A)==2
-		return hypot(A[1], A[2])
-	end
-	return magnitude(hypot(A[1], A[2]), A[3:end]...)
-end
-
-magnitude{N<:Number}(A::Vector{N}) = magnitude(A...)
-magnitude(A::SparseMatrixCSC) = magnitude(A...)
-magnitude(S::AbstractState) = magnitude(S.coeffs)
-
-function normalize{N<:Number}(A::Vector{N})
-	return (1/magnitude(A))*A
-end
-
-function normalize!(S::AbstractState)
-	S.coeffs = (1/magnitude(S))*S.coeffs;
-	return S
-end
-
-normalize(S::AbstractState) = normalize!(State(S.label, S.coeffs, S.basis))
-
-isnorm(S::AbstractState) = magnitude(S)==1
-
-getlabel(S::AbstractState) = S.kind==Ket ? "| $(S.label) $(S.basis.ket_sym)" : "$(S.basis.bra_sym) $(S.label) |"
-
-######Operator######################################################
-
-abstract AbstractOperator
-
-type Operator{B1<:AbstractBasis, B2<:AbstractBasis} <:AbstractOperator
-	label::String
-	coeffs::SparseMatrixCSC
-	row_basis::B1
-	col_basis::B2
-	function Operator(label::String, coeffs::SparseMatrixCSC, row_basis::B1, col_basis::B2)
-		if (length(row_basis)*length(col_basis))==length(coeffs)
-			new(label, coeffs, row_basis, col_basis)
-		elseif length(basis)>length(coeffs)
-			error("basis is larger than representation by $((length(row_basis)*length(col_basis))-length(coeffs)) labels")
-		else
-			error("representation is larger than basis by $(length(coeffs)-(length(row_basis)*length(col_basis))) coefficients")
-		end
-	end	
-end
+a = d.Basis("a", [1:10])
+b = d.Basis("b", ["$i" for i=1:4])
 
 
-
-function Operator{B1<:AbstractBasis, B2<:AbstractBasis}(label::String, coeffs::SparseMatrixCSC, row_basis::B1, col_basis::B2)
-	return Operator{B1, B2}(label, coeffs, row_basis, col_basis)
-end
-
-function Operator{B<:AbstractBasis}(label::String, coeffs::SparseMatrixCSC, both_basis::B)
-	return Operator{B, B}(label, sparse(coeffs), both_basis, both_basis)
-end
-
-function Operator{B1<:AbstractBasis, B2<:AbstractBasis, N<:Number}(label::String, coeffs::Array{N, 2}, row_basis::B1, col_basis::B2)
-	return Operator{B1, B2}(label, sparse(coeffs), row_basis, col_basis)
-end
-
-function Operator{B<:AbstractBasis, N<:Number}(label::String, coeffs::Array{N, 2}, both_basis::B)
-	return Operator(label, coeffs, both_basis, both_basis)
-end
-
-
-#####FunctionOverloading############################################
-function show(io::IO, b::AbstractBasis)
-	println("$(typeof(b)) \"$(b.name)\"")
-	println("$(length(b.label_arr[:,1])) Basis States:")
-	for i=1:length(b.label_arr[:,1])
-		println("| $(repr([b.label_arr[i, :]...])[2:end-1]) $(b.ket_sym)")
-	end
-end
-
-function show(io::IO, s::State)
-	if s.kind == Ket
-		left = '|'
-		right = s.basis.ket_sym
-	else
-		left = s.basis.bra_sym
-		right = '|'
-	end 
-	println("$(typeof(s)) $(getlabel(s)):")
-	if length(s)!=0
-		filled = find(s.coeffs)
-		table = cell(length(filled), 2)	
-		for i in 1:length(filled)
-			table[i,1]= s.coeffs[filled[i]]
-			table[i,2]= replace("$left $(repr([s.basis.label_arr[filled[i], :]...])[2:end-1]) $right",r"\\", "")
-		end
-		io = IOBuffer()
-		show(io, table)
-		io_str = takebuf_string(io)
-		io_str = io_str[searchindex(io_str, "\n")+1:end]
-		r_ket = "\"(?=$(s.basis.bra_sym))|(?<=$(s.basis.ket_sym))\""
-		r = Regex(r_ket)
-		io_str = replace(io_str,r"\"(?=\|)|\|\K\"",  "")
-		io_str = replace(io_str,r,  "")
-		io_str = replace(io_str,r"\\(?=\")",  "")
-		io_str = replace(io_str,r"\s\"\s|\s\"(?=,)",  "\"")
-		io_str = replace(io_str,r"\s\K\"(?=\s)", "")
-		print(io_str)
-	else
-		println("(all coefficients are zero)")
-	end
-end
-
-function show(io::IO, op::AbstractOperator)
-	println("$(typeof(op)) $(op.label):")
-	table = cell(length(op.row_basis)+1, length(op.col_basis)+1)	
-	for i = 1:length(op.row_basis)
-		table[i+1,1] = replace("| $(repr([op.row_basis.label_arr[i, :]...])[2:end-1]) $(op.row_basis.ket_sym)",r"\\", "")
-	end
-	for j = 1:length(op.col_basis)
-		table[1,j+1] = replace("$(op.col_basis.bra_sym) $(repr([op.col_basis.label_arr[j, :]...])[2:end-1]) |",r"\\", "")
-	end
-
-	indent = ""
-	for i=1:length(table[2])
-		indent = " $indent"
-	end	
-	table[1,1] = indent
-	table[2:end, 2:end] = full(op.coeffs)
-	
-	io = IOBuffer()
-	show(io, table)
-	io_str = takebuf_string(io)
-	io_str = io_str[searchindex(io_str, "\n")+3:end]
-
-
-	r_ket = "\"(?=$(op.col_basis.bra_sym))|(?<=$(op.row_basis.ket_sym))\""
-	r = Regex(r_ket)
-	io_str = replace(io_str,r"\"(?=\|)|\|\K\"",  " ")
-	io_str = replace(io_str,r,  " ")
-	io_str = replace(io_str,r"\\(?=\")",  " ")
-	io_str = replace(io_str,r"\s\"\s|\s\"(?=,)",  "\" ")
-	io_str = replace(io_str,r"\s\K\"(?=\s)", " ")
-	print(io_str)
-end
-
-size(b::AbstractBasis, x::Int...) = size(b.label_arr, x...)
-length(b::AbstractBasis) = size(b, 1)
-ndims(b::AbstractBasis) = ndims(b.label_arr)
-
-in(a, b::Basis)=in(a, collect(keys(b.label_map)))
-in(a, b::TensorBasis)=in(tuple(a...), collect(keys(b.label_map)))
-
-getindex(b::TensorBasis, x::Int) = TensorBasis("$(b.name)_$x", b.label_arr[x,:], b.basis_arr, bra_sym=b.bra_sym, ket_sym=b.ket_sym)
-getindex(b::TensorBasis, x::Range1{Int}) = TensorBasis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", b.label_arr[x,:], b.basis_arr, bra_sym=b.bra_sym, ket_sym=b.ket_sym)
-getindex(b::Basis, x::Int) = Basis("$(b.name)_$x", vec(b.label_arr[x,:]), bra_sym=b.bra_sym, ket_sym=b.ket_sym)
-getindex(b::Basis, x::Range1{Int}) = Basis("$(b.name)_$(x[1]) to $(b.name)_$(last(x))", vec(b.label_arr[x,:]), bra_sym=b.bra_sym, ket_sym=b.ket_sym)
-
-*(a::AbstractBasis, b::AbstractBasis) = tensor(a,b)
-+(a::Basis,b::Basis) = Basis("$(a.name)+$(b.name)", vcat(a.label_arr,b.label_arr), bra_sym=a.bra_sym, ket_sym=a.ket_sym)
-+(a::TensorBasis,b::TensorBasis) = size(a,2)==size(b,2) ? TensorBasis("$(a.name)+$(b.name)", vcat(a.label_arr,b.label_arr), bra_sym=a.bra_sym, ket_sym=a.ket_sym) : error("dimension mismatch; label lengths differ")
--(a::Basis,b::Basis) = extract(x->!in(x,b), a, name="$(a.name)-$(b.name)")
--(a::TensorBasis, b::TensorBasis) = size(a,2)==size(b,2) ? extract(x->!in(x,b),a, name="$(a.name)-$(b.name)") : error("dimension mismatch; label lengths differ")
-setdiff(a::AbstractBasis,b::AbstractBasis) = a-b
-
-function filter(f::Function, B::Basis; name=B.name)
-	sub_arr = filter(f, B.label_arr)
-	return Basis(name, sub_arr)
-end
-
-function filter(f::Function, B::TensorBasis; name=B.name)
-	sub_arr = extract(f, B.label_arr)
-	return TensorBasis(name, sub_arr, B.basis_arr, bra_sym=B.bra_sym, ket_sym=B.ket_sym)
-end
-
-#The following redundancies are implemented for the sake 
-#of allowing a[(key)] notation for state coefficient retrieval.
-#It arises from the fact that the dicts for Basis and TensorBasis
-#have keys of types T and Tuple respectively, rather than
-#both having keys of type Tuple.
-function get(b::AbstractBasis, key)
-	v = get(b.label_map, key, "not found")
-	if v=="not found"
-		throw(KeyError(key))
-	end
-	return v
-end
-
-function get(b::AbstractBasis, key...)
-	v = get(b.label_map, key, "not found")
-	if v=="not found"
-		throw(KeyError(key))
-	end
-	return v
-end
-
-get(b::TensorBasis, key::Array) = get(b, key...)
-
-
-copy(S::State) = State(copy(S.label), copy(S.coeffs), copy(S.basis))
-copy(S::State, coeffs::SparseMatrixCSC) = State(copy(S.label), coeffs, copy(S.basis))
-length(S::AbstractState) = nfilled(S.coeffs)
-size(S::AbstractState) = length(S)
-
-get{B<:Basis}(S::State{B}, key) = S.coeffs[get(S.basis, key)]
-get{B<:TensorBasis}(S::State{B}, key) = S.coeffs[get(S.basis, key)]
-get{B<:TensorBasis}(S::State{B}, key...) = S.coeffs[get(S.basis, key)]
-getindex(S::State, x) = S.coeffs[x]
-getindex(S::State, x::Range1{Int}) = S.coeffs[x,:]
-getindex{B<:Basis}(S::State{B}, x::Tuple) = get(S, x[1])
-getindex{B<:TensorBasis}(S::State{B}, x::Tuple) = get(S, x)
-setindex!(S::State, y, x) = setindex!(S.coeffs, y, x)
-
-function setindex!(S::State, y::Int, x::Range1{Int})
-	for i in x
-		setindex!(S, y, i)
-	end
-end
-
-function setindex!(S::State, y::Array, x::Range1{Int})
-	if length(y) != length(x)
-		throw(BoundsError())
-	else
-		for i=1:length(x)
-			setindex!(S, y[i], x[i])
-		end
-	end
-end
-
-
-!(K::Type{Ket}) = Bra
-!(B::Type{Bra}) = Ket
-
-function transpose(S::State)
-	return copy(S, S.coeffs.')
-end
-
-function ctranspose(S::State)
-	return copy(S, S.coeffs')
-end
-
-function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Bra}, b::State{B2, Ket})
-	return (a.coeffs*b.coeffs)[1]
-end
-
-function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Ket}, b::State{B2, Ket})
-	new_coeffs = tensor(full(a.coeffs), full(b.coeffs))
-	return State("$(a.label),$(b.label)", new_coeffs[:,1].*new_coeffs[:,2], a.basis*b.basis)
-end
-
-function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Bra}, b::State{B2, Bra})
-	new_coeffs = tensor(full(a.coeffs)', full(b.coeffs)')'
-	return State("$(a.label),$(b.label)", new_coeffs[1,:].*new_coeffs[2,:], a.basis*b.basis)
-end
-
-function *{B1<:AbstractBasis, B2<:AbstractBasis}(a::State{B1, Ket}, b::State{B2, Bra})
-	return Operator("$(getlabel(a))$(getlabel(b))", a.coeffs*b.coeffs, a.basis, b.basis)
-end
-
-*(n::Number, s::State) = copy(s, n*s.coeffs) 
-*(s::State, n::Number) = copy(s, s.coeffs*n) 
-+(s::State, n::Number) = copy(s, s.coeffs+n)
-+(n::Number, s::State) = copy(s, n+s.coeffs)
--(s::State, n::Number) = copy(s, s.coeffs-n)
--(n::Number, s::State) = copy(s, n-s.coeffs)
-/(s::State, n::Number) = copy(s, s.coeffs/n)
-/(n::Number, s::State) = error("cannot divide number by vector")
-function +(a::State, b::State)
-	if a.basis==b.basis && a.kind==b.kind
-		State("$(a.label) + $(b.label)", a.coeffs+b.coeffs, a.basis)
-	else
-		error("composite states not yet supported :(")
-	end
-end
-
-function -(a::State, b::State)
-	if a.basis==b.basis && a.kind==b.kind
-		State("$(a.label) - $(b.label)", a.coeffs-b.coeffs, a.basis)
-	else
-		error("composite states not yet supported :(")
-	end
-end
-
-function exp_sparse(csc::SparseMatrixCSC) 
-	ex_csc = copy(csc)
-	for i in find(csc)
-		ex_csc[i] = exp(csc[i])
-	end
-	return ex_csc
-end
-
-exp{N<:Number}(csc::SparseMatrixCSC{Complex{Float64}, N}) = exp_sparse(csc)
-exp{N<:Number}(csc::SparseMatrixCSC{Float64, N}) = exp_sparse(csc)
-
-function exp{N1<:Number, N2<:Number}(csc::SparseMatrixCSC{Complex{N1}, N2})
-	ex_csc = convert(SparseMatrixCSC{Complex{Float64}, N2}, csc)
-	return exp(ex_csc)
-end
-
-function exp{N1<:Number, N2<:Number}(csc::SparseMatrixCSC{N1, N2})
-	ex_csc = convert(SparseMatrixCSC{Float64, N2}, csc)
-	return exp(ex_csc)
-end
-
-exp(s::State)=copy(s, exp(s.coeffs))
-
-exp(op::Operator) = Operator(op.label, exp(op.coeffs), op.row_basis, op.col_basis)
-
-function map!(f::Function, s::State)
-	for i=1:length(s.coeffs)
-		s.coeffs[i] = apply(f,s.coeffs[i])
-	end
-	return s
-end 
-
-map(f::Function, s::State) = map!(f, copy(s))
-
-function maplabel!(f_coeffs::Function, f_labels::Function, s::State)
-	labels = filter(f_labels, collect(keys(s.basis.label_map)))	
-	for i in labels
-		s[get(s.basis, i)] = apply(f_coeffs, get(s, i))
-	end
-	return s
-end
-
-maplabel(f_coeffs::Function, f_labels::Function, s::State) = maplabel!(f_coeffs, f_labels, copy(s))
-
-end#module
-#####Tests##########################################################
-using m
-
-function main()
-	A = m.Basis("A", [1:3])
-	B = m.Basis("B", ["$i" for i=1:3])
-	C = m.Basis("C", ["%", "\$", "#"])
-	D = m.tensor(A, B, C)
-	return (A,B,C,D)
-end
-
-res = main();
-a = res[1]
-b = res[2]
-c = res[3]
-d = res[4]
-ds = m.State("dS", [1:27], d);
-a = m.Basis("a", [1:10], bra_sym="{", ket_sym="}")
-as = m.State("aS", [1:10], a)
-println("")
 
