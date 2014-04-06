@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"Bra",
+				"BraKet"
+			],
+			[
 				"A",
 				"AbstractOperator"
 			],
@@ -118,10 +122,6 @@
 			[
 				"ba",
 				"basis"
-			],
-			[
-				"Bra",
-				"Bra"
 			],
 			[
 				"St",
@@ -533,8 +533,9 @@
 	},
 	"file_history":
 	[
-		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac_old.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
 		"/Users/jarrettrevels/test.jl",
 		"/Users/jarrettrevels/data/comp-sci/operating-systems/helloworld-project/kernel.c",
 		"/Users/jarrettrevels/data/repos/dirac-tools/README.md",
@@ -703,12 +704,16 @@
 				"dirac.jl"
 			],
 			[
-				"tes",
+				"dir",
+				"dirac_old.jl"
+			],
+			[
+				"te",
 				"test.jl"
 			],
 			[
-				"dir",
-				"dirac.jl"
+				"tes",
+				"test.jl"
 			],
 			[
 				"",
@@ -717,10 +722,6 @@
 			[
 				"d",
 				"dirac.jl"
-			],
-			[
-				"te",
-				"test.jl"
 			],
 			[
 				"t",
