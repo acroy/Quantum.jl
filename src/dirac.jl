@@ -62,46 +62,47 @@ abstract Ket <: BraKet
 !(K::Type{Ket}) = Bra
 !(B::Type{Bra}) = Ket
 
-immutable State{K<:BraKet,T}
-  label::Vector{T}
+immutable State{K<:BraKet}
+  label::Vector
   kind::Type{K}
 end
 
 isequal(a::State,b::State) = a.label==b.label && a.kind == b.kind 
 
-State(label::Vector, kind=Ket) = State(label, kind)
-State{T}(label::T, kind=Ket) = State(T[label], kind)
-State(label...; kind=Ket) = State([label...], kind)
+State(label::Vector) = State(label, Ket)
+State{K<:BraKet}(label, kind::Type{K}=Ket) = State([label], kind)
+State{K<:BraKet}(label...; kind::Type{K}=Ket) = State([label...], kind)
 
-function statevec(v::Vector)
-	svec = Array(State, length(v))
+function statevec{K<:BraKet}(v::Vector, kind::Type{K}=Ket)
+	svec = Array(State{kind}, length(v))
 	for i=1:length(v)
-		svec[i] = State(v[i])
+		svec[i] = State(v[i], kind)
 	end
 	return svec
 end
 
-function statevec(arr::Array)
-	svec = Array(State, size(arr,1))
+function statevec{K<:BraKet}(arr::Array, kind::Type{K}=Ket)
+	svec = Array(State{kind}, size(arr,1))
 	for i=1:size(arr, 1)
-		svec[i] = State(vec(arr[i,:]))
+		svec[i] = State(vec(arr[i,:]), kind)
 	end
 	return svec
 end
 
 tensor() = nothing
 tensor{K<:BraKet}(s::State{K}...) = State(vcat([i.label for i in s]...), K)
-statejoin(v::Vector{State}...) = broadcast(tensor, v...)
-function statejoin(state_arr::Array{State}) 
+statejoin{S<:State}(v::Vector{S}) = tensor(v...)
+statejoin{S<:State}(v::Vector{S}...) = broadcast(tensor, v...)
+function statejoin{S<:State}(state_arr::Array{S}) 
 	result = statejoin(state_arr[:,1], state_arr[:,2])
 	for i=3:size(state_arr, 2)
 		result = statejoin(result, state_arr[:,i])
 	end
 	return result
 end
-tensor(state_arrs::Array{State}...) = statejoin(crossjoin(state_arrs...))
+tensor{S<:State}(state_arrs::Array{S}...) = statejoin(crossjoin(state_arrs...))
 separate(s::State) = statevec(s.label)
-separate(v::Vector{State}) = hcat(map(separate, v)...).'
+separate{S<:State}(v::Vector{S}) = hcat(map(separate, v)...).'
 
 ctranspose(s::State) = State(s.label, !s.kind)
 getindex(s::State, x) = s.label[x]
@@ -117,8 +118,8 @@ end
 #Bases#############################################
 abstract AbstractBasis
 
-function mapstates{S<:State}(svec::Vector{S})
-	dict = Dict{S, Int}()
+function mapstates{K<:BraKet}(svec::Vector{State{K}})
+	dict = Dict{State{K}, Int}()
 	sizehint(dict, length(svec))
 	for i=1:length(svec)
 		dict[svec[i]] = i
@@ -126,35 +127,27 @@ function mapstates{S<:State}(svec::Vector{S})
 	return dict
 end	
 
-immutable Basis{S<:State} <: AbstractBasis
+immutable Basis{K<:BraKet} <: AbstractBasis
 	label
-	states::Vector{S}
-	state_map::Dict{S, Int}
+	states::Vector{State{K}}
+	state_map::Dict{State{K}, Int}
 	bra_sym::String
 	ket_sym::String
 end
 
-function Basis{S<:State}(label, states::Vector{S}; bra_sym=lang, ket_sym=rang)
-	state_map = mapstates(states)
-	Basis(label, states, state_map, bra_sym, ket_sym)
-end
+Basis{K<:BraKet}(label, states::Vector{State{K}}; bra_sym=lang, ket_sym=rang) = Basis(label, unique(states), mapstates(states), bra_sym, ket_sym)
+Basis{K<:BraKet}(label, states::State{K}...; bra_sym=lang, ket_sym=rang) = Basis(label, vcat(states...), bra_sym=bra_sym, ket_sym=ket_sym)
+Basis(label, label_vec::Vector; bra_sym=lang, ket_sym=rang) = Basis(label, statevec(label_vec), bra_sym=bra_sym, ket_sym=ket_sym)														
 
-function Basis(label, label_vec::Vector; bra_sym=lang, ket_sym=rang)
-	states = statevec(unique(label_vec))
-	Basis(label, states, bra_sym=bra_sym, ket_sym=ket_sym)
-end
-
-Basis{S<:State}(label, states::S...; bra_sym=lang, ket_sym=rang) = Basis(label, vcat(states...), bra_sym=bra_sym, ket_sym=ket_sym)
-
-immutable TensorBasis{B<:Basis, S<:State} <: AbstractBasis
-	bases::Vector{B}
-	states::Vector{S}
-	state_map::Dict{S, Int}
+immutable TensorBasis{K<:BraKet} <: AbstractBasis
+	bases::Vector{Basis{K}}
+	states::Vector{State{K}}
+	state_map::Dict{State{K}, Int}
 	bra_sym::String
 	ket_sym::String
 end
 
-function TensorBasis{B<:Basis, S<:State}(bases::Vector{B}, states::Vector{S}; bra_sym=lang, ket_sym=rang)
+function TensorBasis{K<:BraKet}(bases::Vector{Basis{K}}, states::Vector{State{K}}; bra_sym=lang, ket_sym=rang)
 	states = unique(states)
 	state_map = mapstates(states)
 	TensorBasis(bases, states, state_map, bra_sym, ket_sym)
@@ -182,12 +175,14 @@ function label(b::TensorBasis)
 end
 
 function show(io::IO, b::AbstractBasis)
-	println("$(typeof(b)):")
-	println("$(label(b)):")
+	println("$(typeof(b)) $(label(b)):")
 	for i in b.states
 		println(repr(i))
 	end
 end
+
+ctranspose(b::Basis) = Basis(b.label, map(ctranspose, b.states))
+ctranspose(b::TensorBasis) = TensorBasis(map(ctranspose, b.bases), map(ctranspose, b.states))
 
 filter(f::Function, b::Basis) = Basis(b.label, filter(f, b.states), bra_sym=b.bra_sym, ket_sym=b.ket_sym)
 filter(f::Function, b::TensorBasis) = TensorBasis(b.bases, filter(f, b.states), bra_sym=b.bra_sym, ket_sym=b.ket_sym)
@@ -207,15 +202,12 @@ get(b::AbstractBasis, label...) = b.state_map[State(label...)]
 get(b::AbstractBasis, label::Vector) = b.state_map[State(label)]
 get(b::AbstractBasis, state_key::State) = b.state_map[state_key]
 
-ctranspose(b::Basis) = Basis(b.label, map(ctranspose, b.states))
-ctranspose(b::TensorBasis) = TensorBasis([map(ctranspose, {b.bases...})...], map(ctranspose, b.states)) #mapping is cray due to typing issues
-
 #StateRepresentation###############################
-type StateRep{B<:AbstractBasis, K<:BraKet} <: AbstractState
+type StateRep{K<:BraKet} <: AbstractState
 	state::State{K}
 	coeffs::Array{Number}
-	basis::B
-	function StateRep(s::State{K}, coeffs::Array{Number}, basis::B)
+	basis::AbstractBasis
+	function StateRep(s::State{K}, coeffs::Array{Number}, basis::AbstractBasis)
 		if length(basis)==length(coeffs)
 			new(s, coeffs, basis)
 		elseif length(basis)>length(coeffs)
@@ -226,25 +218,25 @@ type StateRep{B<:AbstractBasis, K<:BraKet} <: AbstractState
 	end	
 end
 
-StateRep{B<:AbstractBasis,N<:Number}(s::State, coeffs::Vector{N}, basis::B) = StateRep(s, convert(Vector{Number},coeffs), basis)
-StateRep{B<:AbstractBasis,N<:Number}(s::State{Ket}, coeffs::Vector{N}, basis::B) = StateRep{B, Ket}(s, convert(Vector{Number},coeffs), basis)
-StateRep{B<:AbstractBasis,N<:Number}(s::State{Bra}, coeffs::Vector{N}, basis::B) = error("Dimensions of coefficient array does not match type $K")
-function StateRep{B<:AbstractBasis, N<:Number, K<:BraKet}(s::State{K}, coeffs::Array{N}, basis::B)
+StateRep{N<:Number}(s::State, coeffs::Vector{N}, basis::AbstractBasis) = StateRep(s, convert(Vector{Number},coeffs), basis)
+StateRep{N<:Number}(s::State{Ket}, coeffs::Vector{N}, basis::AbstractBasis) = StateRep{Ket}(s, convert(Vector{Number},coeffs), basis)
+StateRep{N<:Number}(s::State{Bra}, coeffs::Vector{N}, basis::AbstractBasis) = error("Dimensions of coefficient array does not match type $K")
+function StateRep{N<:Number, K<:BraKet}(s::State{K}, coeffs::Array{N}, basis::AbstractBasis)
 	if size(coeffs)[2]==1 && K==Ket
-		StateRep{B, Ket}(s, convert(Vector{Number},vec(coeffs)), basis)
+		StateRep{Ket}(s, convert(Vector{Number},vec(coeffs)), basis)
 	elseif K==Bra
-		StateRep{B, Bra}(s, convert(Array{Number},coeffs), basis)
+		StateRep{Bra}(s, convert(Array{Number},coeffs), basis)
 	else
 		error("Dimensions of coefficient array does not match type $K")
 	end
 end
 
-StateRep{B<:AbstractBasis,N<:Number}(label, coeffs::Vector{N}, basis::B) = StateRep{B, Ket}(State(label, Ket), convert(Vector{Number},coeffs), basis)
-function StateRep{B<:AbstractBasis,N<:Number}(label, coeffs::Array{N}, basis::B)
+StateRep{N<:Number}(label, coeffs::Vector{N}, basis::AbstractBasis) = StateRep{Ket}(State(label, Ket), convert(Vector{Number},coeffs), basis)
+function StateRep{N<:Number}(label, coeffs::Array{N}, basis::AbstractBasis)
 	if size(coeffs)[2]==1
-		StateRep{B, Ket}(State(label, Ket), convert(Vector{Number},vec(coeffs)), basis)
+		StateRep{Ket}(State(label, Ket), convert(Vector{Number},vec(coeffs)), basis)
 	else
-		StateRep{B, Bra}(State(label, Bra), label, convert(Array{Number},coeffs), basis)
+		StateRep{Bra}(State(label, Bra), label, convert(Array{Number},coeffs), basis)
 	end
 end
 
@@ -280,7 +272,7 @@ end
 normalize(s::StateRep) = normalize!(copy(s))
 isnorm(s::StateRep) = magnitude(s)==1
 
-ctranspose(s::StateRep) = StateRep(s.state', s.coeffs', s.basis)
+ctranspose(s::StateRep) = StateRep(s.state', s.coeffs', s.basis')
 
 function map!(f::Function, s::StateRep)
 	s.coeffs = map!(f, s.coeffs)
@@ -323,7 +315,7 @@ function show(io::IO, s::StateRep)
 			end
 		end
 		temp_io = IOBuffer()
-		show(temp_io, table)
+		kind(s)==Ket ? show(temp_io, table) : show(temp_io, [table[:,2].', table[:,1].'])
 		io_str = takebuf_string(temp_io)
 		io_str = io_str[searchindex(io_str, "\n")+1:end]
 		print(io_str)
@@ -342,9 +334,5 @@ s = d.State([1:3])
 a = d.Basis("a", [1:10])
 b = d.Basis("b", ["$i" for i=1:4]);
 c = d.tensor(a,b)
-f = d.tensor(c,c)
-g = d.tensor(a,b,a,b)
+sr = d.StateRep(s, [1:10], a)
 print("")
-
-
-
