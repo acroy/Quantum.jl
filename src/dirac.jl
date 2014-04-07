@@ -5,6 +5,7 @@ const lang = "\u27E8"
 const rang = "\u27E9"
 const vert_ell = "\u22EE"
 const horiz_ell = "\u2026"
+const otimes = "\u2297"
 import Base.show,
 	   Base.repr,	
 	   Base.getindex,
@@ -65,6 +66,8 @@ immutable State{K<:BraKet,T}
   label::Vector{T}
   kind::Type{K}
 end
+
+isequal(a::State,b::State) = a.label==b.label && a.kind == b.kind 
 
 State(label::Vector, kind=Ket) = State(label, kind)
 State{T}(label::T, kind=Ket) = State(T[label], kind)
@@ -143,51 +146,51 @@ end
 
 Basis{S<:State}(label, states::S...; bra_sym=lang, ket_sym=rang) = Basis(label, vcat(states...), bra_sym=bra_sym, ket_sym=ket_sym)
 
-immutable TensorBasis{B<:Basis} <: AbstractBasis
-	label
+immutable TensorBasis{B<:Basis, S<:State} <: AbstractBasis
 	bases::Vector{B}
-	states::Vector{State}
-	state_map::Dict{State, Int}
+	states::Vector{S}
+	state_map::Dict{S, Int}
 	bra_sym::String
 	ket_sym::String
 end
 
-function TensorBasis{B<:Basis, S<:State}(label, bases::Vector{B}, states::Vector{S}; bra_sym=lang, ket_sym=rang)
+function TensorBasis{B<:Basis, S<:State}(bases::Vector{B}, states::Vector{S}; bra_sym=lang, ket_sym=rang)
+	states = unique(states)
 	state_map = mapstates(states)
-	TensorBasis(label, bases, states, state_map, bra_sym, ket_sym)
+	TensorBasis(bases, states, state_map, bra_sym, ket_sym)
 end
 
-function TensorBasis{B<:Basis}(label, bases::Vector{B}; bra_sym=lang, ket_sym=rang)
+function tensor(bases::AbstractBasis...; bra_sym=lang, ket_sym=rang)
 	states = tensor([i.states for i in bases]...)
-	TensorBasis(label, bases, states, bra_sym=bra_sym, ket_sym=ket_sym)
+	TensorBasis(vcat([separate(i) for i in bases]...), states, bra_sym=bra_sym, ket_sym=ket_sym)
 end
 
-function TensorBasis{B<:Basis}(bases::Vector{B}; bra_sym=lang, ket_sym=rang)
-	label = [i.label for i in bases]
-	TensorBasis(label, bases, bra_sym=bra_sym, ket_sym=ket_sym)
-end
+separate(b::TensorBasis) = b.bases
+separate(b::Basis)=b
 
-function tensor(bases::AbstractBasis...)
-	TensorBasis(vcat([components(i) for i in bases]...))
-end
+isequal(a::AbstractBasis,b::AbstractBasis) = a.states==b.states
 
-function components(b::TensorBasis)
-	return b.bases
-end
+label(b::Basis) = repr(b.label)
 
-function components(b::Basis)
-	return b
+function label(b::TensorBasis)
+	labels = [label(i) for i in b.bases]
+	str = "$(labels[1])"
+	for i=2:length(labels)
+		str = "$str $otimes $(labels[i])"
+	end
+	str
 end
 
 function show(io::IO, b::AbstractBasis)
-	println("$(typeof(b)) $(repr(b.label)):")
+	println("$(typeof(b)):")
+	println("$(label(b)):")
 	for i in b.states
 		println(repr(i))
 	end
 end
 
 filter(f::Function, b::Basis) = Basis(b.label, filter(f, b.states), bra_sym=b.bra_sym, ket_sym=b.ket_sym)
-filter(f::Function, b::TensorBasis) = TensorBasis(b.label, b.bases, filter(f, b.states), bra_sym=b.bra_sym, ket_sym=b.ket_sym)
+filter(f::Function, b::TensorBasis) = TensorBasis(b.bases, filter(f, b.states), bra_sym=b.bra_sym, ket_sym=b.ket_sym)
 getindex(b::AbstractBasis, x) = b.states[x]
 setindex!(b::AbstractBasis, y, x) = setindex!(b.states, y, x)
 endof(b::AbstractBasis) = endof(b.states)
@@ -197,22 +200,22 @@ size(b::TensorBasis) = (length(b.states), length(b.bases))
 in(s::State, b::AbstractBasis)=in(s, b.states)
 
 *(a::AbstractBasis, b::AbstractBasis) = tensor(a,b)
-+(a::Basis,b::Basis) = Basis("$(repr(a.label))+$(repr(b.label))", vcat(a.label_arr,b.label_arr), bra_sym=a.bra_sym, ket_sym=a.ket_sym)
-+(a::TensorBasis,b::TensorBasis) = size(a,2)==size(b,2) ? TensorBasis("$(repr(a.label))+$(repr(b.label))", vcat(a.label_arr,b.label_arr), bra_sym=a.bra_sym, ket_sym=a.ket_sym) : error("dimension mismatch; label lengths differ")
--{B<:AbstractBasis}(a::B,b::B) = filter(x->!in(x,b), a, name="$(repr(a.label))-$(repr(b.label))")
++(a::Basis,b::Basis) = Basis([a.label, b.label], vcat(a.states,b.states), bra_sym=a.bra_sym, ket_sym=a.ket_sym)
+-{B<:AbstractBasis}(a::B,b::B) = filter(x->!in(x,b), a)
 setdiff(a::AbstractBasis,b::AbstractBasis) = a-b
 get(b::AbstractBasis, label...) = b.state_map[State(label...)]
 get(b::AbstractBasis, label::Vector) = b.state_map[State(label)]
 get(b::AbstractBasis, state_key::State) = b.state_map[state_key]
 
-
+ctranspose(b::Basis) = Basis(b.label, map(ctranspose, b.states))
+ctranspose(b::TensorBasis) = TensorBasis([map(ctranspose, {b.bases...})...], map(ctranspose, b.states)) #mapping is cray due to typing issues
 
 #StateRepresentation###############################
-type StateRep{B<:AbstractBasis, K<:BraKet, N<:Number} <: AbstractState
+type StateRep{B<:AbstractBasis, K<:BraKet} <: AbstractState
 	state::State{K}
-	coeffs::Array{N}
+	coeffs::Array{Number}
 	basis::B
-	function StateRep(s::State{K}, coeffs::Array{N}, basis::B)
+	function StateRep(s::State{K}, coeffs::Array{Number}, basis::B)
 		if length(basis)==length(coeffs)
 			new(s, coeffs, basis)
 		elseif length(basis)>length(coeffs)
@@ -223,23 +226,25 @@ type StateRep{B<:AbstractBasis, K<:BraKet, N<:Number} <: AbstractState
 	end	
 end
 
-
-StateRep{B<:AbstractBasis,N<:Number}(s::State{Ket}, coeffs::Vector{N}, basis::B) = StateRep{B, Ket, N}(s, coeffs, basis)
-function StateRep{B<:AbstractBasis,N<:Number, K<:BraKet}(s::State{K}, coeffs::Array{N}, basis::B)
+StateRep{B<:AbstractBasis,N<:Number}(s::State, coeffs::Vector{N}, basis::B) = StateRep(s, convert(Vector{Number},coeffs), basis)
+StateRep{B<:AbstractBasis,N<:Number}(s::State{Ket}, coeffs::Vector{N}, basis::B) = StateRep{B, Ket}(s, convert(Vector{Number},coeffs), basis)
+StateRep{B<:AbstractBasis,N<:Number}(s::State{Bra}, coeffs::Vector{N}, basis::B) = error("Dimensions of coefficient array does not match type $K")
+function StateRep{B<:AbstractBasis, N<:Number, K<:BraKet}(s::State{K}, coeffs::Array{N}, basis::B)
 	if size(coeffs)[2]==1 && K==Ket
-		StateRep{B, Ket, N}(s, vec(coeffs), basis)
+		StateRep{B, Ket}(s, convert(Vector{Number},vec(coeffs)), basis)
 	elseif K==Bra
-		StateRep{B, Bra, N}(s, coeffs, basis)
+		StateRep{B, Bra}(s, convert(Array{Number},coeffs), basis)
 	else
 		error("Dimensions of coefficient array does not match type $K")
 	end
 end
 
+StateRep{B<:AbstractBasis,N<:Number}(label, coeffs::Vector{N}, basis::B) = StateRep{B, Ket}(State(label, Ket), convert(Vector{Number},coeffs), basis)
 function StateRep{B<:AbstractBasis,N<:Number}(label, coeffs::Array{N}, basis::B)
 	if size(coeffs)[2]==1
-		StateRep{B, Ket, N}(State(label, Ket), vec(coeffs), basis)
+		StateRep{B, Ket}(State(label, Ket), convert(Vector{Number},vec(coeffs)), basis)
 	else
-		StateRep{B, Bra, N}(State(label, Bra), label, coeffs, basis)
+		StateRep{B, Bra}(State(label, Bra), label, convert(Array{Number},coeffs), basis)
 	end
 end
 
@@ -275,7 +280,7 @@ end
 normalize(s::StateRep) = normalize!(copy(s))
 isnorm(s::StateRep) = magnitude(s)==1
 
-ctranspose(s::StateRep) = State(s.state', s.coeffs', s.basis)
+ctranspose(s::StateRep) = StateRep(s.state', s.coeffs', s.basis)
 
 function map!(f::Function, s::StateRep)
 	s.coeffs = map!(f, s.coeffs)
@@ -336,6 +341,9 @@ using d
 s = d.State([1:3])
 a = d.Basis("a", [1:10])
 b = d.Basis("b", ["$i" for i=1:4]);
+c = d.tensor(a,b)
+f = d.tensor(c,c)
+g = d.tensor(a,b,a,b)
 print("")
 
 
