@@ -1,13 +1,10 @@
-abstract BraKet
-abstract Bra <: BraKet
-abstract Ket <: BraKet
-
-immutable State{T, K<:BraKet}
-  label::Vector{T}
-  kind::Type{K}
+immutable Foo
+  v::Vector
+  n::Int
 end
 
-State(label::Vector) = State(label, Ket)
+# isequal(a::Foo,b::Foo) = 
+is(a::Foo,b::Foo) = a.v==b.v && a.n==b.n
 
 ####Converter##########################################################
 

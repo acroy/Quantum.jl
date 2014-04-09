@@ -29,6 +29,8 @@ import Base.show,
 	   Base.filter,
 	   Base.isequal,
 	   Base.copy,
+	   Base.hash,
+	   Base.isequal,
 	   Base.endof  
 #Utility######################################
 function crossjoin(A::Array, B::Vector)
@@ -67,8 +69,6 @@ immutable State{K<:BraKet}
   kind::Type{K}
 end
 
-isequal(a::State,b::State) = a.label==b.label && a.kind == b.kind 
-
 State(label::Vector) = State(label, Ket)
 State{K<:BraKet}(label, kind::Type{K}=Ket) = State([label], kind)
 State{K<:BraKet}(label...; kind::Type{K}=Ket) = State([label...], kind)
@@ -91,6 +91,9 @@ end
 
 tensor() = nothing
 tensor{K<:BraKet}(s::State{K}...) = State(vcat([i.label for i in s]...), K)
+*{K<:BraKet}(s1::State{K}, s2::State{K}) = tensor(s1, s2)
+*(s1::State{Bra}, s2::State{Ket}) = s1.label==s2.label ? 1 : 0 
+
 statejoin{S<:State}(v::Vector{S}) = tensor(v...)
 statejoin{S<:State}(v::Vector{S}...) = broadcast(tensor, v...)
 function statejoin{S<:State}(state_arr::Array{S}) 
@@ -103,6 +106,12 @@ end
 tensor{S<:State}(state_arrs::Array{S}...) = statejoin(crossjoin(state_arrs...))
 separate(s::State) = statevec(s.label)
 separate{S<:State}(v::Vector{S}) = hcat(map(separate, v)...).'
+
+size(s::State) = size(s.label)
+ndims(s::State) = 1
+
+isequal(a::State,b::State) = a.label==b.label && a.kind==b.kind
+hash(a::State) = hash(a.label)+hash(a.kind)
 
 ctranspose(s::State) = State(s.label, !s.kind)
 getindex(s::State, x) = s.label[x]
@@ -245,7 +254,7 @@ label(s::StateRep) = s.state.label
 
 repr(s::StateRep) = repr(s.state)
 copy(s::StateRep) = StateRep(s.state, copy(s.coeffs), s.basis)
-copy{N<:Number}(S::StateRep, coeffs::Array{N}) = StateRep(s.state, coeffs, s.basis)
+copy{N<:Number}(s::StateRep, coeffs::Array{N}) = StateRep(s.state, coeffs, s.basis)
 
 length(s::StateRep) = length(find(s.coeffs))
 getindex(s::StateRep, x) = s.coeffs[x]
@@ -254,14 +263,8 @@ get(s::StateRep, label...) = s[get(s.basis, label...)]
 get(s::StateRep, label::Vector) = s[get(s.basis, label)]
 get(s::StateRep, state_key::State) = s[get(s.basis, state_key)]
 
-function magnitude(A::Number...)
-	if length(A)==2
-		return hypot(A[1], A[2])
-	end
-	return magnitude(hypot(A[1], A[2]), A[3:end]...)
-end
-
-magnitude{N<:Number}(A::Array{N}) = magnitude(A...)
+magnitude(A::Number...)=sqrt(sum(A.^2))
+magnitude{N<:Number}(A::Array{N}) = sqrt(sum(A.^2))
 magnitude(s::StateRep) = magnitude(s.coeffs)
 
 function normalize!(s::StateRep) 
@@ -304,6 +307,7 @@ function show(io::IO, s::StateRep)
 				table[i,1]= s.coeffs[filled[i]]
 				table[i,2]= s.basis[filled[i]]
 			end
+			table[26:(length(filled)-25),:] = 0 # prevents access to undefined reference
 			for i=(length(filled)-25):length(filled)
 				table[i,1]= s.coeffs[filled[i]]
 				table[i,2]= s.basis[filled[i]]
@@ -324,6 +328,23 @@ function show(io::IO, s::StateRep)
 	end
 end
 
+*(n::Number, s::StateRep) = copy(s, n*s.coeffs) 
+*(s::StateRep, n::Number) = copy(s, s.coeffs*n) 
+.*(n::Number, s::StateRep) = n*s
+.*(s::StateRep, n::Number) = s*n 
+.+(s::StateRep, n::Number) = copy(s, s.coeffs.+n)
+.+(n::Number, s::StateRep) = copy(s, n.+s.coeffs)
+.-(s::StateRep, n::Number) = copy(s, s.coeffs.-n)
+.-(n::Number, s::StateRep) = copy(s, n.-s.coeffs)
+/(s::StateRep, n::Number) = copy(s, s.coeffs/n)
+./(s::StateRep, n::Number) = s/n
+./(n::Number, s::StateRep) = copy(s, n./s.coeffs)
+.^(n::Number, s::StateRep) = copy(s, convert(Array{Number}, n.^s.coeffs))
+.^(s::StateRep, n::Number) = copy(s, convert(Array{Number}, s.coeffs.^n))
+
+*(a::StateRep{Bra}, b::StateRep{Ket}) = (a.coeffs*b.coeffs)[1]
+*(a::StateRep{Ket}, b::StateRep{Ket}) = StateRep(a.state*b.state, mapslices(prod, crossjoin(a.coeffs, b.coeffs), 2), a.basis*b.basis)
+*(a::StateRep{Bra}, b::StateRep{Bra}) = StateRep(a.state*b.state, mapslices(prod, crossjoin(a.coeffs', b.coeffs'), 2)', a.basis*b.basis)
 
 #module ends#######################################
 end

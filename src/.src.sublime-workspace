@@ -4,36 +4,56 @@
 		"selected_items":
 		[
 			[
-				"Bra",
-				"BraKet"
+				"s",
+				"states"
+			],
+			[
+				"B",
+				"Basis"
+			],
+			[
+				"label",
+				"label_vec"
+			],
+			[
+				"l",
+				"label"
+			],
+			[
+				"ba",
+				"bases"
+			],
+			[
+				"i",
+				"i"
+			],
+			[
+				"lab",
+				"labels"
+			],
+			[
+				"c",
+				"ctranspose"
 			],
 			[
 				"A",
-				"AbstractOperator"
+				"AbstractBasis"
+			],
+			[
+				"Bra",
+				"BraKet"
 			],
 			[
 				"t",
 				"type"
 			],
 			[
-				"c",
-				"copy"
-			],
-			[
 				"key",
 				"key"
 			],
 			[
-				"l",
-				"labels"
-			],
-			[
 				"fil",
 				"filter"
-			],
-			[
-				"label",
-				"label_map"
 			],
 			[
 				"S",
@@ -66,10 +86,6 @@
 			[
 				"prin",
 				"println"
-			],
-			[
-				"i",
-				"io"
 			],
 			[
 				"p",
@@ -120,10 +136,6 @@
 				"basis"
 			],
 			[
-				"ba",
-				"basis"
-			],
-			[
 				"St",
 				"State"
 			],
@@ -132,20 +144,12 @@
 				"tran_s"
 			],
 			[
-				"B",
-				"B"
-			],
-			[
 				"is",
 				"is_ket"
 			],
 			[
 				"coeff",
 				"coefficients"
-			],
-			[
-				"lab",
-				"label_map"
 			],
 			[
 				"el",
@@ -270,10 +274,6 @@
 			[
 				"res",
 				"result_length"
-			],
-			[
-				"s",
-				"shared"
 			],
 			[
 				"v",
@@ -700,12 +700,12 @@
 		"selected_items":
 		[
 			[
-				"di",
+				"dir",
 				"dirac.jl"
 			],
 			[
-				"dir",
-				"dirac_old.jl"
+				"di",
+				"dirac.jl"
 			],
 			[
 				"te",
