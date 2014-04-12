@@ -294,7 +294,6 @@ function show(io::IO, op::AbstractOperator)
 	io_str = takebuf_string(io)
 	io_str = io_str[searchindex(io_str, "\n")+3:end]
 
-
 	r_ket = "\"(?=$(op.col_basis.bra_sym))|(?<=$(op.row_basis.ket_sym))\""
 	r = Regex(r_ket)
 	io_str = replace(io_str,r"\"(?=\|)|\|\K\"",  " ")

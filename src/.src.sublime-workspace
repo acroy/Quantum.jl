@@ -4,28 +4,60 @@
 		"selected_items":
 		[
 			[
-				"s",
-				"states"
+				"op",
+				"op2"
 			],
 			[
 				"B",
-				"Basis"
+				"B"
 			],
 			[
-				"label",
-				"label_vec"
+				"ra",
+				"raisecoeff"
 			],
 			[
-				"l",
-				"label"
+				"b",
+				"b"
+			],
+			[
+				"state",
+				"state"
+			],
+			[
+				"type",
+				"type"
 			],
 			[
 				"ba",
-				"bases"
+				"basis"
+			],
+			[
+				"col",
+				"col_basis"
+			],
+			[
+				"la",
+				"label"
+			],
+			[
+				"label",
+				"label"
+			],
+			[
+				"Bra",
+				"Bra"
 			],
 			[
 				"i",
 				"i"
+			],
+			[
+				"s",
+				"states"
+			],
+			[
+				"l",
+				"label"
 			],
 			[
 				"lab",
@@ -38,10 +70,6 @@
 			[
 				"A",
 				"AbstractBasis"
-			],
-			[
-				"Bra",
-				"BraKet"
 			],
 			[
 				"t",
@@ -96,10 +124,6 @@
 				"io_str"
 			],
 			[
-				"col",
-				"col_div1"
-			],
-			[
 				"in",
 				"indent"
 			],
@@ -130,10 +154,6 @@
 			[
 				"ne",
 				"next_i"
-			],
-			[
-				"b",
-				"basis"
 			],
 			[
 				"St",
@@ -198,10 +218,6 @@
 			[
 				"sub",
 				"sub_arr"
-			],
-			[
-				"la",
-				"label_dict"
 			],
 			[
 				"bass",
@@ -400,14 +416,6 @@
 				"new"
 			],
 			[
-				"state",
-				"stateload"
-			],
-			[
-				"type",
-				"typeof"
-			],
-			[
 				"X",
 				"X"
 			],
@@ -533,9 +541,9 @@
 	},
 	"file_history":
 	[
-		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac_old.jl",
-		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac_old.jl",
 		"/Users/jarrettrevels/test.jl",
 		"/Users/jarrettrevels/data/comp-sci/operating-systems/helloworld-project/kernel.c",
 		"/Users/jarrettrevels/data/repos/dirac-tools/README.md",
@@ -598,6 +606,7 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"OperatorRep",
 			"AbstractOperatorRep",
 			"Operator",
 			"AbstractStateRep",
@@ -635,6 +644,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"Operator",
 			"AbstractOperator",
 			"OperatorRep",
 			"AbstractState",
@@ -701,10 +711,14 @@
 		[
 			[
 				"dir",
-				"dirac.jl"
+				"dirac_old.jl"
 			],
 			[
 				"di",
+				"dirac.jl"
+			],
+			[
+				"d",
 				"dirac.jl"
 			],
 			[
@@ -718,10 +732,6 @@
 			[
 				"",
 				"test.jl"
-			],
-			[
-				"d",
-				"dirac.jl"
 			],
 			[
 				"t",
