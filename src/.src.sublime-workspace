@@ -4,6 +4,14 @@
 		"selected_items":
 		[
 			[
+				"s",
+				"show"
+			],
+			[
+				"bas",
+				"basis"
+			],
+			[
 				"op",
 				"op2"
 			],
@@ -50,10 +58,6 @@
 			[
 				"i",
 				"i"
-			],
-			[
-				"s",
-				"states"
 			],
 			[
 				"l",
@@ -254,10 +258,6 @@
 			[
 				"ten",
 				"tensor"
-			],
-			[
-				"bas",
-				"basis_array"
 			],
 			[
 				"tensor",
@@ -606,6 +606,8 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"reinterpret(Number",
+			"vert_ell",
 			"OperatorRep",
 			"AbstractOperatorRep",
 			"Operator",
@@ -644,6 +646,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"convert(Array{Complex{Float64}}",
 			"Operator",
 			"AbstractOperator",
 			"OperatorRep",
@@ -710,11 +713,11 @@
 		"selected_items":
 		[
 			[
-				"dir",
-				"dirac_old.jl"
+				"di",
+				"dirac.jl"
 			],
 			[
-				"di",
+				"dir",
 				"dirac.jl"
 			],
 			[
