@@ -3,9 +3,9 @@ include("rep.jl")
 #includes,imports,consts#############################
 const lang = "\u27E8"
 const rang = "\u27E9"
-const vert_ell = "\u22EE"
-const horiz_ell = "\u2026"
 const otimes = "\u2297"
+const hbar = 1.05457173e-34
+
 import Base.show,
 	   Base.repr,
 	   Base.norm,	
@@ -256,9 +256,7 @@ kind(s::StateRep) = s.state.kind
 label(s::StateRep) = s.state.label
 repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 
-copy(s::StateRep) = StateRep(s.state, copy(s.coeffs), s.basis)
-copy{N<:Number}(s::StateRep, coeffs::Array{N}) = StateRep(s.state, coeffs, s.basis)
-
+copy(s::StateRep, coeffs=copy(s.coeffs)) = StateRep(s.state, coeffs, s.basis)
 find(s::StateRep) = find(s.coeffs)
 length(s::StateRep) = length(s.coeffs)
 endof(s::StateRep) = length(s.coeffs)
@@ -346,6 +344,9 @@ end
 .^(n::Number, s::StateRep) = copy(s, n.^s.coeffs)
 .^(s::StateRep, n::Number) = copy(s, s.coeffs.^n)
 
+*(arr::Array, s::StateRep) = copy(s, arr*s.coeffs)
+*(s::StateRep, arr::Array) = copy(s, s.coeffs*arr)
+
 *(a::StateRep{Bra}, b::StateRep{Ket}) = (a.coeffs*b.coeffs)[1]
 *(a::StateRep{Ket}, b::StateRep{Ket}) = StateRep(a.state*b.state, kron(a.coeffs, b.coeffs), a.basis*b.basis)
 *(a::StateRep{Bra}, b::StateRep{Bra}) = StateRep(a.state*b.state, kron(a.coeffs', b.coeffs'), a.basis*b.basis)
@@ -356,10 +357,14 @@ type Operator
 	row_basis::AbstractBasis
 	col_basis::AbstractBasis
 	function Operator(coeffs::Matrix{Complex{Float64}}, row_basis::AbstractBasis, col_basis::AbstractBasis)
-		if kind(row_basis)==Ket && kind(col_basis)==Bra
-			new(coeffs, row_basis, col_basis)
+		if size(coeffs)==(length(row_basis), length(col_basis))
+			if kind(row_basis)==Ket && kind(col_basis)==Bra
+				new(coeffs, row_basis, col_basis)
+			else
+				error("input bases have wrong orientation")
+			end
 		else
-			error("input bases have wrong orientation")
+			throw(DimensionMismatch)
 		end
 	end
 end
@@ -380,10 +385,11 @@ function Operator(label_func::Function, coeff_func::Function, b::AbstractBasis)
 	return Operator(coeffs, b)
 end
 
-isequal(a::Operator, b::Operator) = coeffs==coeffs && isequal(a.row_basis,b.row_basis) && isequal(a.col_basis, b.col_basis)
 
-copy(op::Operator) = Operator(copy(op.coeffs), op.row_basis, op.col_basis)
-copy{N<:Number}(op::Operator, coeffs::Matrix{N}) = Operator(coeffs, op.row_basis, op.col_basis)
+samebasis(a::Operator, b::Operator) = isequal(a.row_basis,b.row_basis) && isequal(a.col_basis, b.col_basis)
+isequal(a::Operator, b::Operator) = coeffs==coeffs && samebasis(a,b)
+
+copy(op::Operator, coeffs=copy(op.coeffs)) = Operator(coeffs, op.row_basis, op.col_basis)
 expm(op::Operator) = copy(op, expm(op.coeffs))
 
 ndims(op::Operator) = 2
@@ -407,8 +413,17 @@ get(op::Operator, ket_label, bra_label) = op[get(op.row_basis, ket_label), get(o
 .^(op::Operator, n::Number) = copy(op, op.coeffs.^n)
 .^(n::Number, op::Operator) = copy(op, n.^op.coeffs)
 
+*(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, a.coeffs*b.coeffs) : error("Bases don't match")
++(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, a.coeffs+b.coeffs) : error("Bases don't match")
+-(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, a.coeffs-b.coeffs) : error("Bases don't match")
+
+commutator(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, (a.coeffs*b.coeffs)-(b.coeffs*a.coeffs)) : error("Bases don't match")
+
 *(op::Operator, s::StateRep{Ket}) = op.row_basis == s.basis ? StateRep(s.state, op.coeffs*s.coeffs, op.row_basis) : error("Bases don't match")
 *(s::StateRep{Bra}, op::Operator) = op.col_basis == s.basis ? StateRep(s.state, s.coeffs*op.coeffs, op.col_basis) : error("Bases don't match")
+*(arr::Array, op::Operator) = copy(op, arr*op.coeffs)
+*(op::Operator, arr::Array) = copy(op, op.coeffs*arr)
+
 
 function show(io::IO, op::Operator)
 	println("$(typeof(op)):")
@@ -438,7 +453,6 @@ b = d.Basis("b", ["$i" for i=1:4]);
 c = d.tensor(a,b)
 sa = d.StateRep(s, [1:10], a)
 sb = d.StateRep(s, [1:4], b)
-
 
 raiselabel(s::d.State)=d.State(s.label[1]+1, s.kind)
 raisecoeff(s::d.State)=sqrt(s[1]+1)
