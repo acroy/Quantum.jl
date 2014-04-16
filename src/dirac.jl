@@ -33,7 +33,8 @@ import Base.show,
 	   Base.hash,
 	   Base.isequal,
 	   Base.endof,
-	   Base.start  
+	   Base.start,
+	   Base.find
 #Utility######################################
 function crossjoin(A::Array, B::Vector)
     r1, r2 = size(A, 1), size(B, 1)
@@ -115,6 +116,7 @@ ndims(s::State) = 1
 isequal(a::State,b::State) = a.label==b.label && a.kind==b.kind
 hash(a::State) = hash(a.label)+hash(a.kind)
 
+kind(s::State) = s.kind
 ctranspose(s::State) = State(s.label, !s.kind)
 getindex(s::State, x) = s.label[x]
 setindex!(s::State, y, x) = setindex!(s.label, y, x)
@@ -130,35 +132,35 @@ end
 #Bases#############################################
 abstract AbstractBasis
 
-function mapstates{K<:BraKet}(svec::Vector{State{K}})
-	dict = Dict{State{K}, Int}()
+function maplabels{K<:BraKet}(svec::Vector{State{K}})
+	dict = Dict{Vector, Int}()
 	sizehint(dict, length(svec))
 	for i=1:length(svec)
-		dict[svec[i]] = i
+		dict[svec[i].label] = i
 	end
 	return dict
 end	
 
-immutable Basis <: AbstractBasis
+immutable Basis{K<:BraKet} <: AbstractBasis
 	label
-	states::Vector{State{Ket}}
-	state_map::Dict{State{Ket}, Int}
+	states::Vector{State{K}}
+	label_map::Dict{Vector, Int}
 end
 
-Basis(label, states::Vector{State{Ket}}) = Basis(label, unique(states), mapstates(states))
-Basis(label, states::State{Ket}...) = Basis(label, vcat(states...))
+Basis{K<:BraKet}(label, states::Vector{State{K}}) = Basis(label, unique(states), maplabels(states))
+Basis{K<:BraKet}(label, states::State{K}...) = Basis(label, vcat(states...))
 Basis(label, label_vec::Vector) = Basis(label, statevec(label_vec))														
 
-immutable TensorBasis <: AbstractBasis
-	bases::Vector{Basis}
-	states::Vector{State{Ket}}
-	state_map::Dict{State{Ket}, Int}
+immutable TensorBasis{K<:BraKet} <: AbstractBasis
+	bases::Vector{Basis{K}}
+	states::Vector{State{K}}
+	label_map::Dict{Vector, Int}
 end
 
-function TensorBasis(bases::Vector{Basis}, states::Vector{State{Ket}})
+function TensorBasis{K<:BraKet}(bases::Vector{Basis{K}}, states::Vector{State{K}})
 	states = unique(states)
-	state_map = mapstates(states)
-	TensorBasis(bases, states, state_map)
+	label_map = maplabels(states)
+	TensorBasis(bases, states, label_map)
 end
 
 function tensor(bases::AbstractBasis...)
@@ -187,6 +189,8 @@ function show(io::IO, b::AbstractBasis)
 	end
 end
 
+ctranspose(b::Basis) = Basis(b.label, map(ctranspose, b.states))
+ctranspose(b::TensorBasis) = TensorBasis(map(ctranspose, b.bases), map(ctranspose, b.states))
 states(b::AbstractBasis) = b.states
 filter(f::Function, b::Basis) = Basis(b.label, filter(f, b.states))
 filter(f::Function, b::TensorBasis) = TensorBasis(b.bases, filter(f, b.states))
@@ -196,14 +200,15 @@ endof(b::AbstractBasis) = endof(b.states)
 length(b::AbstractBasis) = length(b.states)
 size(b::TensorBasis) = (length(b.states), length(b.bases))
 in(s::State, b::AbstractBasis)=in(s, b.states)
+kind(b::AbstractBasis) = kind(b[1])
 
 *(a::AbstractBasis, b::AbstractBasis) = tensor(a,b)
 +(a::Basis,b::Basis) = Basis([a.label, b.label], vcat(a.states,b.states))
 -{B<:AbstractBasis}(a::B,b::B) = filter(x->!in(x,b), a)
 setdiff{B<:AbstractBasis}(a::B,b::B) = a-b
-get(b::AbstractBasis, label...) = b.state_map[State(label...)]
-get(b::AbstractBasis, label::Vector) = b.state_map[State(label)]
-get(b::AbstractBasis, state_key::State) = b.state_map[state_key]
+get(b::AbstractBasis, label...) = b.label_map[[label...]]
+get(b::AbstractBasis, label::Vector) = b.label_map[label]
+get(b::AbstractBasis, s::State) = b.label_map[s.label]
 
 #StateRepresentation###############################
 type StateRep{K<:BraKet} <: AbstractState
@@ -212,7 +217,11 @@ type StateRep{K<:BraKet} <: AbstractState
 	basis::AbstractBasis
 	function StateRep(s::State{K}, coeffs::Array{Complex{Float64}}, basis::AbstractBasis)
 		if length(basis)==length(coeffs)
-			new(s, coeffs, basis)
+			if kind(basis)==kind(s)
+				new(s, coeffs, basis)
+			else
+				error("Basis kind must match state kind")
+			end
 		elseif length(basis)>length(coeffs)
 			error("coefficients unspecified for $(length(basis)-length(coeffs)) basis states")
 		else
@@ -245,17 +254,17 @@ end
 
 kind(s::StateRep) = s.state.kind
 label(s::StateRep) = s.state.label
-repr(s::StateRep) = repr(s.state, " ; $(s.basis.label)")
+repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 
 copy(s::StateRep) = StateRep(s.state, copy(s.coeffs), s.basis)
 copy{N<:Number}(s::StateRep, coeffs::Array{N}) = StateRep(s.state, coeffs, s.basis)
 
-length(s::StateRep) = length(find(s.coeffs))
+find(s::StateRep) = find(s.coeffs)
+length(s::StateRep) = length(s.coeffs)
+endof(s::StateRep) = length(s.coeffs)
 getindex(s::StateRep, x) = s.coeffs[x]
 setindex!(s::StateRep, y, x) = setindex!(s.coeffs, y, x)
-get(s::StateRep, label...) = s[get(s.basis, label...)]
-get(s::StateRep, label::Vector) = s[get(s.basis, label)]
-get(s::StateRep, state_key::State) = s[get(s.basis, state_key)]
+get(s::StateRep, label) = s[get(s.basis, label)]
 
 norm(s::StateRep) = norm(s.coeffs)
 
@@ -266,7 +275,7 @@ end
 
 normalize(s::StateRep) = normalize!(copy(s))
 
-ctranspose(s::StateRep) = StateRep(s.state', s.coeffs', s.basis)
+ctranspose(s::StateRep) = StateRep(s.state', s.coeffs', s.basis')
 
 function map!(f::Function, s::StateRep)
 	s.coeffs = map!(f, s.coeffs)
@@ -313,7 +322,7 @@ function show(io::IO, s::StateRep)
 		if kind(s)==Ket
 			show(temp_io, table)
 		else
-			show(temp_io, [map(ctranspose, table[:,2]'), table[:,1]'])
+			show(temp_io, [table[:,2]', table[:,1]'])
 		end
 		io_str = takebuf_string(temp_io)
 		io_str = io_str[searchindex(io_str, "\n")+1:end]
@@ -340,74 +349,84 @@ end
 *(a::StateRep{Bra}, b::StateRep{Ket}) = (a.coeffs*b.coeffs)[1]
 *(a::StateRep{Ket}, b::StateRep{Ket}) = StateRep(a.state*b.state, kron(a.coeffs, b.coeffs), a.basis*b.basis)
 *(a::StateRep{Bra}, b::StateRep{Bra}) = StateRep(a.state*b.state, kron(a.coeffs', b.coeffs'), a.basis*b.basis)
-#*(a::StateRep{Ket}, b::StateRep{Bra}) = Operator("$(repr(a))$(repr(b))", a.coeffs*b.coeffs, a.basis, b.basis)
+*(a::StateRep{Ket}, b::StateRep{Bra}) = Operator(a.coeffs*b.coeffs, a.basis, b.basis)
 #Operator#####################################################
-# type Operator 
-# 	label
-# 	coeffs::Matrix{Complex{Float64}}
-# 	row_basis::AbstractBasis
-# 	col_basis::AbstractBasis
-# 	function Operator(label, coeffs::Matrix{Complex{Float64}}, row_basis::AbstractBasis, col_basis::AbstractBasis)
-# 		if kind(row_basis)==Ket && kind(col_basis)==Bra
-# 			new(label, coeffs, row_basis, col_basis)
-# 		else
-# 			error("input bases have wrong orientation")
-# 		end
-# 	end
-# end
+type Operator 
+	coeffs::Matrix{Complex{Float64}}
+	row_basis::AbstractBasis
+	col_basis::AbstractBasis
+	function Operator(coeffs::Matrix{Complex{Float64}}, row_basis::AbstractBasis, col_basis::AbstractBasis)
+		if kind(row_basis)==Ket && kind(col_basis)==Bra
+			new(coeffs, row_basis, col_basis)
+		else
+			error("input bases have wrong orientation")
+		end
+	end
+end
 
-# Operator{N<:Number}(label, coeffs::Matrix{N}, row_basis::AbstractBasis, col_basis::AbstractBasis) = Operator(label, convert(Matrix{Complex{Float64}}, coeffs), row_basis, col_basis) 
-# Operator{N<:Number}(label, coeffs::Matrix{N}, b::AbstractBasis) = Operator(label, convert(Matrix{Complex{Float64}}, coeffs), b, b') 
+Operator{N<:Number}(coeffs::Matrix{N}, row_basis::AbstractBasis, col_basis::AbstractBasis) = Operator(convert(Matrix{Complex{Float64}}, coeffs), row_basis, col_basis) 
+Operator{N<:Number}(coeffs::Matrix{N}, b::AbstractBasis) = Operator(convert(Matrix{Complex{Float64}}, coeffs), b, b') 
 
-# function Operator(label, label_func::Function, coeff_func::Function, b::AbstractBasis)
-# 	coeffs = Array(Number, length(b), length(b))
-# 	if kind(b)==Bra
-# 		b = b'
-# 	end
-# 	for i=1:length(b)
-# 		for j=1:length(b)
-# 			coeffs[i,j] = coeff_func(b[i]) * (b[j]'*label_func(b[i]))
-# 		end
-# 	end
-# 	return Operator(label, coeffs, b)
-# end
+function Operator(label_func::Function, coeff_func::Function, b::AbstractBasis)
+	coeffs = Array(Number, length(b), length(b))
+	if kind(b)==Bra
+		b = b'
+	end
+	for i=1:length(b)
+		for j=1:length(b)
+			coeffs[i,j] = coeff_func(b[i]) * (b[j]'*label_func(b[i]))
+		end
+	end
+	return Operator(coeffs, b)
+end
 
-# isequal(a::Operator, b::Operator) = isequal(a.label, b.label) && coeffs==coeffs && isequal(a.row_basis,b.row_basis) && isequal(a.col_basis, b.col_basis)
+isequal(a::Operator, b::Operator) = coeffs==coeffs && isequal(a.row_basis,b.row_basis) && isequal(a.col_basis, b.col_basis)
 
-# copy(op::Operator) = Operator(copy(op.label), copy(op.coeffs), op.row_basis, op.col_basis)
-# copy{N<:Number}(op::Operator, coeffs::Matrix{N}) = Operator(copy(op.label), coeffs, op.row_basis, op.col_basis)
-# expm(op::Operator) = copy(op, exp(op.coeffs))
+copy(op::Operator) = Operator(copy(op.coeffs), op.row_basis, op.col_basis)
+copy{N<:Number}(op::Operator, coeffs::Matrix{N}) = Operator(coeffs, op.row_basis, op.col_basis)
+expm(op::Operator) = copy(op, expm(op.coeffs))
 
-# *(op::Operator, n::Number) = copy(op, op.coeffs*n)
-# *(n::Number, op::Operator) = copy(op, n*op.coeffs)
-# /(op::Operator, n::Number) = copy(op, op.coeffs/n)
-# .+(op::Operator, n::Number) = copy(op, op.coeffs.+n)
-# .+(n::Number, op::Operator) = copy(op, n.+op.coeffs)
-# .-(op::Operator, n::Number) = copy(op, op.coeffs.-n)
-# .-(n::Number, op::Operator) = copy(op, n.-op.coeffs)
-# .^(op::Operator, n::Number) = copy(op, op.coeffs.^n)
-# .^(n::Number, op::Operator) = copy(op, n.^op.coeffs)
+ndims(op::Operator) = 2
+size(op::Operator) = size(op.coeffs)
+length(op::Operator) = length(op.coeffs)
+endof(op::Operator) = length(op)
+find(op::Operator) = find(op.coeffs)
+size(op::Operator, i::Int) = size(op.coeffs, i)
+ctranspose(op::Operator) = Operator(op.coeffs', op.col_basis',op.row_basis')
+getindex(op::Operator, x...) = op.coeffs[x...]
+setindex!(op::Operator, y, x) = setindex!(op.coeffs,y,x)
+get(op::Operator, ket_label, bra_label) = op[get(op.row_basis, ket_label), get(op.col_basis, bra_label)]
 
-# *(op::Operator, s::StateRep{Ket}) = op.row_basis == s.basis ? StateRep(s.state, op.coeffs*s.coeffs, op.row_basis) : error("Bases don't match")
-# *(s::StateRep{Bra}, op::Operator) = op.col_basis == s.basis ? StateRep(s.state, s.coeffs*op.coeffs, op.col_basis) : error("Bases don't match")
+*(op::Operator, n::Number) = copy(op, op.coeffs*n)
+*(n::Number, op::Operator) = copy(op, n*op.coeffs)
+/(op::Operator, n::Number) = copy(op, op.coeffs/n)
+.+(op::Operator, n::Number) = copy(op, op.coeffs.+n)
+.+(n::Number, op::Operator) = copy(op, n.+op.coeffs)
+.-(op::Operator, n::Number) = copy(op, op.coeffs.-n)
+.-(n::Number, op::Operator) = copy(op, n.-op.coeffs)
+.^(op::Operator, n::Number) = copy(op, op.coeffs.^n)
+.^(n::Number, op::Operator) = copy(op, n.^op.coeffs)
 
-# function show(io::IO, op::Operator)
-# 	println("$(typeof(op)) $(op.label):")
-# 	table = cell(length(op.row_basis)+1, length(op.col_basis)+1)	
-# 	for i = 1:length(op.row_basis)
-# 		table[i+1,1] = op.row_basis[i]
-# 	end
-# 	for j = 1:length(op.col_basis)
-# 		table[1,j+1] = op.col_basis[j]
-# 	end
-# 	table[1,1] = 0
-# 	table[2:end, 2:end] = op.coeffs	
-# 	temp_io = IOBuffer()
-# 	show(temp_io, table)
-# 	io_str = takebuf_string(temp_io)
-# 	io_str = io_str[searchindex(io_str, "\n")+3:end]
-# 	print(io_str)
-# end
+*(op::Operator, s::StateRep{Ket}) = op.row_basis == s.basis ? StateRep(s.state, op.coeffs*s.coeffs, op.row_basis) : error("Bases don't match")
+*(s::StateRep{Bra}, op::Operator) = op.col_basis == s.basis ? StateRep(s.state, s.coeffs*op.coeffs, op.col_basis) : error("Bases don't match")
+
+function show(io::IO, op::Operator)
+	println("$(typeof(op)):")
+	table = cell(length(op.row_basis)+1, length(op.col_basis)+1)	
+	for i = 1:length(op.row_basis)
+		table[i+1,1] = op.row_basis[i]
+	end
+	for j = 1:length(op.col_basis)
+		table[1,j+1] = op.col_basis[j]
+	end
+	table[1,1] = 0
+	table[2:end, 2:end] = op.coeffs	
+	temp_io = IOBuffer()
+	show(temp_io, table)
+	io_str = takebuf_string(temp_io)
+	io_str = io_str[searchindex(io_str, "\n")+3:end]
+	print(io_str)
+end
 
 #module ends#######################################
 end
@@ -417,9 +436,11 @@ s = d.State([1:3])
 a = d.Basis("a", [1:10])
 b = d.Basis("b", ["$i" for i=1:4]);
 c = d.tensor(a,b)
-sr = d.StateRep(s, [1:10], a)
+sa = d.StateRep(s, [1:10], a)
+sb = d.StateRep(s, [1:4], b)
 
-# raiselabel(s::d.State)=d.State(s.label[1]+1, s.kind)
-# raisecoeff(s::d.State)=sqrt(s[1]+1)
-# op = d.Operator("dag", raiselabel, raisecoeff, a)
+
+raiselabel(s::d.State)=d.State(s.label[1]+1, s.kind)
+raisecoeff(s::d.State)=sqrt(s[1]+1)
+op = d.Operator(raiselabel, raisecoeff, a)
 print("")

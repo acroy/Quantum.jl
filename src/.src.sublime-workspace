@@ -4,12 +4,28 @@
 		"selected_items":
 		[
 			[
-				"s",
-				"show"
+				"br",
+				"bra_label"
+			],
+			[
+				"get",
+				"get"
+			],
+			[
+				"state",
+				"state"
 			],
 			[
 				"bas",
-				"basis"
+				"bases"
+			],
+			[
+				"Bra",
+				"BraKet"
+			],
+			[
+				"s",
+				"show"
 			],
 			[
 				"op",
@@ -26,10 +42,6 @@
 			[
 				"b",
 				"b"
-			],
-			[
-				"state",
-				"state"
 			],
 			[
 				"type",
@@ -50,10 +62,6 @@
 			[
 				"label",
 				"label"
-			],
-			[
-				"Bra",
-				"Bra"
 			],
 			[
 				"i",
@@ -542,6 +550,7 @@
 	"file_history":
 	[
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac-old.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac_old.jl",
 		"/Users/jarrettrevels/test.jl",
@@ -606,6 +615,7 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"state_map",
 			"reinterpret(Number",
 			"vert_ell",
 			"OperatorRep",
@@ -646,6 +656,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"label_map",
 			"convert(Array{Complex{Float64}}",
 			"Operator",
 			"AbstractOperator",
@@ -713,15 +724,15 @@
 		"selected_items":
 		[
 			[
-				"di",
-				"dirac.jl"
-			],
-			[
 				"dir",
-				"dirac.jl"
+				"dirac-old.jl"
 			],
 			[
 				"d",
+				"dirac.jl"
+			],
+			[
+				"di",
 				"dirac.jl"
 			],
 			[
