@@ -352,7 +352,7 @@ end
 
 *(a::StateRep{Bra}, b::StateRep{Ket}) = (a.coeffs*b.coeffs)[1]
 *(a::StateRep{Ket}, b::StateRep{Ket}) = StateRep(a.state*b.state, kron(a.coeffs, b.coeffs), a.basis*b.basis)
-*(a::StateRep{Bra}, b::StateRep{Bra}) = StateRep(a.state*b.state, kron(a.coeffs', b.coeffs'), a.basis*b.basis)
+*(a::StateRep{Bra}, b::StateRep{Bra}) = StateRep(a.state*b.state, kron(a.coeffs, b.coeffs), a.basis*b.basis)
 *(a::StateRep{Ket}, b::StateRep{Bra}) = Operator(a.coeffs*b.coeffs, a.basis, b.basis)
 #Operator#####################################################
 type Operator{} 
@@ -383,7 +383,7 @@ function Operator(label_func::Function, coeff_func::Function, b::AbstractBasis)
 end
 
 samebasis(a::Operator, b::Operator) = isequal(a.row_basis,b.row_basis) && isequal(a.col_basis, b.col_basis)
-isequal(a::Operator, b::Operator) = coeffs==coeffs && samebasis(a,b)
+isequal(a::Operator, b::Operator) = a.coeffs==b.coeffs && samebasis(a,b)
 
 copy(op::Operator, coeffs=copy(op.coeffs)) = Operator(coeffs, op.row_basis, op.col_basis)
 expm(op::Operator) = copy(op, expm(op.coeffs))
@@ -393,6 +393,21 @@ size(op::Operator) = size(op.coeffs)
 length(op::Operator) = length(op.coeffs)
 endof(op::Operator) = length(op)
 find(op::Operator) = find(op.coeffs)
+find(f::Function, op::Operator) = find(f::Function, op.coeffs)
+
+function findstates(f::Function, op::Operator) #doesn't work perfectly just saying
+	lens = size(op)
+	inds = find(f, op)
+	result = Array(State, length(inds), 2)
+	for i=1:length(inds)
+		mod_row = inds[i]<lens[1] ? 0 : 1
+		mod_col = inds[i]<lens[2] ? 0 : 1
+		result[i, 1] = op.row_basis[inds[i]%lens[1]+mod_row]
+		result[i, 2] = op.col_basis[inds[i]%lens[2]+mod_col]
+	end
+	return result
+end
+
 size(op::Operator, i::Int) = size(op.coeffs, i)
 ctranspose(op::Operator) = Operator(op.coeffs', op.col_basis',op.row_basis')
 getindex(op::Operator, x...) = op.coeffs[x...]
@@ -426,11 +441,11 @@ commutator(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, (a.coeffs*b.coef
 
 trace(op::Operator) = trace(op.coeffs)
 
-function ptrace(op::Operator, ind::Int)
+function ptrace(op::Operator, ind::Int) #doesn't produce a normalized matrix
 	if isequal(op.col_basis, op.row_basis')
 		tr_row = tensor(vcat(separate(op.row_basis)[1:ind-1], separate(op.row_basis)[ind+1:end])...)
 		tr_col = tr_row'
-		coeffs = Complex{Float64}[sum([op[i,j]*op[i,k]' for i=1:length(separate(op.row_basis)[ind])]) for j=1:length(tr_row), k=1:length(tr_col)] 
+		coeffs = Complex{Float64}[sum([op[i,j]*(op[i,k])' for i=1:length(separate(op.row_basis)[ind])]) for j=1:length(tr_row), k=1:length(tr_col)] 
 	else
 		error("BasesMismatch")
 	end
@@ -459,11 +474,11 @@ end
 end
 
 using d
-s = d.State("sc")
+s = d.State("sr")
 a = d.Basis("a", [1:10])
 b = d.Basis("b", ["$i" for i=1:4]);
-c = d.Basis("c", ["h", "p", "g"]);
+c = d.Basis("c", [1:20]);
 r = d.tensor(a,b,c)
-sr = d.normalize!(d.StateRep(s, [1:length(r)], r))
-op = sr*sr'
+sr = d.normalize!(d.StateRep(s, [1 for i=1:length(r)], r))
+op = (sr*sr')
 print("")
