@@ -192,8 +192,9 @@ function show(io::IO, b::AbstractBasis)
 	end
 end
 
-ctranspose(b::Basis) = Basis(b.label, map(ctranspose, b.states))
-ctranspose(b::TensorBasis) = TensorBasis(map(ctranspose, b.bases), map(ctranspose, b.states))
+ctranspose(b::Basis) = Basis(b.label, map(ctranspose, b.states), b.label_map)
+ctranspose(b::TensorBasis) = TensorBasis(map(ctranspose, b.bases), map(ctranspose, b.states), b.label_map)
+
 states(b::AbstractBasis) = b.states
 filter(f::Function, b::Basis) = Basis(b.label, filter(f, b.states))
 filter(f::Function, b::TensorBasis) = TensorBasis(b.bases, filter(f, b.states))
@@ -354,7 +355,7 @@ end
 *(a::StateRep{Bra}, b::StateRep{Bra}) = StateRep(a.state*b.state, kron(a.coeffs', b.coeffs'), a.basis*b.basis)
 *(a::StateRep{Ket}, b::StateRep{Bra}) = Operator(a.coeffs*b.coeffs, a.basis, b.basis)
 #Operator#####################################################
-type Operator 
+type Operator{} 
 	coeffs::Matrix{Complex{Float64}}
 	row_basis::AbstractBasis{Ket}
 	col_basis::AbstractBasis{Bra}
@@ -410,22 +411,31 @@ get(op::Operator, s::State{Bra}) = op[:, get(op.col_basis, s)]
 .^(op::Operator, n::Number) = copy(op, op.coeffs.^n)
 .^(n::Number, op::Operator) = copy(op, n.^op.coeffs)
 
-*(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, a.coeffs*b.coeffs) : error("Bases don't match")
-+(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, a.coeffs+b.coeffs) : error("Bases don't match")
--(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, a.coeffs-b.coeffs) : error("Bases don't match")
+*(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, a.coeffs*b.coeffs) : error("BasesMismatch")
++(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, a.coeffs+b.coeffs) : error("BasesMismatch")
+-(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, a.coeffs-b.coeffs) : error("BasesMismatch")
 
-commutator(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, (a.coeffs*b.coeffs)-(b.coeffs*a.coeffs)) : error("Bases don't match")
+commutator(a::Operator, b::Operator) = samebasis(a,b) ? copy(a, (a.coeffs*b.coeffs)-(b.coeffs*a.coeffs)) : error("BasesMismatch")
 
 *(op::Operator, s::State{Ket}) = StateRep(State([]), get(op, s'), op.row_basis)
 *(s::State{Bra}, op::Operator) = StateRep(State([], Bra), get(op, s'), op.col_basis)
-*(op::Operator, s::StateRep{Ket}) = op.row_basis == s.basis ? StateRep(s.state, op.coeffs*s.coeffs, op.row_basis) : error("Bases don't match")
-*(s::StateRep{Bra}, op::Operator) = op.col_basis == s.basis ? StateRep(s.state, s.coeffs*op.coeffs, op.col_basis) : error("Bases don't match")
+*(op::Operator, s::StateRep{Ket}) = op.row_basis == s.basis ? StateRep(s.state, op.coeffs*s.coeffs, op.row_basis) : error("BasesMismatch")
+*(s::StateRep{Bra}, op::Operator) = op.col_basis == s.basis ? StateRep(s.state, s.coeffs*op.coeffs, op.col_basis) : error("BasesMismatch")
 *(arr::Array, op::Operator) = copy(op, arr*op.coeffs)
 *(op::Operator, arr::Array) = copy(op, op.coeffs*arr)
 
 trace(op::Operator) = trace(op.coeffs)
 
-# ptrace(op::Operator, ind::Int ) = sum([op.col_basis.basis[i]'*op*b.[i] for i=1:length(b)])
+function ptrace(op::Operator, ind::Int)
+	if isequal(op.col_basis, op.row_basis')
+		tr_row = tensor(vcat(separate(op.row_basis)[1:ind-1], separate(op.row_basis)[ind+1:end])...)
+		tr_col = tr_row'
+		coeffs = Complex{Float64}[sum([op[i,j]*op[i,k]' for i=1:length(separate(op.row_basis)[ind])]) for j=1:length(tr_row), k=1:length(tr_col)] 
+	else
+		error("BasesMismatch")
+	end
+	return Operator(coeffs, tr_row, tr_col) 
+end
 
 function show(io::IO, op::Operator)
 	println("$(typeof(op)):")
@@ -452,17 +462,8 @@ using d
 s = d.State("sc")
 a = d.Basis("a", [1:10])
 b = d.Basis("b", ["$i" for i=1:4]);
-c = d.tensor(a,b)
-sa = d.normalize!(d.StateRep(s, [1:10], a))
-sb = d.normalize!(d.StateRep(s, [1:4], b))
-sc = sa*sb
-sc = sc*sc
-c = sc.basis
-
-# q = d.Basis("q", [0,1])
-# sq = d.StateRep(d.State("sq"), [1, 1], q)
-# sq = sq*sq
-# sq[2:3] = 0
-# d.normalize!(sq)
-# op = sq*sq'
+c = d.Basis("c", ["h", "p", "g"]);
+r = d.tensor(a,b,c)
+sr = d.normalize!(d.StateRep(s, [1:length(r)], r))
+op = sr*sr'
 print("")
