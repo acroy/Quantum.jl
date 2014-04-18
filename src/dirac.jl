@@ -171,6 +171,10 @@ function tensor{K<:BraKet}(bases::AbstractBasis{K}...)
 	TensorBasis(vcat([separate(i) for i in bases]...), states)
 end
 
+function tensor{K<:BraKet}(basis::AbstractBasis{K})
+	return basis
+end
+
 separate(b::TensorBasis) = b.bases
 separate(b::Basis)=b
 isequal(a::AbstractBasis,b::AbstractBasis) = a.states==b.states
@@ -395,15 +399,18 @@ endof(op::Operator) = length(op)
 find(op::Operator) = find(op.coeffs)
 find(f::Function, op::Operator) = find(f::Function, op.coeffs)
 
-function findstates(f::Function, op::Operator) #doesn't work perfectly just saying
-	lens = size(op)
+function findstates(f::Function, op::Operator)
+	numrows = size(op, 1)
 	inds = find(f, op)
 	result = Array(State, length(inds), 2)
 	for i=1:length(inds)
-		mod_row = inds[i]<lens[1] ? 0 : 1
-		mod_col = inds[i]<lens[2] ? 0 : 1
-		result[i, 1] = op.row_basis[inds[i]%lens[1]+mod_row]
-		result[i, 2] = op.col_basis[inds[i]%lens[2]+mod_col]
+		row_ind = inds[i]%numrows
+		if row_ind == 0
+			row_ind = numrows
+		end
+		col_ind = ((inds[i]-row_ind)/numrows)+1
+		result[i, 2] = op.col_basis[col_ind]
+		result[i, 1] = op.row_basis[row_ind]
 	end
 	return result
 end
@@ -445,11 +452,13 @@ function ptrace(op::Operator, ind::Int) #doesn't produce a normalized matrix
 	if isequal(op.col_basis, op.row_basis')
 		tr_row = tensor(vcat(separate(op.row_basis)[1:ind-1], separate(op.row_basis)[ind+1:end])...)
 		tr_col = tr_row'
-		coeffs = Complex{Float64}[sum([op[i,j]*(op[i,k])' for i=1:length(separate(op.row_basis)[ind])]) for j=1:length(tr_row), k=1:length(tr_col)] 
+		len = length(tr_col)
+		coeffs = Complex{Float64}[sum([op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.row_basis)[ind])]) for j=1:length(tr_row), k=1:length(tr_col)] 
 	else
 		error("BasesMismatch")
 	end
-	return Operator(coeffs, tr_row, tr_col) 
+	return Operator(coeffs, tr_row, tr_col)
+	#return sum([op[i,1]*(op[i,1])' for i=1:length(separate(op.row_basis)[ind])]) 
 end
 
 function show(io::IO, op::Operator)
@@ -481,4 +490,13 @@ c = d.Basis("c", [1:20]);
 r = d.tensor(a,b,c)
 sr = d.normalize!(d.StateRep(s, [1 for i=1:length(r)], r))
 op = (sr*sr')
+
+
+q = d.Basis("q", b[1:2])
+sq = d.StateRep(s, [1, 1], q)
+sq = sq*sq
+sq[1] = 0
+sq[4] = 0
+d.normalize!(sq)
+
 print("")

@@ -4,6 +4,46 @@
 		"selected_items":
 		[
 			[
+				"in",
+				"inds"
+			],
+			[
+				"col",
+				"col_ind"
+			],
+			[
+				"n",
+				"numrows"
+			],
+			[
+				"col_",
+				"col_ind"
+			],
+			[
+				"mod",
+				"mod_row"
+			],
+			[
+				"tr",
+				"tr_col"
+			],
+			[
+				"label",
+				"label_map"
+			],
+			[
+				"labe",
+				"label_map"
+			],
+			[
+				"new",
+				"new_row"
+			],
+			[
+				"ci",
+				"col_basis"
+			],
+			[
 				"br",
 				"bra_label"
 			],
@@ -52,15 +92,7 @@
 				"basis"
 			],
 			[
-				"col",
-				"col_basis"
-			],
-			[
 				"la",
-				"label"
-			],
-			[
-				"label",
 				"label"
 			],
 			[
@@ -116,14 +148,6 @@
 				"ex_csc"
 			],
 			[
-				"new",
-				"new_label"
-			],
-			[
-				"n",
-				"N"
-			],
-			[
 				"prin",
 				"println"
 			],
@@ -134,10 +158,6 @@
 			[
 				"io",
 				"io_str"
-			],
-			[
-				"in",
-				"indent"
 			],
 			[
 				"row",
@@ -154,10 +174,6 @@
 			[
 				"off",
 				"col_off"
-			],
-			[
-				"col_",
-				"col_limit"
 			],
 			[
 				"nex",
@@ -274,10 +290,6 @@
 			[
 				"basis",
 				"basis_array"
-			],
-			[
-				"labe",
-				"label_array"
 			],
 			[
 				"Te",
@@ -724,15 +736,15 @@
 		"selected_items":
 		[
 			[
+				"di",
+				"dirac.jl"
+			],
+			[
 				"dir",
 				"dirac-old.jl"
 			],
 			[
 				"d",
-				"dirac.jl"
-			],
-			[
-				"di",
 				"dirac.jl"
 			],
 			[
