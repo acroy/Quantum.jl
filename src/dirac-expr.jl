@@ -1,11 +1,3 @@
-immutable Foo
-  v::Vector
-  n::Int
-end
-
-# isequal(a::Foo,b::Foo) = 
-is(a::Foo,b::Foo) = a.v==b.v && a.n==b.n
-
 ####Converter##########################################################
 
 # type Converter

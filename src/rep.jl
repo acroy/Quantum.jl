@@ -34,3 +34,26 @@ function rep(x::AbstractVector; times::Integer = 1, each::Integer = 1)
 end
 
 rep(x::Any, times::Integer) = fill(x, times)
+
+function crossjoin(A::Array, B::Vector)
+    r1, r2 = size(A, 1), size(B, 1)
+    columns = [[rep(A[:,c], 1, r2) for c=1:size(A,2)],
+               [rep(B[:,c], r1, 1) for c=1:size(B,2)]]
+    hcat(columns...)
+end
+
+function crossjoin(A::Array, B::Array)
+    result = A;
+    for i=1:length(B[1,:])
+        result = crossjoin(result,B[:,i])
+    end
+    return result
+end
+
+function crossjoin(arr::Array...)
+    if length(arr) == 2
+        return crossjoin(arr[1], arr[2])
+    else
+        crossjoin(crossjoin(arr[1], arr[2]), arr[3:end]...)
+    end
+end
