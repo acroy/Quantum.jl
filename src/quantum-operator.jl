@@ -55,8 +55,12 @@ get(op::Operator, s::State{Bra}) = op[:, get(op.col_basis, s)]
 
 .+(op::Operator, n::Number) = copy(op, op.coeffs.+n)
 .+(n::Number, op::Operator) = copy(op, n.+op.coeffs)
++(arr::Array, op::Operator) = copy(op, arr+op.coeffs)
++(op::Operator, arr::Array) = copy(op, op.coeffs+arr)
 .-(op::Operator, n::Number) = copy(op, op.coeffs.-n)
 .-(n::Number, op::Operator) = copy(op, n.-op.coeffs)
+-(arr::Array, op::Operator) = copy(op, arr-op.coeffs)
+-(op::Operator, arr::Array) = copy(op, op.coeffs-arr)
 .^(op::Operator, n::Number) = copy(op, op.coeffs.^n)
 .^(n::Number, op::Operator) = copy(op, n.^op.coeffs)
 

@@ -26,21 +26,31 @@ users will be able to define their own bases, and define operators and
 states in terms of those bases, and perform complex combinatorial filtering
 and mapping on the labels of basis states.
 
+All linear algebra operations are implemented via Julia's normal libraries.
+The main feature provided by this package is the ability to relate the linear
+algebraic representations back to abstract Quantum objects (e.g. Operators and
+states).
+
 Features
 ==========
 
 ###Current:
 	- basis, state, state representation, and operator type implementations
-	- tensor product structure for bases and states/state representations
+	- tensor product structure for bases, states, and state representations
 	- application of arbitrary selection rules to extract subspaces from all types of 
-	  Quantum.jl objects (filtering and mapping)
-	- basic arithmetic operations (including linear algebra operations). Examples: 
+	  Quantum.jl objects. Related methods:
+	  	- filter/filter!
+	  	- map/map!
+	  	- mapmatch/mapmatch!
+	  	- filtercoeffs/filtercoeffs!
+	 	- filterstates/filterstates!
+	- Arithmetic/Linear algebra operations. Examples: 
 		- normalization
+		- matrix/vector arithmetic with Quantum objects
 		- inner/outer products of Bras and Kets
 		- computing expectation values/transition matrices
 		- commutator of operators
-		- operator trace
-	- partial trace of operator representations (entanglement calculations) 
+		- operator trace/partial trace
 
 ###Upcoming:
 	- Abstract symbolic manipulation/simplification for mixed basis operations (implement QuantumExpr)
