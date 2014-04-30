@@ -1,22 +1,15 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1265\cocoasubrtf190
 {\fonttbl\f0\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;\red0\green61\blue204;\red102\green0\blue141;\red133\green0\blue175;
-\red132\green0\blue2;\red251\green0\blue7;}
+\red132\green0\blue2;}
 \margl1440\margr1440\vieww33600\viewh17840\viewkind1
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
 \f0\i\b\fs42 \cf0 DiracTools API
 \b0\fs24 \
 \pard\pardeftab720\sl240
-\cf0 A framework for performing operations on user-defined quantum states\
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-
-\i0 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
-\pard\pardeftab720\sl240
-
-\b \cf0 Dependencies:
-\b0 \
-HDF5.jl\
+\cf0 A framework for performing operations on user-defined quantum states
+\i0 \
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
@@ -25,59 +18,122 @@ HDF5.jl\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
 \b0 \cf0 Finished:\
-	- basis instantiation\
-	- automatic basis redundancy reduction (remove redundant labels upon basis 	  instantiation)\
-	- tensor product for bases (* operator)\
-	- direct sum for bases (+ operator)\
-	- setdiff for bases (- operator)\
-	- application of selection rules to extract arbitrary subspaces\
-	- state instantiation\
-	- normalization/magnitude functions for states\
-\
-In progress/Current Issues:\
-	- key retrieval for states is slower than it could be; right now I require an extra 	  step to check for  \
-	- \
-Proposed:\
-	- state instantiation\
-	- operator instantiation\
-	- basic arithmetic operations \
-	- convert state vector to density matrix\
-	- take trace/partial trace of matrices (entanglement calculations)\
-	- parameterization of states and operators (or vectors of functions to be used to 	  generate state coefficients)\
-	- basis conversion for both operators and state vectors\
-		\uc0\u8776 For operators, B2 = O*B1*O^T\
-	- compute expectation values of the form <v|M|v>\
-	- compute transition matrices of the form <u|M|v>\
-	- binary operations on states/operators (e.g. inner/outer product)\
-	- commutation relations of operators\
-	- In-place operations (e.g. conjugate transpose)\
+	- basis, state, state representation, and operator type implementations\
+	- tensor product structure for bases and states/state representations\
+	- application of arbitrary selection rules to extract subspaces from all types of \
+	  DiracTools objects\
+	- basic arithmetic operations (including linear algebra operations). Examples: \
+		- normalization\
+		- inner/outer products of Bras and Kets\
+		- expectation values/transition matrices\
+		- commutator of operators\
+	- partial trace of operator representations (entanglement calculations) \
+Proposed:	\
+	- abstract Expr handling for mixed-basis calculations\
+		- basis conversion for mixed-basis Exprs\
+	- diagonalization of operators\
+	- symmetrization of operators (Young Tableau methods)\
 Optional:\
 	- HDF5 support\
-	- provide built-in REPL visualizations for DiracTools objects\
 	- design a system for data visualization of common state properties/operations\
-	- create a function that automatically generates an eigenbasis from an operator\
-	  given a functional definition of quantum numbers\
 	- package DiracTools as an open-source library that other Julia users can utilize\
-\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
+\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97
+\i\b\fs42 \
 \pard\pardeftab720\sl240
 
-\i\b\fs42 \cf0 \
-
-\fs72 Type Implementations
+\fs72 \cf0 Type Implementations
 \fs42 \
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
 \i0\b0\fs24 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
 \pard\pardeftab720\sl240
 
-\fs48 \cf0 \ul \ulc0 Basis
+\fs48 \cf0 \ul \ulc0 AbstractTypes\
+\pard\pardeftab720\sl240
+
+\b\fs24 \cf0 \ulnone Description
+\b0 \
+The following list contains the abstract types referenced in this documentation:\
+\
+\cf2 abstract Dirac\
+abstract BraKet <: Dirac\
+abstract Bra <: BraKet\
+abstract Ket <: BraKet\
+abstract AbstractBasis\{K<:BraKet\} <: Dirac\cf0 \
+\
+The NOT operator (!) can be applied to Bra ad Ket types to alternate between the two:\
+\cf2 !(K::Type\{Ket\}) = Bra\
+!(B::Type\{Bra\}) = Ket\cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
+\pard\pardeftab720\sl240
+
+\fs48 \cf0 \ul \ulc0 State
+\i\fs36 \ulnone \
+\pard\pardeftab720\sl240
+
+\i0\fs24 \cf0 \ul \
+\pard\pardeftab720\sl240
+
+\b \cf0 \ulnone Description
+\b0 \
+A 
+\i State
+\i0  is a type of an object that has only a label (stored as a Vector) and a specification of whether it belongs to Ket-space or Bra-space (this property is referred to as \'93kind\'94). A state is parameterized by its kind; thus, states are either of type State\{Bra\} or State\{Ket\}  \
+\pard\pardeftab720
+\cf0 \
+\
+\pard\pardeftab720\sl240
+
+\b \cf0 Constructors\
+\pard\pardeftab720\sl240
+
+\b0 \cf0 \
+\pard\pardeftab720
+\cf0 \
+\
+\
+\
+\
+\
+\pard\pardeftab720\sl240
+\cf0 \
+
+\b Related Methods\
+\pard\pardeftab720\sl240
+
+\b0 \cf3 normalize\cf0 (S::State)\
+normalizes the coefficients of S\
+\
+\cf3 tensor\cf0 (A::Vector...)\
+recursively calls vectensor() on all vectors listed, effectively taking the tensor product A1 cross A2 cross\'85cross AN and returning the result. This vector has elements\
+of the form \{A1_i, A2_j,\'85,An_k\}.\
+\
+\cf3 tensor\cf0 \{S<:String, B<:AbstractBasis\}(name::S, bases::B...)\
+returns a TensorBasis formed from the input bases\
+\
+\cf3 components\cf0 (B::TensorBasis)\
+returns B.basis_array\
+\
+\cf4 extract\cf0 \{B::AbstractBasis\}(B<:Basis, f::Function, name=B.name): \
+#Note: filter based on label_dict, not label_arr\
+returns a sub-basis formed from the basis labels of B for which f(label)==true. The ordering of the sub-basis follows that of the original basis\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
+\pard\pardeftab720\sl240
+
+\fs48 \cf0 \ul \ulc0 \
+\
+\
+Basis
 \i\fs36 \ulnone \
 
 \i0\b\fs24 \
 Description
 \b0 \
-A basis is a mapping of labels onto the indices of a state vector representing a given Hilbert subspace. The basis is literally a subspace that has been selected according to some labeling or behavioral pattern. It provides a label for each position in a given state vector. Another way of thinking about it: a basis contains the information needed to traverse a state graph, whose nodes are the states forming a given Hilbert subspace. \
-Taking the tensor product of Basis objects results in a new object of type TensorBasis, whose labels are built from combinations of the labels of the component bases. \
+A basis is a mapping of labels onto the indices of a state vector representing a given Hilbert subspace. The basis is a subspace that has been selected according to some arbitrary labeling or behavioral pattern, as defined by the user. It provides a label for each position in a given state vector. A graph theoretic approach to thinking about bases would be to consider the basis as the map necessary to traverse a state graph, whose nodes are the states forming a given Hilbert subspace. \
+	Taking the tensor product of Basis objects results in a new object of type TensorBasis, which points to the original \'93separable\'94 basis objects in addition to storing the new multi-system basis that resulted from taking the tensor product. This allows for the optimization of operations on matrices/vectors represented in a TensorBasis (for example, taking the partial trace of an operator)\
 \
 
 \b Implementation
@@ -86,17 +142,16 @@ abstract \cf2 AbstractBasis
 \i \cf0 \
 
 \i0 \
-type \cf2 Basis\{Labels\}\cf0  <: AbstractBasis\
-	name::String\
-	label_dict::Dict\{Labels, Int\}\
-	label_array::Array\{Any\}\
+immutable Basis\{K<:BraKet\} <: AbstractBasis\{K\}\
+	label\
+	states::Vector\{State\{K\}\}\
+	label_map::Dict\{Vector, Int\}\
 end\
 \
-type \cf2 TensorBasis\cf0  <: AbstractBasis\
-	name::String\
-	label_dict::Dict\{Array\{Any\}, Array\{Int\}\}\
-	label_array::Array\{Any\}\
-	basis_array::Array\{Basis\}\
+immutable TensorBasis\{K<:BraKet\} <: AbstractBasis\{K\}\
+	bases::Vector\{Basis\{K\}\}\
+	states::Vector\{State\{K\}\}\
+	label_map::Dict\{Vector, Int\}\
 end\
 \
 
@@ -136,68 +191,7 @@ returns a sub-basis formed from the basis labels of B for which f(label)==true. 
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
 \pard\pardeftab720\sl240
-
-\fs48 \cf0 \ul State
-\i\fs36 \ulnone \
-\pard\pardeftab720\sl240
-
-\i0\fs24 \cf0 \ul \
-\pard\pardeftab720\sl240
-
-\b \cf0 \ulnone Description
-\b0 \
-A 
-\i State
-\i0  has a label and a vector. The contents of a state are vectors whose positions correspond to other state labels in some particular set of bases. The contents of these vectors can be either numbers or numerical functions. The former is a 
-\i Parameterized State
-\i0 .\
-\pard\pardeftab720
 \cf0 \
-\pard\pardeftab720\sl240
-
-\b \cf0 Implementation
-\b0 \
-abstract \cf2 AbstractState
-\i \cf0 \
-
-\i0 \
-type \cf2 State\cf0 \{Labels<:Any\} <: AbstractBasis\
-	name::String\
-	coeffs::Dict\{, Int\}\
-	label_array::Array\{Any\}\
-end\
-\
-type \cf2 ParamState\{T\}\cf0  <: AbstractBasis\
-	name::String\
-	label_dict::Dict\{Array\{Any\}, Array\{Int\}\}\
-	label_array::Array\{Any\}\
-	basis_array::Array\{Basis\}\
-end\
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 \
-
-\b Related Methods\
-\pard\pardeftab720\sl240
-
-\b0 \cf3 normalize\cf0 (S::State)\
-normalizes the coefficients of S\
-\
-\cf3 tensor\cf0 (A::Vector...)\
-recursively calls vectensor() on all vectors listed, effectively taking the tensor product A1 cross A2 cross\'85cross AN and returning the result. This vector has elements\
-of the form \{A1_i, A2_j,\'85,An_k\}.\
-\
-\cf3 tensor\cf0 \{S<:String, B<:AbstractBasis\}(name::S, bases::B...)\
-returns a TensorBasis formed from the input bases\
-\
-\cf3 components\cf0 (B::TensorBasis)\
-returns B.basis_array\
-\
-\cf4 extract\cf0 \{B::AbstractBasis\}(B<:Basis, f::Function, name=B.name): \
-#Note: filter based on label_dict, not label_arr\
-returns a sub-basis formed from the basis labels of B for which f(label)==true. The ordering of the sub-basis follows that of the original basis\
-\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
 \pard\pardeftab720\sl240
@@ -252,135 +246,4 @@ end\
 \pard\pardeftab720
 \cf0 \
 \pard\pardeftab720\fi960\sl240
-\cf0 	\
-\pard\pardeftab720
-\cf0 \
-\
-\pard\pardeftab720\sl240
-\cf0 \ul A Note on Tensor Structure\ulnone \
-Tensoring together two states is a multiplication of sorts; \
-|A> = I+J+K\
-|B> = F+G+H\
-|A>|B> =(I+J+K)(F+G+H) =IF+IG+IH+JF+JG+JH+KF+KG+KH\
-\pard\pardeftab720\sl240
-\cf5 How to handle the label changes of tensoring - store composite basis labels as tuples of the old labels, take outer product of state vectors, then flatten out the resulting matrix to a properly ordered vector (vcat each column to the first)\cf0 \
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 \ul Core Goals:\ulnone \
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 Efficiency: There should be only just as much information stored as is needed for a given object to function properly.	\
-\pard\pardeftab720\fi960\sl240
-\cf0 State Vectors:\
-\pard\pardeftab720\li960\fi960\sl240
-\cf0 Do not store zeros\
-\pard\pardeftab720\li960\sl240
-\cf0 Basis labels:\
-	position retrieval time - use hash table\
-\pard\pardeftab720\li1920\sl240
-\cf0 memory allocation - all objects that reference a given basis simply point to its original location, NOT copy it themselves\
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 Flexibility: There are literally an infinite number of ways form Hilbert subspaces. The system should be designed so that any \
-of these subspaces can be formulated relatively elegantly and play nice in operations with itself and other bases.\
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 Idiomatic: It should be coded to take advantage of Julia\'92s type systems, and optimized for the language\'92s many quirks and features. It should use built-in functions whenever possible, especially in regards to linear algebra\
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 Visualization: \
-Use Gadfly or whatever is popular to power visualization systems. The functionality of this module should flow from breaking \
-up data into subspaces using the basis system.\
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 Parallelizable\
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 \ul API:\ulnone \
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 Types\
-\pard\pardeftab720\li960\sl240
-\cf0 - Converter\
-	stores conversion information to switch a state\cf6  (and operator?) \cf0 between two bases\
-	[Constructor Input]\
-		bases\
-		conversion coeffs for each \cf6 (set: basis 1, basis 2, coefficients)\cf0 \
-\pard\pardeftab720\li960\fi960\sl240
-\cf0 [Fields]\
-\pard\pardeftab720\li1920\sl240
-\cf0 	graph\
-[Related Methods]\
-\pard\pardeftab720\li960\sl240
-\cf0 		convert(state, converter): switch the state to another basis using the given converter\
-- Basis \
-	[Constructor Input]\
-		basis name\
-		functional rules, label dict (label=>index), label array, label set\
-\pard\pardeftab720\li960\fi960\sl240
-\cf0 [Fields]\
-\pard\pardeftab720\li960\sl240
-\cf0  \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0		basis name\
- \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0		label set (set of tuples of the form \{index, label\})\
-\pard\pardeftab720\li960\fi960\sl240
-\cf0 [Related Methods]\
-\pard\pardeftab720\li960\sl240
-\cf6  \'a0\'a0\'a0\'a0\'a0\'a0\'a0		tensor(bases...): take tensor product to construct new basis\cf0 \
-\cf6 		\cf0 extract(basis, rules): extract subspace using rules \
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 	- State\
-		[Constructor Input]\
-			bases...\
-\pard\pardeftab720\li1920\fi960\sl240
-\cf0 coefficient dict/array/set\'85\
-\pard\pardeftab720\sl240
-\cf0 		[Fields]\
-			keys: basis names\
-			values: sparse vector of coefficients, indexed by corresponding basis\
- \'a0\'a0\'a0\'a0\'a0\'a0\'a0		[Related Methods]\
-\pard\pardeftab720\sl240
-\cf6  \'a0\'a0\'a0\'a0\'a0\'a0\'a0			tensor(basis name, states...): take tensor product to form a new state (in new basis)\cf0 \
- \'a0\'a0\'a0\'a0\'a0\'a0\'a0			add(states...): Add states \
- \'a0\'a0\'a0\'a0\'a0\'a0\'a0			inner(x, y): <x|y> (x and y are same basis)\
- \'a0\'a0\'a0\'a0\'a0\'a0\'a0			outer(x, y): |x><y| (x and y are same basis)\
-			setbasis!(state, basis...): reset bases without changing state\
-\pard\pardeftab720\fi960\sl240
-\cf0 		convert(state, converter): switch the state to another basis using the given converter\
-\pard\pardeftab720\li960\sl240
-\cf0 		extract(state, rules): extract subspace using rules \
-\pard\pardeftab720\sl240
-\cf0 	- Operator\
-		[Constructor Input]\
-		[Fields]\
- \'a0\'a0\'a0\'a0\'a0\'a0\'a0		[Related Methods]\
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 Visual Representation\
-	- Dirac Notation (type string; use regex to build)\
-		Vector style\
-		Superposition style \
-	- Plotting\
-		state coeffs\
-		entanglement \
-\pard\pardeftab720
-\cf0 \
-\
-\pard\pardeftab720\sl240
-\cf0 Handling Tensors:\
-	Bases can be multidimensional. \'a0|A> = [A1, A2, A3] tensor |B> = [B1, B2, B3] would be the 3-D matrix |A>|B> \
-\pard\pardeftab720
-\cf0 \
-\pard\pardeftab720\sl240
-\cf0 \
-}
+\cf0 	}

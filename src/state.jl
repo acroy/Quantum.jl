@@ -42,7 +42,7 @@ function StateRep{N<:Number, K<:BraKet}(s::State{K}, coeffs::Array{N}, basis::Ab
 	end
 end
 
-StateRep{N<:Number}(label, coeffs::Vector{N}, basis::AbstractBasis) = StateRep{Ket}(State(label, Ket), convert(Vector{Number},coeffs), basis)
+StateRep{N<:Number}(label, coeffs::Vector{N}, basis::AbstractBasis) = StateRep{Ket}(State(label, Ket), convert(Vector{Complex{Float64}},coeffs), basis)
 function StateRep{N<:Number}(label, coeffs::Array{N}, basis::AbstractBasis)
 	if size(coeffs)[2]==1
 		StateRep{Ket}(State(label, Ket), convert(Array{Complex{Float64}},vec(coeffs)), basis)
@@ -102,32 +102,37 @@ repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 *(a::StateRep{Bra}, b::StateRep{Bra}) = StateRep(a.state*b.state, kron(a.coeffs, b.coeffs), a.basis*b.basis)
 *(a::StateRep{Ket}, b::StateRep{Bra}) = Operator(a.coeffs*b.coeffs, a.basis, b.basis)
 *(sr::StateRep{Bra}, s::State{Ket}) = get(sr, s')
-*(sr::State{Bra}, s::StateRep{Ket}) = get(sr, s')
+*(s::State{Bra}, sr::StateRep{Ket}) = get(sr, s')
 *{K<:BraKet}(s1::State{K}, s2::State{K}) = tensor(s1, s2)
 *(s1::State{Bra}, s2::State{Ket}) = s1.label==s2.label ? 1 : 0 
 
 copy(s::StateRep, coeffs=copy(s.coeffs)) = StateRep(s.state, coeffs, s.basis)
 find(s::StateRep) = find(s.coeffs)
 length(s::StateRep) = length(s.coeffs)
-get(s::StateRep, label) = s[get(s.basis, label)]
-
+function get(s::StateRep, label, notfound) 
+	ind = get(s.basis, label, 0)
+	if ind==0
+		return notfound
+	else
+		return s[ind]
+	end
+end
+get(s::StateRep, skey::State, notfound) =  get(s, skey.label, notfound)
 norm(s::StateRep) = norm(s.coeffs)
 
 function map!(f::Function, s::StateRep)
 	s.coeffs = map!(f, s.coeffs)
 	return s
 end 
-map(f::Function, s::StateRep) = map!(f, copy(s))
 
-filter(f::Function, s::StateRep) = mapmatch((x)->0, f, s)
-filter!(f::Function, s::StateRep) = mapmatch!((x)->0, f, s)
+map(f::Function, s::StateRep) = map!(f, copy(s))
 
 function show(io::IO, s::State)
 	print(io, repr(s))
 end
 function show(io::IO, s::StateRep)
 	println("$(typeof(s)) $(repr(s)):")
-	if length(s)!=0
+	if any(s.coeffs.!=0)
 		filled = find(s.coeffs)
 		table = cell(length(filled), 2)	
 		if length(filled)>=52
@@ -150,13 +155,13 @@ function show(io::IO, s::StateRep)
 		if kind(s)==Ket
 			show(temp_io, table)
 		else
-			show(temp_io, [table[:,2]', table[:,1]'])
+			show(temp_io, [transpose(table[:,2]), transpose(table[:,1])])
 		end
 		io_str = takebuf_string(temp_io)
 		io_str = io_str[searchindex(io_str, "\n")+1:end]
 		print(io_str)
 	else
-		println("(all coefficients are zero)")
+		print("(all coefficients are zero)")
 	end
 end
 
@@ -206,9 +211,15 @@ normalize(s::StateRep) = normalize!(copy(s))
 
 function mapmatch!(f_coeffs::Function, f_states::Function, s::StateRep)
 	matched_states = filter(f_states, s.basis)	
-	for i in matched_states
-		s[get(s.basis, i)] = apply(f_coeffs, get(s, i))
+	for i=1:length(matched_states)
+		s[get(s.basis, matched_states[i], nothing)] = apply(f_coeffs, get(s, matched_states[i], nothing))
 	end
 	return s
 end
-mapmatch(f_coeffs::Function, f_states::Function, s::StateRep) = mapmatch!(f_coeffs, f_labels, copy(s))
+mapmatch(f_coeffs::Function, f_states::Function, s::StateRep) = mapmatch!(f_coeffs, f_states, copy(s))
+
+filterstates(f::Function, s::StateRep) = mapmatch((x)->0, f, s)
+filterstates!(f::Function, s::StateRep) = mapmatch!((x)->0, f, s)
+filtercoeffs(f::Function, s::StateRep) = filtercoeffs!(f, copy(s))
+filtercoeffs!(f::Function, s::StateRep) = map!(x->apply(f, x) ? x : 0, s)
+

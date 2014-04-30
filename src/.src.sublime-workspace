@@ -4,6 +4,18 @@
 		"selected_items":
 		[
 			[
+				"map",
+				"mapmatch"
+			],
+			[
+				"Ac",
+				"AbstractStateRep"
+			],
+			[
+				"s",
+				"state"
+			],
+			[
 				"in",
 				"inds"
 			],
@@ -62,10 +74,6 @@
 			[
 				"Bra",
 				"BraKet"
-			],
-			[
-				"s",
-				"show"
 			],
 			[
 				"op",
@@ -506,10 +514,6 @@
 			[
 				"bi",
 				"bilist"
-			],
-			[
-				"str",
-				"str2"
 			]
 		]
 	},
@@ -561,6 +565,11 @@
 	},
 	"file_history":
 	[
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/DiracTools.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac-operator.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/basis.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/state.jl",
+		"/Users/jarrettrevels/data/repos/dirac-tools/src/basis-conversion.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/dirac-old.jl",
 		"/Users/jarrettrevels/data/repos/dirac-tools/src/test.jl",
@@ -627,6 +636,8 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"AbstractState",
+			"Base.",
 			"state_map",
 			"reinterpret(Number",
 			"vert_ell",
@@ -668,6 +679,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"",
 			"label_map",
 			"convert(Array{Complex{Float64}}",
 			"Operator",
@@ -736,6 +748,22 @@
 		"selected_items":
 		[
 			[
+				"",
+				"dirac-operator.jl"
+			],
+			[
+				"s",
+				"state.jl"
+			],
+			[
+				"bas",
+				"basis.jl"
+			],
+			[
+				"op",
+				"dirac-operator.jl"
+			],
+			[
 				"di",
 				"dirac.jl"
 			],
@@ -753,10 +781,6 @@
 			],
 			[
 				"tes",
-				"test.jl"
-			],
-			[
-				"",
 				"test.jl"
 			],
 			[

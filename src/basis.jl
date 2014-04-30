@@ -84,9 +84,8 @@ setdiff{B<:AbstractBasis}(a::B,b::B) = a-b
 getindex(b::AbstractBasis, x) = b.states[x]
 setindex!(b::AbstractBasis, y, x) = setindex!(b.states, y, x)
 
-get(b::AbstractBasis, label...) = b.label_map[[label...]]
-get(b::AbstractBasis, label::Vector) = b.label_map[label]
-get(b::AbstractBasis, s::State) = b.label_map[s.label]
+get(b::AbstractBasis, label::Vector, notfound) = get(b.label_map, label, notfound)
+get(b::AbstractBasis, s::State, notfound) = get(b.label_map, s.label, notfound)
 
 function show(io::IO, b::AbstractBasis)
 	println("$(typeof(b)) $(label(b)):")
