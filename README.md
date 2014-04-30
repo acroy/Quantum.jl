@@ -37,7 +37,7 @@ Features
 	- basic arithmetic operations (including linear algebra operations). Examples: 
 		- normalization
 		- inner/outer products of Bras and Kets
-		- expectation values/transition matrices
+		- computing expectation values/transition matrices
 		- commutator of operators
 		- operator trace
 	- partial trace of operator representations (entanglement calculations) 
