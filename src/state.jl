@@ -133,22 +133,21 @@ end
 function show(io::IO, s::StateRep)
 	println("$(typeof(s)) $(repr(s)):")
 	if any(s.coeffs.!=0)
-		filled = find(s.coeffs)
-		table = cell(length(filled), 2)	
-		if length(filled)>=52
+		table = cell(length(s.coeffs), 2)	
+		if length(s.coeffs)>=52
 			for i=1:25
-				table[i,1]= s.coeffs[filled[i]]
-				table[i,2]= s.basis[filled[i]]
+				table[i,1]= s.coeffs[i]
+				table[i,2]= s.basis[i]
 			end
-			table[26:(length(filled)-25),:] = 0 # prevents access to undefined reference
-			for i=(length(filled)-25):length(filled)
-				table[i,1]= s.coeffs[filled[i]]
-				table[i,2]= s.basis[filled[i]]
+			table[26:(length(s.coeffs)-25),:] = 0 # prevents access to undefined reference
+			for i=(length(s.coeffs)-25):length(s.coeffs)
+				table[i,1]= s.coeffs[i]
+				table[i,2]= s.basis[i]
 			end
 		else
-			for i=1:length(filled)
-				table[i,1]= s.coeffs[filled[i]]
-				table[i,2]= s.basis[filled[i]]
+			for i=1:length(s.coeffs)
+				table[i,1]= s.coeffs[i]
+				table[i,2]= s.basis[i]
 			end
 		end
 		temp_io = IOBuffer()
@@ -203,10 +202,14 @@ separate{S<:State}(v::Vector{S}) = hcat(map(separate, v)...).'
 
 state(s::StateRep) = s.state
 
+
+normalize(v::Vector) = (1/norm(v))*v
+
 function normalize!(s::StateRep) 
-	s.coeffs=(1/norm(s))*s.coeffs
+	s.coeffs=normalize(s.coeffs)
 	return s
 end
+
 normalize(s::StateRep) = normalize!(copy(s))
 
 function mapmatch!(f_coeffs::Function, f_states::Function, s::StateRep)
