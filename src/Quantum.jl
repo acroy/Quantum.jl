@@ -1,4 +1,4 @@
-module DiracTools
+module Quantum
 	#####################################
 	#constants###########################
 	#####################################
@@ -45,12 +45,12 @@ module DiracTools
 	#####################################
 	#abstract types######################
 	#####################################
-	abstract Dirac
+	abstract Quantum
 
-	abstract BraKet <: Dirac
+	abstract BraKet <: Quantum
 	abstract Bra <: BraKet
 	abstract Ket <: BraKet
-	abstract AbstractBasis{K<:BraKet} <: Dirac
+	abstract AbstractBasis{K<:BraKet} <: Quantum
 
 	!(K::Type{Ket}) = Bra
 	!(B::Type{Bra}) = Ket
@@ -61,13 +61,13 @@ module DiracTools
 	include("rep.jl")
 	include("state.jl")
 	include("basis.jl")
-	include("dirac-operator.jl")
-	include("dirac-expr.jl")
+	include("q-operator.jl")
+	include("q-expr.jl")
 
 	#####################################
 	#exports#############################
 	#####################################
-	export Dirac,
+	export Quantum,
 		   BraKet,
 		   Bra,
 		   Ket,

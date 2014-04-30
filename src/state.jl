@@ -1,7 +1,7 @@
 #####################################
 #State###############################
 #####################################
-immutable State{K<:BraKet} <: Dirac
+immutable State{K<:BraKet} <: Quantum
   label::Vector
   kind::Type{K}
 end
@@ -14,7 +14,7 @@ State{K<:BraKet}(label...; kind::Type{K}=Ket) = State([label...], kind)
 #####################################
 #State Representation################
 #####################################
-type StateRep{K<:BraKet} <: Dirac
+type StateRep{K<:BraKet} <: Quantum
 	state::State{K}
 	coeffs::Array{Complex{Float64}}
 	basis::AbstractBasis{K}

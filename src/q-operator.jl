@@ -1,7 +1,7 @@
 #####################################
 #Operator############################
 #####################################
-type Operator <: Dirac
+type Operator <: Quantum
 	coeffs::Matrix{Complex{Float64}}
 	row_basis::AbstractBasis{Ket}
 	col_basis::AbstractBasis{Bra}

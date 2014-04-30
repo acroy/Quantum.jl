@@ -1,4 +1,4 @@
-DiracTools in Julia
+Quantum Mechanics in Julia
 ===================
 
 Julia is an up-and-coming language for scientific computing that promises a
@@ -10,14 +10,14 @@ simultaneously conceptually difficult and computationally intensive.
 Many similar technologies - Mathematica, MATLab, NumPy, to name a few - have
 garnered support from the quantum physics community due to the wide variety of
 third-party physics libraries available. There are usually at least one or two
-projects for a given language that are dedicated to implementing Dirac algebra
-(one of the standard mathematical formulations for quantum mechanics) in a
-manner that is idiomatic to the language.
+projects for a given language that are dedicated to implementing quantum
+mechanics operations using Dirac notation in a manner that is idiomatic to the
+language.
 
 If Julia is to properly compete with these other languages, it should have
 such a library available.
 
-Enter my capstone project: DiracTools.
+Enter my capstone project: Quantum.jl.
 
 In addition to providing the basic functionality that many Dirac algebra
 implementations provide, my capstone will provide a system for storing,
@@ -44,7 +44,6 @@ Objectives
 	- In-place operations (e.g. conjugate transpose)
 
 ###I also have a small list of optional goals which I would like to attempt, but may not have time for in a single semester:
-	- provide built-in REPL visualizations for DiracTools objects
+	- HDF5 support
 	- design a system for data visualization of common state properties/operations
-	- create a function that automatically generates an eigenbasis from an operator
-	- package DiracTools as an open-source library that other Julia users can utilize
+	- package Quantum.jl as an open-source library that other Julia users can utilize
