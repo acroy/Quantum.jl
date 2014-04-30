@@ -19,31 +19,31 @@ such a library available.
 
 Enter my capstone project: Quantum.jl.
 
-In addition to providing the basic functionality that many Dirac algebra
+In addition to providing the basic functionality that many quantum mechanical
 implementations provide, my capstone will provide a system for storing,
 manipulating, and analyzing subspaces of the Hilbert space. In other words,
-users should be able to define their own bases, and define operators and
-states in terms of those bases.
+users will be able to define their own bases, and define operators and
+states in terms of those bases, and perform complex combinatorial filtering
+and mapping on the labels of basis states.
 
-Objectives
+Features
 ==========
 
-###Design and implement a library in Julia that can perform the following tasks:
-	- basis, state, and operator instantiation
-	- basic arithmetic operations 
-	- application of selection rules to extract subspaces
-	- convert state vector to density matrix
-	- take trace/partial trace of matrices (entanglement calculations)
-	- parameterization of matrices/matrix elements
-	- basis conversion for both operators and state vectors
-	- compute expectation values of the form <v|M|v>
-	- compute transition matrices of the form <u|M|v>
-	- binary operations on states/operators (e.g. inner/outer product)
-	- a fully realized tensor product structure for bases
-	- commutation relations of operators
-	- In-place operations (e.g. conjugate transpose)
+###Current:
+	- basis, state, state representation, and operator type implementations
+	- tensor product structure for bases and states/state representations
+	- application of arbitrary selection rules to extract subspaces from all types of 
+	  Quantum.jl objects (filtering and mapping)
+	- basic arithmetic operations (including linear algebra operations). Examples: 
+		- normalization
+		- inner/outer products of Bras and Kets
+		- expectation values/transition matrices
+		- commutator of operators
+		- operator trace
+	- partial trace of operator representations (entanglement calculations) 
 
-###I also have a small list of optional goals which I would like to attempt, but may not have time for in a single semester:
+###Upcoming:
+	- Abstract symbolic manipulation/simplification for mixed basis operations (implement QuantumExpr)
 	- HDF5 support
 	- design a system for data visualization of common state properties/operations
 	- package Quantum.jl as an open-source library that other Julia users can utilize

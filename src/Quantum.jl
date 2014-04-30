@@ -61,8 +61,8 @@ module Quantum
 	include("rep.jl")
 	include("state.jl")
 	include("basis.jl")
-	include("q-operator.jl")
-	include("q-expr.jl")
+	include("quantum-operator.jl")
+	include("quantum-expr.jl")
 
 	#####################################
 	#exports#############################
