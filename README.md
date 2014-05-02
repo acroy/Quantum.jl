@@ -1,5 +1,5 @@
-Quantum Mechanics in Julia
-===================
+# Quantum.jl
+*A framework for performing operations on user-defined quantum states*
 
 Julia is an up-and-coming language for scientific computing that promises a
 high-level of abstraction without the performance sacrifice such abstraction
