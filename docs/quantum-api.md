@@ -6,11 +6,11 @@ I. Type Implementations
 ---
 The following list contains the abstract types referenced in this documentation:
 
-	abstract Dirac
-	abstract BraKet <: Dirac
+	abstract Quantum
+	abstract BraKet <: Quantum
 	abstract Bra <: BraKet
 	abstract Ket <: BraKet
-	abstract AbstractBasis{K<:BraKet} <: Dirac
+	abstract AbstractBasis{K<:BraKet} <: Quantum
 
 The not operator `!` can be applied to `Bra` and `Ket` types to alternate between 
 the two (since they are duals of each other):
