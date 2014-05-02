@@ -20,7 +20,7 @@ the two (since they are duals of each other):
 
 2. State 
 --- 
-*Description* 
+__Description__
 
 A State is a type of an object that has only a
 label (stored as a Vector) and a specification of whether it belongs to Ket-
@@ -28,14 +28,14 @@ space or Bra-space (this property is referred to as “kind”). A state is
 parameterized by its kind; thus, states are either of type State{Bra} or
 State{Ket}. State is a subtype of Quantum.
 
-*Definition*
+__Definition__
 
 	immutable State{K<:BraKet} <: Quantum
 	  label::Vector
 	  kind::Type{K}
 	end
 
-*Constructors*
+__Constructors__
 
 	State(label::Vector) = State(label, Ket)
 	State{K<:BraKet}(label, kind::Type{K}=Ket) = State([label], kind)
