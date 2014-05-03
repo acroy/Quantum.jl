@@ -393,6 +393,7 @@ an `OperatorRep`:
 5. OperatorRep 
 --- 
 __Description__
+
 An `OperatorRep` is the representation of an abstract operator in a basis. It is 
 a matrix of complex coefficients. 
 
@@ -521,6 +522,7 @@ calculations:
 	0.5000000000000002 + 0.0im
 
 6. Functions implemented in QuantumJL
+---
 
 The following is a list of functions that were implemented in 
 QuantumJL. This list does *not* include overloaded functions 
