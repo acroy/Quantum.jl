@@ -423,7 +423,7 @@ __Methods and Examples__
 
 We've already seen in the previous section that one can construct an operator representation by taking
 the outer product of two state representations. Let's try instead using a functional construction of
-an instance of `OperatorRep`. First, we'll define `eb` as an excitation basis:
+an instance of `OperatorRep`. First, we'll define `xb` as an excitation basis:
 
 	julia> xb = Basis("xb", [1:10])
 	Basis{Ket} xb:
@@ -521,12 +521,12 @@ calculations:
 	julia> trace(ptrace(qop,1)^2)
 	0.5000000000000002 + 0.0im
 
-6. Functions implemented in QuantumJL
+6. Functions
 ---
 
-The following is a list of functions that were implemented in 
-QuantumJL. This list does *not* include overloaded functions 
-like `filter`, `trace`, `get`, etc. 
+The following is a list of functions that are implemented in 
+QuantumJL, not including overloaded functions 
+like `filter`, `trace`, `get`, etc.:
 
 	kind,
 	statevec,
@@ -546,3 +546,38 @@ like `filter`, `trace`, `get`, etc.
 	findstates,
 	commutator,
 	ptrace
+
+The following is a list of functions imported from `Base` that are overloaded
+for the types defined in QuantumJL:
+
+	show,
+	repr,
+	norm,
+	convert,	
+	getindex,
+	setindex!,
+	ndims,
+	size,
+	length,
+	slice,
+	(.+),
+	(.^),
+	(.-),
+	^,
+	*,
+	in,
+	setdiff,
+	get,
+	!,
+	exp,
+	map,
+	map!,
+	filter,
+	isequal,
+	copy,
+	hash,
+	isequal,
+	endof,
+	start,
+	find,
+	trace
