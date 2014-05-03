@@ -72,6 +72,14 @@ getindex(s::StateRep, x) = s.coeffs[x]
 
 setindex!(s::StateRep, y, x) = setindex!(s.coeffs, y, x)
 setindex!(s::State, y, x) = setindex!(s.label, y, x)
+# function setindex!{K<:BraKet}(s::State{K}, y::State{K}, x::Number)
+# 	if length(y)==1
+# 		setindex!(s.label, y.label[1], x)
+# 	else
+# 		s.label = [s[1:x-1], y.label, s[x+1:end]]
+# 	end
+# end
+# setindex!{K<:BraKet}(s::State{K}, y::State{K}, x) = setindex!(s.label, y.label, x)
 
 endof(s::State) = endof(s.label)
 endof(s::StateRep) = length(s.coeffs)
@@ -99,8 +107,12 @@ repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 
 *(n::Number, s::StateRep) = copy(s, n*s.coeffs) 
 *(s::StateRep, n::Number) = copy(s, s.coeffs*n) 
-*(arr::Array, s::StateRep) = copy(s, arr*s.coeffs)
-*(s::StateRep, arr::Array) = copy(s, s.coeffs*arr)
+*{N<:Number}(arr::Array{N, 2}, s::StateRep{Ket}) = size(arr,1)==1 ? (arr*s.coeffs)[1] : copy(s, arr*s.coeffs)
+*{N<:Number}(s::StateRep{Bra}, arr::Array{N, 1}) = (s.coeffs*arr)[1]
+*{N<:Number}(s::StateRep{Bra}, arr::Array{N, 2}) = copy(s, s.coeffs*arr)
+*{N<:Number}(arr::Array{N, 1}, s::StateRep{Bra}) = length(arr)==length(s) ? OperatorRep(arr*s.coeffs, s.basis) : throw(DimensionMismatch)
+*{N<:Number}(s::StateRep{Ket}, arr::Array{N, 2}) = size(arr,1)==1 && size(arr,2)==length(s) ? OperatorRep(s.coeffs*arr, s.basis) : throw(DimensionMismatch)
+
 *(a::StateRep{Bra}, b::StateRep{Ket}) = (a.coeffs*b.coeffs)[1]
 *(a::StateRep{Ket}, b::StateRep{Ket}) = StateRep(a.state*b.state, kron(a.coeffs, b.coeffs), a.basis*b.basis)
 *(a::StateRep{Bra}, b::StateRep{Bra}) = StateRep(a.state*b.state, kron(a.coeffs, b.coeffs), a.basis*b.basis)
@@ -113,6 +125,8 @@ repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 copy(s::StateRep, coeffs=copy(s.coeffs)) = StateRep(s.state, coeffs, s.basis)
 find(s::StateRep) = find(s.coeffs)
 length(s::StateRep) = length(s.coeffs)
+length(s::State) = length(s.label)
+
 function get(s::StateRep, label, notfound) 
 	ind = get(s.basis, label, 0)
 	if ind==0
@@ -122,6 +136,7 @@ function get(s::StateRep, label, notfound)
 	end
 end
 get(s::StateRep, skey::State, notfound) =  get(s, skey.label, notfound)
+get(s::StateRep, key) = get(s, key, 0)
 norm(s::StateRep) = norm(s.coeffs)
 
 function map!(f::Function, s::StateRep)

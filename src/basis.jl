@@ -5,7 +5,7 @@
 immutable Basis{K<:BraKet} <: AbstractBasis{K}
 	label
 	states::Vector{State{K}}
-	label_map::Dict{Vector, Int}
+	label_map::Dict{Vector, Integer}
 end
 
 Basis{K<:BraKet}(label, states::Vector{State{K}}) = Basis(label, unique(states), maplabels(states))
@@ -18,7 +18,7 @@ Basis(label, label_vec::Vector) = Basis(label, statevec(label_vec))
 immutable TensorBasis{K<:BraKet} <: AbstractBasis{K}
 	bases::Vector{Basis{K}}
 	states::Vector{State{K}}
-	label_map::Dict{Vector, Int}
+	label_map::Dict{Vector, Integer}
 end
 
 function TensorBasis{K<:BraKet}(bases::Vector{Basis{K}}, states::Vector{State{K}})
@@ -43,7 +43,7 @@ end
 #utility#############################
 
 function maplabels{K<:BraKet}(svec::Vector{State{K}})
-	dict = Dict{Vector, Int}()
+	dict = Dict{Vector, Integer}()
 	sizehint(dict, length(svec))
 	for i=1:length(svec)
 		dict[svec[i].label] = i
