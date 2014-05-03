@@ -93,6 +93,7 @@ setindex!(b::AbstractBasis, y, x) = setindex!(b.states, y, x)
 
 get(b::AbstractBasis, label::Vector, notfound) = get(b.label_map, label, notfound)
 get(b::AbstractBasis, s::State, notfound) = get(b.label_map, s.label, notfound)
+get(b::AbstractBasis, key) = get(b, key, nothing)
 
 function show(io::IO, b::AbstractBasis)
 	println("$(typeof(b)) $(label(b)):")

@@ -2,7 +2,7 @@
 *A framework for performing operations on user-defined quantum states*
 
 Julia is an up-and-coming language for scientific computing that promises a
-high-level of abstraction without the performance sacrifice such abstraction
+high level of abstraction without the performance sacrifice such abstraction
 usually entails. The capabilities of this new language provide an optimized
 codebase for tackling various problems in physics, which are often
 simultaneously conceptually difficult and computationally intensive.

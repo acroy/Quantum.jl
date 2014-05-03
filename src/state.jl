@@ -109,9 +109,9 @@ repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 *(s::StateRep, n::Number) = copy(s, s.coeffs*n) 
 *{N<:Number}(arr::Array{N, 2}, s::StateRep{Ket}) = size(arr,1)==1 ? (arr*s.coeffs)[1] : copy(s, arr*s.coeffs)
 *{N<:Number}(s::StateRep{Bra}, arr::Array{N, 1}) = (s.coeffs*arr)[1]
-*{N<:Number}(s::StateRep{Bra}, arr::Array{N, 2}) = copy(s, s.coeffs*arr)
-*{N<:Number}(arr::Array{N, 1}, s::StateRep{Bra}) = length(arr)==length(s) ? OperatorRep(arr*s.coeffs, s.basis) : throw(DimensionMismatch)
-*{N<:Number}(s::StateRep{Ket}, arr::Array{N, 2}) = size(arr,1)==1 && size(arr,2)==length(s) ? OperatorRep(s.coeffs*arr, s.basis) : throw(DimensionMismatch)
+*{N<:Number}(s::StateRep{Bra}, arr::Array{N, 2}) = size(arr,2)==1 ? (s.coeffs*arr)[1] : copy(s, s.coeffs*arr)
+*{N<:Number}(arr::Array{N}, s::StateRep{Bra}) = length(arr)==length(s) ? OperatorRep(arr*s.coeffs, s.basis) : throw(DimensionMismatch)
+*{N<:Number}(s::StateRep{Ket}, arr::Array{N}) = size(arr,2)==length(s) ? OperatorRep(s.coeffs*arr, s.basis) : throw(DimensionMismatch)
 
 *(a::StateRep{Bra}, b::StateRep{Ket}) = (a.coeffs*b.coeffs)[1]
 *(a::StateRep{Ket}, b::StateRep{Ket}) = StateRep(a.state*b.state, kron(a.coeffs, b.coeffs), a.basis*b.basis)

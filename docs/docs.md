@@ -1,6 +1,4 @@
-Quantum.jl API
-===
-I. Type Implementations
+Quantum.jl Documentation
 ===
 1. AbstractTypes
 ---
@@ -192,7 +190,7 @@ Assignment and retrieval is possible in the normal manner:
 	julia> tb[1]
 	| 1,1,1 ⟩
 
-You can use `filter` to extract subspaces of your basis via arbitrary selection
+You can use `filter` to extract subspaces of a basis via arbitrary selection
 rules (as defined by the function passed to `filter`):
 
 	julia> tb = filter(x->x[1]==1, tb)
@@ -233,7 +231,7 @@ __Description__
 
 A `StateRep` is the representation of a `State` in a `Basis`. It stores
 the basis alongside a corresponding vector of complex coefficients.
-For example if we want to represent `| a: ⟩` in the `qb` basis defined above, 
+For example, if we want to represent `| a: ⟩` in the `qb` basis defined above, 
 the coefficients are given by the theoretical operations:
 	
 	⟨ 1 | a: ⟩ = c_1
@@ -319,7 +317,7 @@ fashion (let `tqb=qb*qb*qb`):
 	0
 
 It is assumed when performing linear algebraic operations with normal vectors/matrices
-that they are in the same basis as the `StateRep`:
+that they are in the same basis as the state representation:
 
 	julia> tsr+[1:8]
 	StateRep{Ket} | :a,:a,:a ; qb ⊗ qb ⊗ qb ⟩:
@@ -391,3 +389,158 @@ an `OperatorRep`:
 	  | 0,1,0 ⟩  0.0207261-0.103631im                    0.012213+0.0im
 	  | 0,0,1 ⟩  0.0207261-0.103631im                    0.012213+0.0im
 	  | 0,0,0 ⟩  0.0207261-0.103631im                    0.012213+0.0im 
+
+5. OperatorRep 
+--- 
+__Description__
+An `OperatorRep` is the representation of an abstract operator in a basis. It is 
+a matrix of complex coefficients. 
+
+__Definition__
+
+	type OperatorRep <: Quantum
+		coeffs::Matrix{Complex{Float64}}
+		row_basis::AbstractBasis{Ket}
+		col_basis::AbstractBasis{Bra}
+	end
+
+Note that it is possible for an object of type `OperatorRep` to have separate bases corresponding
+to the rows and columns of a matrix. While such a construction would be quite strange, 
+it would not be invalid under the rules of linear algebra, and implementing it does not
+cost much.
+
+__Constructors__
+
+	OperatorRep{N<:Number}(coeffs::Matrix{N}, b::AbstractBasis)
+	OperatorRep{N<:Number}(coeffs::Matrix{N}, row_basis::AbstractBasis{Ket}, col_basis::AbstractBasis{Bra})
+	OperatorRep(coeff_func::Function, label_func::Function, b::AbstractBasis)
+
+This last constructor allows an instance of `OperatorRep` can be constructed by defining the action 
+of an abstract operator on the states of the basis (see below for examples).
+
+__Methods and Examples__
+
+We've already seen in the previous section that one can construct an operator representation by taking
+the outer product of two state representations. Let's try instead using a functional construction of
+an instance of `OperatorRep`. First, we'll define `eb` as an excitation basis:
+
+	julia> xb = Basis("xb", [1:10])
+	Basis{Ket} xb:
+	| 1 ⟩
+	| 2 ⟩
+	| 3 ⟩
+	| 4 ⟩
+	| 5 ⟩
+	| 6 ⟩
+	| 7 ⟩
+	| 8 ⟩
+	| 9 ⟩
+	| 10 ⟩  
+
+Now, let's define the raising operator represented in `xb` as `r| n ⟩ = coeff_func(n) | label_func(n) ⟩ = sqrt(n+1) | n+1 ⟩`:
+
+	julia> rrep = OperatorRep(n->sqrt(n[1]+1), n->n[1]+1, xb)
+
+	OperatorRep:
+	                     ⟨ 1 |  …               ⟨ 9 |           ⟨ 10 |
+	  | 1 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
+	  | 2 ⟩   1.41421+0.0im              0.0+0.0im       0.0+0.0im
+	  | 3 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
+	  | 4 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
+	  | 5 ⟩       0.0+0.0im       …      0.0+0.0im       0.0+0.0im
+	  | 6 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
+	  | 7 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
+	  | 8 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
+	  | 9 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
+	  | 10 ⟩      0.0+0.0im       …  3.16228+0.0im       0.0+0.0im
+
+	julia> rrep*xb[2]
+	StateRep{Ket} | #undef ; xb ⟩:
+	     0.0+0.0im  | 1 ⟩
+	     0.0+0.0im  | 2 ⟩
+	 1.73205+0.0im  | 3 ⟩
+	     0.0+0.0im  | 4 ⟩
+	     0.0+0.0im  | 5 ⟩
+	     0.0+0.0im  | 6 ⟩
+	     0.0+0.0im  | 7 ⟩
+	     0.0+0.0im  | 8 ⟩
+	     0.0+0.0im  | 9 ⟩
+	     0.0+0.0im  | 10 ⟩
+
+	julia> rrep*xb[10]
+	StateRep{Ket} | #undef ; xb ⟩:
+	(all coefficients are zero)
+
+In the second operation, `r| 10 ⟩ = sqrt(11) | 11 ⟩` produces an eigenvector
+`| 11 ⟩` that, while an eigenstate of the abstract operator `r`, is not an
+eigenvector of the matrix `rrep`. Thus, the design choice that QuantumJL be
+limited to finite  dimensional subspaces of the Hilbert space is upheld in a
+consistent manner.
+
+Another feature of QuantumJL's `OperatorRep` implementation is a function 
+that computes the partial trace, which is useful for performing entanglement
+calculations:
+
+	julia> q = StateRep(:q, normalize([1,1]), Basis("b", [0,1]))
+	StateRep{Ket} | :q ; b ⟩:
+	 0.707107+0.0im  | 0 ⟩
+	 0.707107+0.0im  | 1 ⟩
+
+	julia> qq = q*q
+	StateRep{Ket} | :q,:q ; b ⊗ b ⟩:
+	 0.5+0.0im  | 0,0 ⟩
+	 0.5+0.0im  | 0,1 ⟩
+	 0.5+0.0im  | 1,0 ⟩
+	 0.5+0.0im  | 1,1 ⟩
+
+	julia> qq[2:3] = 0
+	0
+
+	julia> normalize!(qq)
+	StateRep{Ket} | :q,:q ; b ⊗ b ⟩:
+	 0.707107+0.0im  | 0,0 ⟩
+	      0.0+0.0im  | 0,1 ⟩
+	      0.0+0.0im  | 1,0 ⟩
+	 0.707107+0.0im  | 1,1 ⟩
+
+	julia> qop = qq*qq'
+	OperatorRep:
+	                  ⟨ 0,0 |  …           ⟨ 1,0 |           ⟨ 1,1 |
+	  | 0,0 ⟩  0.5+0.0im            0.0+0.0im         0.5+0.0im
+	  | 0,1 ⟩  0.0+0.0im            0.0+0.0im         0.0+0.0im
+	  | 1,0 ⟩  0.0+0.0im            0.0+0.0im         0.0+0.0im
+	  | 1,1 ⟩  0.5+0.0im            0.0+0.0im         0.5+0.0im
+
+	julia> ptrace(qop,1)
+	OperatorRep:
+	                ⟨ 0 |           ⟨ 1 |
+	  | 0 ⟩  0.5+0.0im       0.0+0.0im
+	  | 1 ⟩  0.0+0.0im       0.5+0.0im
+
+	julia> trace(ptrace(qop,1)^2)
+	0.5000000000000002 + 0.0im
+
+6. Functions implemented in QuantumJL
+
+The following is a list of functions that were implemented in 
+QuantumJL. This list does *not* include overloaded functions 
+like `filter`, `trace`, `get`, etc. 
+
+	kind,
+	statevec,
+	tensor,
+	statejoin,
+	separate,
+	state,
+	normalize!,
+	normalize,
+	mapmatch!,
+	mapmatch,
+	filtercoeffs, 
+	filtercoeffs!,
+	filterstates,
+	filterstates!,
+	samebasis,
+	findstates,
+	commutator,
+	ptrace

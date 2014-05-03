@@ -96,15 +96,3 @@ module QuantumJL
 		   commutator,
 		   ptrace
 end
-
-using QuantumJL
-
-a = State(:a)
-b = State("b")
-c = State(3)
-abc = a*b*c
-qb = Basis("qb",[1,0])
-tqb = qb*qb*qb
-sr = StateRep(a, normalize([1,1]), qb)
-tsr = sr*sr*sr
-println("")

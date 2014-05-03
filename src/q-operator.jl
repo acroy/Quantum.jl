@@ -18,11 +18,14 @@ OperatorRep{N<:Number}(coeffs::Matrix{N}, row_basis::AbstractBasis{Ket}, col_bas
 OperatorRep{N<:Number}(coeffs::Matrix{N}, b::AbstractBasis{Ket}) = OperatorRep(convert(Matrix{Complex{Float64}}, coeffs), b, b') 
 OperatorRep{N<:Number}(coeffs::Matrix{N}, b::AbstractBasis{Bra}) = OperatorRep(convert(Matrix{Complex{Float64}}, coeffs), b', b) 
 
-function OperatorRep(label_func::Function, coeff_func::Function, b::AbstractBasis)
-	coeffs = Array(Number, length(b), length(b))
+function OperatorRep(coeff_func::Function, label_func::Function, b::AbstractBasis)
+	coeffs = zeros(Number, length(b), length(b))
 	for i=1:length(b)
 		for j=1:length(b)
-			coeffs[i,j] = coeff_func(b[i]) * (b[j]'*label_func(b[i]))
+			ii = get(b,State(label_func(b[i])), -1)
+			if ii != -1
+				coeffs[ii,j] = coeff_func(b[i]) * (b[j]'*b[i])
+			end
 		end
 	end
 	return OperatorRep(coeffs, b)
@@ -45,7 +48,7 @@ endof(op::OperatorRep) = length(op)
 find(op::OperatorRep) = find(op.coeffs)
 find(f::Function, op::OperatorRep) = find(f::Function, op.coeffs)
 
-size(op::OperatorRep, i::Int) = size(op.coeffs, i)
+size(op::OperatorRep, i::Integer) = size(op.coeffs, i)
 ctranspose(op::OperatorRep) = OperatorRep(op.coeffs', op.col_basis',op.row_basis')
 getindex(op::OperatorRep, x...) = op.coeffs[x...]
 setindex!(op::OperatorRep, y, x) = setindex!(op.coeffs,y,x)
@@ -75,8 +78,11 @@ get(op::OperatorRep, s::State{Bra}) = op[:, get(op.col_basis, s)]
 *(s::State{Bra}, op::OperatorRep) = StateRep(State([], Bra), get(op, s'), op.col_basis)
 *(op::OperatorRep, s::StateRep{Ket}) = op.row_basis == s.basis ? StateRep(s.state, op.coeffs*s.coeffs, op.row_basis) : error("BasesMismatch")
 *(s::StateRep{Bra}, op::OperatorRep) = op.col_basis == s.basis ? StateRep(s.state, s.coeffs*op.coeffs, op.col_basis) : error("BasesMismatch")
-*(arr::Array, op::OperatorRep) = copy(op, arr*op.coeffs)
-*(op::OperatorRep, arr::Array) = copy(op, op.coeffs*arr)
+
+
+*{N<:Number}(arr::Array{N, 2}, op::OperatorRep) = size(arr,1)==1 ? StateRep(State(), arr*op.coeffs, op.col_basis) : copy(op, arr*op.coeffs)
+*{N<:Number}(op::OperatorRep, arr::Array{N, 1}) = StateRep(State([]), op.coeffs*arr, op.row_basis)
+*{N<:Number}(op::OperatorRep, arr::Array{N, 2}) = size(arr,2)==1 ? StateRep(State(), op.coeffs*arr, op.row_basis) : copy(op,op.coeffs*arr)
 
 trace(op::OperatorRep) = trace(op.coeffs)
 
