@@ -66,8 +66,15 @@ end
 isequal(a::AbstractBasis,b::AbstractBasis) = a.states==b.states
 in(s::State, b::AbstractBasis)=in(s, b.states)
 
-filter(f::Function, b::TensorBasis) = TensorBasis(b.bases, filter(f, b.states))
 filter(f::Function, b::Basis) = Basis(b.label, filter(f, b.states))
+function filter(f::Function, b::TensorBasis) 
+	states = filter(f, b.states)
+	b_arr = Array(Basis{kind(b)}, size(b)[2])
+	for i=1:size(b)[2]
+		b_arr[i] = Basis("sub_($(label(b)))_$i", unique(map(x->getindex(x,i), states)))
+    end
+	TensorBasis(b_arr, states)
+end
 
 ctranspose(b::TensorBasis) = TensorBasis(map(ctranspose, b.bases), map(ctranspose, b.states), b.label_map)
 ctranspose(b::Basis) = Basis(b.label, map(ctranspose, b.states), b.label_map)

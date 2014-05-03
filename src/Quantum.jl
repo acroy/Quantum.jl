@@ -1,4 +1,4 @@
-module Quantum
+module QuantumJL
 	#####################################
 	#constants###########################
 	#####################################
@@ -76,7 +76,7 @@ module Quantum
 		   StateRep,
 		   Basis,
 		   TensorBasis,
-		   Operator,
+		   OperatorRep,
 		   kind,
 		   statevec,
 		   tensor,
@@ -96,3 +96,8 @@ module Quantum
 		   commutator,
 		   ptrace
 end
+
+using QuantumJL
+
+bs = Basis("bs", [1:5])
+bs=bs*bs
