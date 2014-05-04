@@ -24,7 +24,7 @@ A `State` is a type of an object that has only a
 label (stored as a `Vector`) and a specification of whether it belongs to `Ket`-
 space or `Bra`-space (this property is referred to as “kind”). A `State` is
 parameterized by its kind; thus, states are either of type `State{Bra}` or
-`State{Ket}`. `State` is a subtype of `Quantum`.
+`State{Ket}`.
 
 __Definition__
 
@@ -416,14 +416,13 @@ __Constructors__
 	OperatorRep{N<:Number}(coeffs::Matrix{N}, row_basis::AbstractBasis{Ket}, col_basis::AbstractBasis{Bra})
 	OperatorRep(coeff_func::Function, label_func::Function, b::AbstractBasis)
 
-This last constructor allows an instance of `OperatorRep` can be constructed by defining the action 
+This last constructor allows an instance of `OperatorRep` to be constructed by defining the action 
 of an abstract operator on the states of the basis (see below for examples).
 
 __Methods and Examples__
 
 We've already seen in the previous section that one can construct an operator representation by taking
-the outer product of two state representations. Let's try instead using a functional construction of
-an instance of `OperatorRep`. First, we'll define `xb` as an excitation basis:
+the outer product of two state representations. Let's try constructing an `OperatorRep` functionally instead. First, we'll define `xb` as an excitation basis:
 
 	julia> xb = Basis("xb", [1:10])
 	Basis{Ket} xb:
@@ -474,9 +473,10 @@ Now, let's define the raising operator represented in `xb` as `r| n ⟩ = coeff_
 
 In the second operation, `r| 10 ⟩ = sqrt(11) | 11 ⟩` produces an eigenvector
 `| 11 ⟩` that, while an eigenstate of the abstract operator `r`, is not an
-eigenvector of the matrix `rrep`. Thus, the design choice that QuantumJL be
-limited to finite  dimensional subspaces of the Hilbert space is upheld in a
-consistent manner.
+eigenvector of the matrix `rrep`. In this way, functionally constructed
+instances of `OperatorRep` are consistent with the limitation that 
+`Basis` objects be finite dimensional subspaces of an abstract infinite 
+dimensional Hilbert space.
 
 Another feature of QuantumJL's `OperatorRep` implementation is a function 
 that computes the partial trace, which is useful for performing entanglement
