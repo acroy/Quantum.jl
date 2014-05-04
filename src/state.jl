@@ -72,20 +72,33 @@ getindex(s::StateRep, x) = s.coeffs[x]
 
 setindex!(s::StateRep, y, x) = setindex!(s.coeffs, y, x)
 setindex!(s::State, y, x) = setindex!(s.label, y, x)
-# function setindex!{K<:BraKet}(s::State{K}, y::State{K}, x::Number)
-# 	if length(y)==1
-# 		setindex!(s.label, y.label[1], x)
-# 	else
-# 		s.label = [s[1:x-1], y.label, s[x+1:end]]
-# 	end
-# end
-# setindex!{K<:BraKet}(s::State{K}, y::State{K}, x) = setindex!(s.label, y.label, x)
 
 endof(s::State) = endof(s.label)
 endof(s::StateRep) = length(s.coeffs)
 
-repr(s::State{Bra}, extra="") = isempty(s.label) ? "$lang #undef$extra |" : "$lang $(repr(s.label)[2:end-1])$extra |"
-repr(s::State{Ket}, extra="") = isempty(s.label) ? "| #undef$extra $rang" : "| $(repr(s.label)[2:end-1])$extra $rang"
+repr(s::State{Bra}, extra="") = isempty(s.label) ? "$lang #undef$extra |" : "$lang $(split(repr(s.label), ['[', ']'])[2]) $extra |"
+
+function repr(s::State{Ket}, extra="") 
+	if isempty(s.label)
+		return "| #undef$extra $rang"
+	elseif eltype(s.label)==Any
+		return "| $(split(repr(s.label), ['{', '}'])[2]) $extra $rang"
+	else
+		return "| $(split(repr(s.label), ['[', ']'])[2]) $extra $rang"
+	end
+end
+
+function repr(s::State{Bra}, extra="") 
+	if isempty(s.label)
+		return "$lang #undef$extra |"
+	elseif eltype(s.label)==Any
+		return "$lang $(split(repr(s.label), ['{', '}'])[2]) $extra |"
+	else
+		return "$lang $(split(repr(s.label), ['[', ']'])[2]) $extra |"
+	end
+end
+
+
 repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 
 .*(n::Number, s::StateRep) = n*s
