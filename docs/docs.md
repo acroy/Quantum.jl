@@ -81,7 +81,8 @@ Composite states can be separated into their component states:
 Several convenience functions are provided which aid in the 
 contruction of states. One such function is `statevec`, which
 takes in an array and produces a Vector{State{Ket}} based on
-the array's contents:
+the array's contents. Another is `statejoin`, which takes the
+tensor product of all the states in a `Vector{State}`:
 
 	julia> arr = [1:5 6:10 11:15]
 	5x3 Array{Int64,2}:
@@ -99,20 +100,38 @@ the array's contents:
 	 | 4,9,14 ⟩
 	 | 5,10,15 ⟩
 
-Finally, one can take the complex conjugate transpose and inner product of abstract states:
+	julia> statejoin(ans)
+	| 1,6,11,2,7,12,3,8,13,4,9,14,5,10,15 ⟩
+
+Finally, one can take the complex conjugate transpose and products of abstract states:
 
 	julia> a'
 	⟨ :a |
 
-	julia> a'*a
-	1
+	julia> a'*a'
+	⟨ :a,:a  |
 
-	julia> a'*b
+	julia> a'*a
+	:(⟨ :a  | * | :a  ⟩)
+
+	julia> a*a'
+	:(| :a  ⟩ * ⟨ :a  |)
+
+From the above, you can see that orthonormality is not assumed, even between
+states that have the same label. In the future, a function will be implemented
+to evaluate inner products based on pattern matching and basis conversion. 
+
+For now, the `labeldelta` function can be used to compute the Kronecker delta 
+function on the *labels* (not the states):
+
+	julia> labeldelta(a,b)
 	0
 
-Currently, outer products of abstract states are not supported in a normal
-sense. In the future, however, Quantum.jl will implement some form of Expr
-manipulation in order to accommodate more abstract operations.
+	julia> labeldelta(a,a)
+	1
+
+	julia> labeldelta(a,a')
+	1
 
 3. Basis 
 --- 
@@ -532,6 +551,7 @@ like `filter`, `trace`, `get`, etc.:
 	statevec,
 	tensor,
 	statejoin,
+	labeldelta,
 	separate,
 	state,
 	normalize!,
@@ -551,6 +571,7 @@ The following is a list of functions imported from `Base` that are overloaded
 for the types defined in QuantumJL:
 
 	show,
+	showcompact,
 	repr,
 	norm,
 	convert,	

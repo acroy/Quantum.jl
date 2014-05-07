@@ -10,7 +10,6 @@ State(label::Vector) = State(label, Ket)
 State{K<:BraKet}(label, kind::Type{K}=Ket) = State([label], kind)
 State{K<:BraKet}(label...; kind::Type{K}=Ket) = State([label...], kind)
 
-
 #####################################
 #State Representation################
 #####################################
@@ -107,10 +106,12 @@ repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 .+(n::Number, s::StateRep) = copy(s, n.+s.coeffs)
 +(arr::Array, s::StateRep) = copy(s, arr+s.coeffs)
 +(s::StateRep, arr::Array) = copy(s, s.coeffs+arr)
++(s1::StateRep, s2::StateRep) = s1.basis==s2.basis ? StateRep("$(repr(s1)[2:end-1]) + $(repr(s2)[2:end-1])",  s1.coeffs+s2.coeffs, s1.basis) : :($s1+$s2)
 .-(s::StateRep, n::Number) = copy(s, s.coeffs.-n)
 .-(n::Number, s::StateRep) = copy(s, n.-s.coeffs)
 -(arr::Array, s::StateRep) = copy(s, arr-s.coeffs)
 -(s::StateRep, arr::Array) = copy(s, s.coeffs-arr)
+-(s1::StateRep, s2::StateRep) = s1.basis==s2.basis ? StateRep("$(repr(s1)[2:end-1]) - $(repr(s2)[2:end-1])",  s1.coeffs-s2.coeffs, s1.basis) : :($s1-$s2)
 ./(s::StateRep, n::Number) = s/n
 ./(n::Number, s::StateRep) = copy(s, n./s.coeffs)
 .^(n::Number, s::StateRep) = copy(s, n.^s.coeffs)
@@ -126,14 +127,14 @@ repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 *{N<:Number}(arr::Array{N}, s::StateRep{Bra}) = length(arr)==length(s) ? OperatorRep(arr*s.coeffs, s.basis) : throw(DimensionMismatch)
 *{N<:Number}(s::StateRep{Ket}, arr::Array{N}) = size(arr,2)==length(s) ? OperatorRep(s.coeffs*arr, s.basis) : throw(DimensionMismatch)
 
-*(a::StateRep{Bra}, b::StateRep{Ket}) = (a.coeffs*b.coeffs)[1]
+*(a::StateRep{Bra}, b::StateRep{Ket}) = samelabels(a.basis, b.basis) ? (a.coeffs*b.coeffs)[1] : :($a*$b)
 *(a::StateRep{Ket}, b::StateRep{Ket}) = StateRep(a.state*b.state, kron(a.coeffs, b.coeffs), a.basis*b.basis)
 *(a::StateRep{Bra}, b::StateRep{Bra}) = StateRep(a.state*b.state, kron(a.coeffs, b.coeffs), a.basis*b.basis)
 *(a::StateRep{Ket}, b::StateRep{Bra}) = OperatorRep(a.coeffs*b.coeffs, a.basis, b.basis)
 *(sr::StateRep{Bra}, s::State{Ket}) = get(sr, s')
 *(s::State{Bra}, sr::StateRep{Ket}) = get(sr, s')
 *{K<:BraKet}(s1::State{K}, s2::State{K}) = tensor(s1, s2)
-*(s1::State{Bra}, s2::State{Ket}) = s1.label==s2.label ? 1 : 0 
+*(s1::State, s2::State) = :($s1*$s2)
 
 copy(s::StateRep, coeffs=copy(s.coeffs)) = StateRep(s.state, coeffs, s.basis)
 find(s::StateRep) = find(s.coeffs)
@@ -159,9 +160,9 @@ end
 
 map(f::Function, s::StateRep) = map!(f, copy(s))
 
-function show(io::IO, s::State)
-	print(io, repr(s))
-end
+show(io::IO, s::State) = print(io, repr(s))
+showcompact(io::IO, s::StateRep) = print(io, repr(s))
+
 function show(io::IO, s::StateRep)
 	println("$(typeof(s)) $(repr(s)):")
 	if any(s.coeffs.!=0)
@@ -215,6 +216,8 @@ function statevec{K<:BraKet}(arr::Array, kind::Type{K}=Ket)
 	return svec
 end
 
+labeldelta(s1::State, s2::State) = s1.label==s2.label ? 1 : 0 
+
 tensor() = nothing
 tensor{K<:BraKet}(s::State{K}...) = State(vcat([i.label for i in s]...), K)
 tensor{S<:State}(state_arrs::Array{S}...) = statejoin(crossjoin(state_arrs...))
@@ -233,7 +236,6 @@ separate(s::State) = statevec(s.label)
 separate{S<:State}(v::Vector{S}) = hcat(map(separate, v)...).'
 
 state(s::StateRep) = s.state
-
 
 normalize(v::Vector) = (1/norm(v))*v
 

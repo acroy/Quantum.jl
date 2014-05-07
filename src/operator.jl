@@ -24,7 +24,7 @@ function OperatorRep(coeff_func::Function, label_func::Function, b::AbstractBasi
 		for j=1:length(b)
 			ii = get(b,State(label_func(b[i])), -1)
 			if ii != -1
-				coeffs[ii,j] = coeff_func(b[i]) * (b[j]'*b[i])
+				coeffs[ii,j] = coeff_func(b[i])*labeldelta(b[j],b[i])
 			end
 		end
 	end

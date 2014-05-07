@@ -11,6 +11,7 @@ module QuantumJL
 	#####################################
 	import Base:
 		   show,
+		   showcompact,
 		   repr,
 		   norm,
 		   convert,	
@@ -61,8 +62,8 @@ module QuantumJL
 	include("rep.jl")
 	include("state.jl")
 	include("basis.jl")
-	include("q-operator.jl")
-	include("q-expr.jl")
+	include("operator.jl")
+	include("qexpr.jl")
 
 	#####################################
 	#exports#############################
@@ -80,6 +81,7 @@ module QuantumJL
 		   kind,
 		   statevec,
 		   tensor,
+		   labeldelta,
 		   statejoin,
 		   separate,
 		   state,

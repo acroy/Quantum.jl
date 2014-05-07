@@ -98,13 +98,14 @@ get(b::AbstractBasis, key) = get(b, key, nothing)
 function show(io::IO, b::AbstractBasis)
 	println("$(typeof(b)) $(label(b)):")
 	for i in b.states
-		println(repr(i))
+	 	println(repr(i))
 	end
 end
 
 #exported############################
 separate(b::Basis)=b
 separate(b::TensorBasis) = b.bases
+samelabels(b1::AbstractBasis, b2::AbstractBasis) = collect(keys(b1.label_map))==collect(keys(b2.label_map))
 
 states(b::AbstractBasis) = b.states
 kind(b::AbstractBasis) = kind(b[1])
