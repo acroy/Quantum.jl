@@ -80,7 +80,7 @@ Composite states can be separated into their component states:
 
 Several convenience functions are provided which aid in the 
 contruction of states. One such function is `statevec`, which
-takes in an array and produces a Vector{State{Ket}} based on
+takes in an array and produces a `Vector{State{Ket}}` based on
 the array's contents. Another is `statejoin`, which takes the
 tensor product of all the states in a `Vector{State}`:
 
