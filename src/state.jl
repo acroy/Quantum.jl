@@ -30,7 +30,7 @@ end
 
 StateRep{N<:Number}(s::State, coeffs::Vector{N}, basis::AbstractBasis) = StateRep(s, convert(Array{Complex{Float64}},coeffs), basis)
 StateRep{N<:Number}(s::State{Ket}, coeffs::Vector{N}, basis::AbstractBasis) = StateRep{Ket}(s, convert(Array{Complex{Float64}},coeffs), basis)
-StateRep{N<:Number}(s::State{Bra}, coeffs::Vector{N}, basis::AbstractBasis) = error("Dimensions of coefficient array does not match type $K")
+StateRep{N<:Number}(s::State{Bra}, coeffs::Vector{N}, basis::AbstractBasis) = error("DimensionMismatch: tried to assign column vector to Bra representation")
 function StateRep{N<:Number, K<:BraKet}(s::State{K}, coeffs::Array{N}, basis::AbstractBasis)
 	if size(coeffs)[2]==1 && K==Ket
 		StateRep{Ket}(s, convert(Array{Complex{Float64}},vec(coeffs)), basis)
@@ -42,6 +42,7 @@ function StateRep{N<:Number, K<:BraKet}(s::State{K}, coeffs::Array{N}, basis::Ab
 end
 
 StateRep{N<:Number}(label, coeffs::Vector{N}, basis::AbstractBasis) = StateRep{Ket}(State(label, Ket), convert(Vector{Complex{Float64}},coeffs), basis)
+
 function StateRep{N<:Number}(label, coeffs::Array{N}, basis::AbstractBasis)
 	if size(coeffs)[2]==1
 		StateRep{Ket}(State(label, Ket), convert(Array{Complex{Float64}},vec(coeffs)), basis)
@@ -75,15 +76,17 @@ setindex!(s::State, y, x) = setindex!(s.label, y, x)
 endof(s::State) = endof(s.label)
 endof(s::StateRep) = length(s.coeffs)
 
-repr(s::State{Bra}, extra="") = isempty(s.label) ? "$lang #undef$extra |" : "$lang $(split(repr(s.label), ['[', ']'])[2]) $extra |"
+
+label(s::State) = split(repr(s.label), ['[', ']'])[2]
+repr(s::State{Bra}, extra="") = isempty(s.label) ? "$lang #undef$extra |" : "$lang $(label(s)) $extra |"
 
 function repr(s::State{Ket}, extra="") 
 	if isempty(s.label)
 		return "| #undef$extra $rang"
 	elseif eltype(s.label)==Any
-		return "| $(split(repr(s.label), ['{', '}'])[2]) $extra $rang"
+		return "| $(label(s)) $extra $rang"
 	else
-		return "| $(split(repr(s.label), ['[', ']'])[2]) $extra $rang"
+		return "| $(label(s)) $extra $rang"
 	end
 end
 
@@ -91,9 +94,9 @@ function repr(s::State{Bra}, extra="")
 	if isempty(s.label)
 		return "$lang #undef$extra |"
 	elseif eltype(s.label)==Any
-		return "$lang $(split(repr(s.label), ['{', '}'])[2]) $extra |"
+		return "$lang $(label(s)) $extra |"
 	else
-		return "$lang $(split(repr(s.label), ['[', ']'])[2]) $extra |"
+		return "$lang $(label(s)) $extra |"
 	end
 end
 

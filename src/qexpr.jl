@@ -15,3 +15,7 @@ immutable OuterProduct <: Quantum
 end 
 
 show(io::IO, s::OuterProduct) = println("$(repr(s.bra))$(repr(s.ket))");
+
+*(n::Number, s::State{Ket}) = StateRep([], [n], Basis(label(s),s))
+*(n::Number, s::State{Bra}) = StateRep(State([], Bra), [n]', Basis(label(s),s))
+*(s::State, n::Number) = *(n,s)
