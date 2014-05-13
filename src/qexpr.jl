@@ -1,14 +1,17 @@
-# Rules: 
+export InnerProduct
+export OuterProduct
 
-# Inner Product Rule:
-# To take the inner product between two states, the must be in the
-# same basis.
+immutable InnerProduct <: Number
+	bra::State{Bra}
+	ket::State{Ket}
+end 
 
-# Outer Product Rule:
-# States in outer product form always associate towards possible 
-# inner products
+show(io::IO, s::InnerProduct) = println("$(repr(s.bra)) $(repr(s.ket)[2:end])");
 
 
-# function stateproducts(ex::Expr)
-# 	if 
-# end
+immutable OuterProduct <: Quantum
+	bra::State{Ket}
+	ket::State{Bra}
+end 
+
+show(io::IO, s::OuterProduct) = println("$(repr(s.bra))$(repr(s.ket))");

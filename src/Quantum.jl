@@ -96,5 +96,6 @@ module QuantumJL
 		   samebasis,
 		   findstates,
 		   commutator,
-		   ptrace
+		   ptrace,
+		   qeval
 end

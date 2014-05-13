@@ -134,7 +134,9 @@ repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 *(sr::StateRep{Bra}, s::State{Ket}) = get(sr, s')
 *(s::State{Bra}, sr::StateRep{Ket}) = get(sr, s')
 *{K<:BraKet}(s1::State{K}, s2::State{K}) = tensor(s1, s2)
-*(s1::State, s2::State) = :($s1*$s2)
+*(s1::State{Bra}, s2::State{Ket}) = InnerProduct(s1,s2)
+*(s1::State{Ket}, s2::State{Bra}) = OuterProduct(s1,s2)
+
 
 copy(s::StateRep, coeffs=copy(s.coeffs)) = StateRep(s.state, coeffs, s.basis)
 find(s::StateRep) = find(s.coeffs)
