@@ -1,9 +1,13 @@
 include("Quantum.jl")
 using QuantumJL
 
-# b1 = Basis(:b1, [1:10])
-# s1 = StateRep(:s1, normalize([1:10]), b1)
-# b2 = Basis(:b2, ["a", "b", "c"])
-# s2 = StateRep(:s2, normalize([1:3]), b2)
-s = State(:s)
+
+s1 = State(1)
+s2 = State(2)
+Qcoeff = Union(Complex{Float64}, InnerProduct)
+a = Array(Qcoeff, 10)
+a[1] = s1'*s2
+a[2:end] = 1.0 + im
+b = Basis(:b, [1:1000])
+
 println("")

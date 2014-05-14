@@ -78,9 +78,9 @@ endof(s::StateRep) = length(s.coeffs)
 
 
 label(s::State) = split(repr(s.label), ['[', ']'])[2]
-repr(s::State{Bra}, extra="") = isempty(s.label) ? "$lang #undef$extra |" : "$lang $(label(s)) $extra |"
+pform(s::State{Bra}, extra="") = isempty(s.label) ? "$lang #undef$extra |" : "$lang $(label(s)) $extra |"
 
-function repr(s::State{Ket}, extra="") 
+function pform(s::State{Ket}, extra="") 
 	if isempty(s.label)
 		return "| #undef$extra $rang"
 	elseif eltype(s.label)==Any
@@ -90,7 +90,7 @@ function repr(s::State{Ket}, extra="")
 	end
 end
 
-function repr(s::State{Bra}, extra="") 
+function pform(s::State{Bra}, extra="") 
 	if isempty(s.label)
 		return "$lang #undef$extra |"
 	elseif eltype(s.label)==Any
@@ -101,7 +101,7 @@ function repr(s::State{Bra}, extra="")
 end
 
 
-repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
+pform(s::StateRep) = pform(s.state, " ; $(label(s.basis))")
 
 .*(n::Number, s::StateRep) = n*s
 .*(s::StateRep, n::Number) = s*n 
@@ -109,12 +109,12 @@ repr(s::StateRep) = repr(s.state, " ; $(label(s.basis))")
 .+(n::Number, s::StateRep) = copy(s, n.+s.coeffs)
 +(arr::Array, s::StateRep) = copy(s, arr+s.coeffs)
 +(s::StateRep, arr::Array) = copy(s, s.coeffs+arr)
-+(s1::StateRep, s2::StateRep) = s1.basis==s2.basis ? StateRep("$(repr(s1)[2:end-1]) + $(repr(s2)[2:end-1])",  s1.coeffs+s2.coeffs, s1.basis) : :($s1+$s2)
++(s1::StateRep, s2::StateRep) = s1.basis==s2.basis ? StateRep("$(label(s1)) + $(label(s2))",  s1.coeffs+s2.coeffs, s1.basis) : :($s1+$s2)
 .-(s::StateRep, n::Number) = copy(s, s.coeffs.-n)
 .-(n::Number, s::StateRep) = copy(s, n.-s.coeffs)
 -(arr::Array, s::StateRep) = copy(s, arr-s.coeffs)
 -(s::StateRep, arr::Array) = copy(s, s.coeffs-arr)
--(s1::StateRep, s2::StateRep) = s1.basis==s2.basis ? StateRep("$(repr(s1)[2:end-1]) - $(repr(s2)[2:end-1])",  s1.coeffs-s2.coeffs, s1.basis) : :($s1-$s2)
+-(s1::StateRep, s2::StateRep) = s1.basis==s2.basis ? StateRep("$(label(s1)) - $(label(s2))",  s1.coeffs-s2.coeffs, s1.basis) : :($s1-$s2)
 ./(s::StateRep, n::Number) = s/n
 ./(n::Number, s::StateRep) = copy(s, n./s.coeffs)
 .^(n::Number, s::StateRep) = copy(s, n.^s.coeffs)
@@ -165,11 +165,11 @@ end
 
 map(f::Function, s::StateRep) = map!(f, copy(s))
 
-show(io::IO, s::State) = print(io, repr(s))
-showcompact(io::IO, s::StateRep) = print(io, repr(s))
+show(io::IO, s::State) = print(io, pform(s))
+showcompact(io::IO, s::StateRep) = print(io, pform(s))
 
 function show(io::IO, s::StateRep)
-	println("$(typeof(s)) $(repr(s)):")
+	println("$(typeof(s)) $(pform(s)):")
 	if any(s.coeffs.!=0)
 		table = cell(length(s.coeffs), 2)	
 		if length(s.coeffs)>=52

@@ -5,6 +5,7 @@ module QuantumJL
 	const lang = "\u27E8"
 	const rang = "\u27E9"
 	const otimes = "\u2297"
+	const vdots ="\u205E"
 
 	#####################################
 	#imports#############################
@@ -12,11 +13,11 @@ module QuantumJL
 	import Base:
 		   show,
 		   showcompact,
-		   repr,
 		   norm,
 		   convert,	
 		   getindex,
 		   setindex!,
+		   conj,
 		   ndims,
 		   size,
 		   length,

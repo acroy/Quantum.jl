@@ -95,10 +95,23 @@ get(b::AbstractBasis, label::Vector, notfound) = get(b.label_map, label, notfoun
 get(b::AbstractBasis, s::State, notfound) = get(b.label_map, s.label, notfound)
 get(b::AbstractBasis, key) = get(b, key, nothing)
 
+showcompact(io::IO, b::AbstractBasis) = print(io, "$(typeof(b)) $(label(b))")
+
 function show(io::IO, b::AbstractBasis)
-	println("$(typeof(b)) $(label(b)):")
-	for i in b.states
-	 	println(repr(i))
+	showcompact(io, b)
+	println(":")
+	if length(b)>20
+		for i=1:10
+			println(io, b.states[i])
+		end
+		println(vdots)
+		for i=length(b)-10:length(b)
+			println(io, b.states[i])
+		end
+	else
+		for i in b.states
+			println(io, i)
+		end	
 	end
 end
 
