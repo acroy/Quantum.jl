@@ -100,7 +100,6 @@ function pform(s::State{Bra}, extra="")
 	end
 end
 
-
 pform(s::StateRep) = pform(s.state, " ; $(label(s.basis))")
 
 .*(n::Number, s::StateRep) = n*s
@@ -122,8 +121,12 @@ pform(s::StateRep) = pform(s.state, " ; $(label(s.basis))")
 
 /(s::StateRep, n::Number) = copy(s, s.coeffs/n)
 
+*(n::Number, s::State{Ket}) = StateRep([], [n], Basis(label(s),s))
+*(n::Number, s::State{Bra}) = StateRep(State([], Bra), [n]', Basis(label(s),s))
+*(s::State, n::Number) = *(n,s)
+
 *(n::Number, s::StateRep) = copy(s, n*s.coeffs) 
-*(s::StateRep, n::Number) = copy(s, s.coeffs*n) 
+*(s::StateRep, n::Number) = *(n, s)
 *{N<:Number}(arr::Array{N, 2}, s::StateRep{Ket}) = size(arr,1)==1 ? (arr*s.coeffs)[1] : copy(s, arr*s.coeffs)
 *{N<:Number}(s::StateRep{Bra}, arr::Array{N, 1}) = (s.coeffs*arr)[1]
 *{N<:Number}(s::StateRep{Bra}, arr::Array{N, 2}) = size(arr,2)==1 ? (s.coeffs*arr)[1] : copy(s, s.coeffs*arr)
@@ -137,9 +140,8 @@ pform(s::StateRep) = pform(s.state, " ; $(label(s.basis))")
 *(sr::StateRep{Bra}, s::State{Ket}) = get(sr, s')
 *(s::State{Bra}, sr::StateRep{Ket}) = get(sr, s')
 *{K<:BraKet}(s1::State{K}, s2::State{K}) = tensor(s1, s2)
-*(s1::State{Bra}, s2::State{Ket}) = InnerProduct(s1,s2)
-*(s1::State{Ket}, s2::State{Bra}) = OuterProduct(s1,s2)
-
+*(s1::State{Bra}, s2::State{Ket}) = InnerProduct(s1, s2)
+*(s1::State{Ket}, s2::State{Bra}) = OuterProduct(s1, s2)
 
 copy(s::StateRep, coeffs=copy(s.coeffs)) = StateRep(s.state, coeffs, s.basis)
 find(s::StateRep) = find(s.coeffs)
