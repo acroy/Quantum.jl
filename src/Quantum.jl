@@ -87,6 +87,7 @@ module QuantumJL
 		   statejoin,
 		   separate,
 		   state,
+		   statetobasis,
 		   normalize!,
 		   normalize,
 		   mapmatch!,

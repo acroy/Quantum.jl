@@ -227,7 +227,7 @@ function statejoin{S<:State}(state_arr::Array{S})
 	return result
 end
 
-separate(s::State) = statevec(s.label)
+separate{K<:BraKet}(s::State{K}) = statevec(s.label, K)
 separate{S<:State}(v::Vector{S}) = hcat(map(separate, v)...).'
 
 state(s::StateRep) = s.state

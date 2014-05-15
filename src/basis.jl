@@ -11,6 +11,7 @@ end
 Basis{K<:BraKet}(label, states::Vector{State{K}}) = Basis(label, unique(states), maplabels(states))
 Basis{K<:BraKet}(label, states::State{K}...) = Basis(label, vcat(states...))
 Basis(label, label_vec::Vector) = Basis(label, statevec(label_vec))														
+Basis(s::State) = Basis(label(s), s)
 
 #####################################
 #TensorBasis#########################
@@ -116,6 +117,7 @@ function show(io::IO, b::AbstractBasis)
 end
 
 #exported############################
+statetobasis(s::State) = length(s)>1 ? TensorBasis(map(Basis, separate(s)), [s]) : Basis(s)
 separate(b::Basis)=b
 separate(b::TensorBasis) = b.bases
 samelabels(b1::AbstractBasis, b2::AbstractBasis) = collect(keys(b1.label_map))==collect(keys(b2.label_map))
