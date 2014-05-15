@@ -48,7 +48,7 @@ module QuantumJL
 	#abstract types######################
 	#####################################
 	abstract Quantum
-
+	abstract Dirac <: Quantum
 	abstract BraKet <: Quantum
 	abstract Bra <: BraKet
 	abstract Ket <: BraKet

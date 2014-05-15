@@ -1,7 +1,7 @@
 #####################################
 #State###############################
 #####################################
-immutable State{K<:BraKet} <: Quantum
+immutable State{K<:BraKet} <: Dirac
   label::Vector
   kind::Type{K}
 end
@@ -108,10 +108,6 @@ pform(s::StateRep) = pform(s.state, " ; $(label(s.basis))")
 .^(s::StateRep, n::Number) = copy(s, s.coeffs.^n)
 
 /(s::StateRep, n::Number) = copy(s, s.coeffs/n)
-
-*(n::Number, s::State{Ket}) = StateRep([], [n], Basis(label(s),s))
-*(n::Number, s::State{Bra}) = StateRep(State([], Bra), [n]', Basis(label(s),s))
-*(s::State, n::Number) = *(n,s)
 
 *(n::Number, s::StateRep) = copy(s, n*s.coeffs) 
 *(s::StateRep, n::Number) = *(n, s)
