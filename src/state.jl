@@ -28,26 +28,14 @@ type StateRep{K<:BraKet} <: Quantum
 	end	
 end
 
-StateRep{N<:Number}(s::State, coeffs::Vector{N}, basis::AbstractBasis) = StateRep(s, convert(Array{Complex{Float64}},coeffs), basis)
-StateRep{N<:Number}(s::State{Ket}, coeffs::Vector{N}, basis::AbstractBasis) = StateRep{Ket}(s, convert(Array{Complex{Float64}},coeffs), basis)
-StateRep{N<:Number}(s::State{Bra}, coeffs::Vector{N}, basis::AbstractBasis) = error("DimensionMismatch: tried to assign column vector to Bra representation")
-function StateRep{N<:Number, K<:BraKet}(s::State{K}, coeffs::Array{N}, basis::AbstractBasis)
-	if size(coeffs)[2]==1 && K==Ket
+StateRep{N<:Number, K<:BraKet}(label, coeffs::Array{N}, basis::AbstractBasis{K}) = StateRep(State(label, K), coeffs, basis)
+function StateRep{N<:Number, K<:BraKet}(s::State{K}, coeffs::Array{N}, basis::AbstractBasis{K})
+	if size(coeffs, 2)==1 && K==Ket
 		StateRep{Ket}(s, convert(Array{Complex{Float64}},vec(coeffs)), basis)
-	elseif K==Bra
+	elseif size(coeffs, 1)==1 && K==Bra
 		StateRep{Bra}(s, convert(Array{Complex{Float64}},coeffs), basis)
 	else
 		error("Dimensions of coefficient array does not match type $K")
-	end
-end
-
-StateRep{N<:Number}(label, coeffs::Vector{N}, basis::AbstractBasis) = StateRep{Ket}(State(label, Ket), convert(Vector{Complex{Float64}},coeffs), basis)
-
-function StateRep{N<:Number}(label, coeffs::Array{N}, basis::AbstractBasis)
-	if size(coeffs)[2]==1
-		StateRep{Ket}(State(label, Ket), convert(Array{Complex{Float64}},vec(coeffs)), basis)
-	else
-		StateRep{Bra}(State(label, Bra), label, convert(Array{Complex{Float64}},coeffs), basis)
 	end
 end
 

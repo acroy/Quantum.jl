@@ -82,6 +82,7 @@ module QuantumJL
 		   kind,
 		   statevec,
 		   tensor,
+		   label,
 		   labeldelta,
 		   statejoin,
 		   separate,
