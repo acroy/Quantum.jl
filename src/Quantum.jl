@@ -60,7 +60,7 @@ module QuantumJL
 	#####################################
 	#includes############################
 	#####################################
-	include("rep.jl")
+	include("misc.jl")
 	include("state.jl")
 	include("basis.jl")
 	include("operator.jl")
