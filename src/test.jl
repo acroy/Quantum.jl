@@ -11,6 +11,7 @@ module q
 	#imports#############################
 	#####################################
 	import Base:
+		   apply,
 		   show,
 		   showcompact,
 		   norm,

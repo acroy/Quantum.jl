@@ -10,21 +10,21 @@ end
 
 makebasis{K<:BraKet}(label::Symbol, states::Vector{State{K}}) = Basis(label, unique(states), maplabels(states)) #hidden function; not exported
 
-Basis{K<:BraKet}(label::Symbol, label_vec::Vector, kind::Type{K}=Ket) = makebasis(label, statearr(label_vec, label, kind))														
+Basis{K<:BraKet}(label::Symbol, labelvec::Vector, kind::Type{K}=Ket) = makebasis(label, statearr(labelvec, label, kind))
+Basis{K<:BraKet}(labelvec::Vector, kind::Type{K}=Ket) = Basis(:?, label_vec, kind)														
+Basis{K<:BraKet}(svec::Vector{State{K}}) = Basis(svec...) #this seems inefficient
 function Basis{K<:BraKet}(s::State{K}...) 
-	eigops = unique(map(eigop, s))
-	if length(eigops)>1 || in(:?, eigops)
-		error("mixed eigenvector Basis states") 
+	bases = unique(map(basis, s))
+	if length(bases)>1
+		makebasis(:?, s)
 	else
-		println("made it")
-		makebasis(eigops[1], s)
+		makebasis(bases[1], s)
 	end
 end
-Basis{K<:BraKet}(arr::Array{State{K}}) = Basis(arr...)
 
 #####################################
 #TensorBasis#########################
-# #####################################
+#####################################
 immutable TensorBasis{K<:BraKet} <: AbstractBasis{K}
 	bases::Vector{Basis{K}}
 	states::Vector{TensorState{K}}
@@ -41,11 +41,11 @@ function tensor{K<:BraKet}(basis::AbstractBasis{K})
 	return basis
 end
 
-# #####################################
-# #Functions###########################
-# #####################################
+#####################################
+#Functions###########################
+#####################################
 
-# #utility#############################
+#utility#############################
 
 function maplabels{K<:BraKet}(svec::Vector{TensorState{K}})
 	dict = Dict{Vector, Int}()
@@ -54,11 +54,13 @@ function maplabels{K<:BraKet}(svec::Vector{TensorState{K}})
 	end
 	return dict
 end
+
 maplabels{K<:BraKet}(svec::Vector{State{K}}) = [label(svec[i])=>i for i=1:length(svec)]
 
-label(b::Basis) = b.label
+label(b::Basis) = "$b.label"
 function label(b::TensorBasis)
 	labels = [label(i) for i in b.bases]
+	#terrible way to grow a string
 	str = "$(labels[1])"
 	for i=2:length(labels)
 		str = "$str $otimes $(labels[i])"
@@ -120,7 +122,7 @@ function show(io::IO, b::AbstractBasis)
 end
 
 # #exported############################
-# statetobasis(s::State) = length(s)>1 ? TensorBasis(map(Basis, separate(s)), [s]) : Basis(s)
+statetobasis(s::State) = length(s)>1 ? TensorBasis(map(Basis, separate(s)), [s]) : Basis(s)
 separate(b::Basis)=b
 separate(b::TensorBasis) = b.bases
 samelabels(b1::AbstractBasis, b2::AbstractBasis) = collect(keys(b1.label_map))==collect(keys(b2.label_map))
