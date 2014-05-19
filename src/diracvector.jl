@@ -1,11 +1,15 @@
 #####################################
 #DiracVector#########################
 #####################################
+immutable Scalar{N<:Number} <: Number
+	coeff::N
+	inner::Vector{InnerProduct}
+end
 
-type DiracVector{T, K<:BraKet} <: Quantum
-	coeffs::Array{T}
+type DiracVector{K<:BraKet} <: Quantum
+	coeffs::Array{Union(Scalar, Number)} 
 	basis::AbstractBasis{K}
-	function DiracVector(coeffs::Array{T}, basis::AbstractBasis{K})
+	function DiracVector(coeffs::Array{Union(Scalar, Number)}, basis::AbstractBasis{K})
 		if K==Ket
 			if size(coeffs)==(length(basis),)
 				new(coeffs, basis)
@@ -22,8 +26,8 @@ type DiracVector{T, K<:BraKet} <: Quantum
 	end	
 end
 
-DiracVector{T, K<:BraKet}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{T,K}(coeffs, basis)
-DiracVector{T}(coeffs::Array{T}, basisargs...) = DiracVector(coeffs, Basis(basisargs...))
+# DiracVector{T, K<:BraKet}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{T,K}(coeffs, basis)
+# DiracVector{T}(coeffs::Array{T}, basisargs...) = DiracVector(coeffs, Basis(basisargs...))
 
 
 
