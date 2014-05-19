@@ -11,7 +11,6 @@ module q
 	#imports#############################
 	#####################################
 	import Base:
-		   apply,
 		   show,
 		   showcompact,
 		   norm,
@@ -54,7 +53,7 @@ module q
 	abstract Bra <: BraKet
 	abstract Ket <: BraKet
 	abstract AbstractBasis{K<:BraKet} <: Quantum
-	abstract AbstractState{K<:BraKet} <: Quantum
+	abstract AbstractState{K<:BraKet} <: Dirac
 
 	!(K::Type{Ket}) = Bra
 	!(B::Type{Bra}) = Ket
@@ -65,6 +64,7 @@ module q
 	include("misc.jl")
 	include("statestuff.jl")
 	include("basisstuff.jl")
+	include("diracvector.jl")
 
 	#####################################
 	#exports#############################
@@ -78,20 +78,21 @@ module q
 		   State,
 		   TensorState,
 		   Basis,
+		   InnerProduct,
+		   OuterProduct,
+		   DiracVector
+		   basislabel,
 		   kind,
-		   eigop, 
 		   label,
 		   statearr,
 		   tensor,
 		   tensorarr,
 		   statejoin,
+		   inner
 		   separate
+		   statetobasis
 end
 using q
 
-s1 = State(1,:a)
-s2 = State(2,:b)
-s3 = State(3,:c)
-y = s1*s2*s3
-x=s2*s1*s2;
+b= Basis([1:10])
 print("")
