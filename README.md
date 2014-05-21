@@ -33,6 +33,9 @@ states).
 
 Features
 ==========
+A redesign of this package is currently underway; several of these features 
+are currently broken/not present in the new version but will soon 
+be reimplemented. 
 
 ###Current:
 	- basis, state, state representation, and operator type implementations

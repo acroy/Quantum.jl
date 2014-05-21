@@ -1,4 +1,4 @@
-module QuantumJL
+module Quantum
 	#####################################
 	#constants###########################
 	#####################################
@@ -47,12 +47,13 @@ module QuantumJL
 	#####################################
 	#abstract types######################
 	#####################################
-	abstract Quantum
-	abstract Dirac <: Quantum
-	abstract BraKet <: Quantum
+	abstract Dirac
+	abstract BraKet <: Dirac
 	abstract Bra <: BraKet
 	abstract Ket <: BraKet
-	abstract AbstractBasis{K<:BraKet} <: Quantum
+	abstract AbstractBasis{K<:BraKet} <: Dirac
+	abstract AbstractState{K<:BraKet} <: Dirac
+	abstract AbstractScalar <: Dirac
 
 	!(K::Type{Ket}) = Bra
 	!(B::Type{Bra}) = Ket
@@ -62,9 +63,9 @@ module QuantumJL
 	#####################################
 	include("misc.jl")
 	include("state.jl")
+	include("products.jl")
 	include("basis.jl")
-	include("operator.jl")
-	include("qexpr.jl")
+	include("diracvector.jl")
 
 	#####################################
 	#exports#############################
@@ -74,31 +75,28 @@ module QuantumJL
 		   Bra,
 		   Ket,
 		   AbstractBasis,
+		   AbstractState,
+		   AbstractScalar,
 		   State,
-		   StateRep,
+		   TensorState,
 		   Basis,
-		   TensorBasis,
-		   OperatorRep,
-		   kind,
-		   statevec,
-		   tensor,
-		   label,
-		   labeldelta,
-		   statejoin,
-		   separate,
-		   state,
+		   InnerProduct,
+		   OuterProduct,
+		   DiracVector,
+		   DiracCoeff,
+		   Scalar,
+		   bra,
+		   ket,
 		   statetobasis,
-		   normalize!,
-		   normalize,
-		   mapmatch!,
-		   mapmatch,
-		   filtercoeffs, 
-		   filtercoeffs!,
-		   filterstates,
-		   filterstates!,
-		   samebasis,
-		   findstates,
-		   commutator,
-		   ptrace,
-		   qeval
+		   basislabel,
+		   kind,
+		   label,
+		   statearr,
+		   tensor,
+		   tensorarr,
+		   statejoin,
+		   inner
+		   separate
+		   statetobasis
 end
+print("")
