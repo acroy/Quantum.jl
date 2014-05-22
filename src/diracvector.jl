@@ -76,6 +76,6 @@ for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(d::DiracVector, n) = DiracVector(($op)(d.coeffs,n), d.basis)
 end
 
-*{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, Ket}) = a.coeffs*b.coeffs
+*{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, Ket}) = (a.coeffs*b.coeffs)[1]
 *{A<:DiracCoeff, B<:DiracCoeff}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket}) = length(a)==length(b) ? reduce(+, [a[i]*b[i] for i=1:length(a)]) : error("DimensionMismatch")
 
