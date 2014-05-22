@@ -1,80 +1,123 @@
-immutable InnerProduct <: AbstractScalar
-	bra::AbstractState{Bra}
-	ket::AbstractState{Ket}
-end
-
-conj(i::InnerProduct) = InnerProduct(i.ket', i.bra')
-bra(i::InnerProduct) = i.bra
-ket(i::InnerProduct) = i.ket
-show(io::IO, i::InnerProduct) = print(io, "$(repr(i.bra)) $(repr(i.ket)[2:end])");
-##########################################################################
 immutable OuterProduct{N<:Number} <: Dirac
 	ket::AbstractState{Ket}
 	bra::AbstractState{Bra}
 end
-
-bra(o::OuterProduct) = o.bra
-ket(o::OuterProduct) = o.ket
 
 *(o::OuterProduct, s::AbstractState{Ket}) = DiracVector([(o.bra*s)], statetobasis(o.ket))
 *(o::OuterProduct, s::AbstractState{Bra}) = OuterProduct(o.ket, o.bra*s)
 *(s::AbstractState{Bra}, o::OuterProduct) = DiracVector([(s*o.ket)], statetobasis(o.bra))
 *(s::AbstractState{Ket}, o::OuterProduct) = OuterProduct(s*o.ket, o.bra)
 
-
 ctranspose(o::OuterProduct) = OuterProduct(o.bra', o.ket')
 
 show(io::IO, o::OuterProduct) = print(io, "$(repr(o.ket))$(repr(o.bra))");
 
 ##########################################################################
-immutable Scalar{N<:Number} <: AbstractScalar
-	coeff::N
-	ivec::Vector{InnerProduct}
+
+immutable InnerProduct <: AbstractScalar
+	bra::AbstractState{Bra}
+	ket::AbstractState{Ket}
 end
 
-*(n::Number, s::Scalar) = Scalar(n*s.coeff, s.ivec)
-*(s::Scalar, n::Number) = Scalar(s.coeff*n, s.ivec)
-*(n::Number, i::InnerProduct) = Scalar(n, [i])
-*(i::InnerProduct, n::Number) = *(n,i)
-*(a::InnerProduct, b::InnerProduct) = Scalar(1, [a,b])
-*(s::Scalar, i::InnerProduct) = Scalar(s.coeff, vcat(s.ivec, i))
-*(i::InnerProduct, s::Scalar) = Scalar(s.coeff, vcat(i, s.ivec))
-*(a::Scalar, b::Scalar) = Scalar(a.coeff*b.coeff, vcat(a.ivec, b.ivec))
-conj(s::Scalar) = Scalar(conj(s.coeff), map(conj, s.ivec))
+conj(i::InnerProduct) = InnerProduct(i.ket', i.bra')
+show(io::IO, i::InnerProduct) = print(io, "$(repr(i.bra)) $(repr(i.ket)[2:end])");
 
-function show(io::IO, s::Scalar)
-	print(io, s.coeff)
-	for i=1:length(s.ivec)
-		print(io, " * ")
-		print(io, s.ivec[i])
-	end
-end
 ##########################################################################
 
 typealias DiracCoeff Union(Number, AbstractScalar)
 
 *{C<:DiracCoeff}(c::C, s::AbstractState) = DiracVector([c], statetobasis(s))
 *{C<:DiracCoeff}(s::AbstractState, c::C) = *(c,s)
-/(s::AbstractScalar, n::Number) = (1/n)*s
--(s::AbstractScalar) = -1*s
-
 
 ##########################################################################
-immutable ScalarSum
-	n::Number
-	terms::Vector{Scalar}
+
+immutable ScalarExpr <: AbstractScalar
+	ex::Expr
 end
 
-+(s::AbstractScalar, n::Number) = ScalarSum(n, [s])
-+(n::Number, s::AbstractScalar) = +(s, n)
--(s::AbstractScalar, n::Number) = ScalarSum(-n, [s])
--(n::Number, s::AbstractScalar) = ScalarSum(n, [-s])
+qexpr(s::ScalarExpr) = s.ex
+qexpr(x) = x
 
-
-function show(io::IO, s::ScalarSum)
-	print(io, s.n)
-	for i=1:length(s.terms)
-		print(io, " + ")
-		print(io, s.terms[i])
+function ^(d::DiracCoeff, n::Integer)
+	if n==1
+		return d
+	elseif n==0
+		return 1
+	else
+		ScalarExpr(:($(qexpr(d))^$(qexpr(n))))
 	end
+end
+
+function ^(a::DiracCoeff, b::DiracCoeff)
+	if b==1
+		return a
+	elseif b==0
+		return 1
+	else
+		ScalarExpr(:($(qexpr(a))^$(qexpr(b))))
+	end
+end
+
+function *(a::DiracCoeff, b::DiracCoeff)
+	if a==1
+		return b
+	elseif b==1
+		return a
+	elseif a==0 || b==0
+		return 0
+	else
+		ScalarExpr(:($(qexpr(a))*$(qexpr(b))))
+	end
+end
+
+function +(a::DiracCoeff, b::DiracCoeff)
+	if a==0
+		return b
+	elseif b==0
+		return a
+	else
+		ScalarExpr(:($(qexpr(a))+$(qexpr(b))))
+	end
+end
+
+function -(a::DiracCoeff, b::DiracCoeff)
+	if a==0
+		return b
+	elseif b==0
+		return a
+	else
+		ScalarExpr(:($(qexpr(a))-$(qexpr(b))))
+	end
+end
+
+-(d::DiracCoeff) = ScalarExpr(:(-$(qexpr(d))))
+-(s::ScalarExpr) = length(s.ex.args)==2 && s.ex.args[1]==:- ? ScalarExpr(s.ex.args[2]) :  ScalarExpr(:(-$(qexpr(s))))
+
+
+function /(a::DiracCoeff, b::DiracCoeff)
+	if a==0
+		return b
+	elseif b==0
+		error("Zero in denominator")
+	elseif a==b
+		return 1
+	else
+		ScalarExpr(:($(qexpr(a))/$(qexpr(b))))
+	end
+end
+
+conj(s::ScalarExpr)	= length(s.ex.args)==2 && s.ex.args[1]==:conj ? ScalarExpr(s.ex.args[2]) :  ScalarExpr(:(conj($(qexpr(s)))))
+
+qeval(f::Function, s::ScalarExpr) = eval(qreduce(f, s.ex))
+
+function qreduce(f::Function, ex::Expr)
+	ex = copy(ex)
+	for i=1:length(ex.args)
+		if typeof(ex.args[i])==InnerProduct
+			ex.args[i] = f(ex.args[i].bra, ex.args[i].ket)
+		elseif typeof(ex.args[i])==Expr
+			ex.args[i] = qreduce(f, ex.args[i])
+		end
+	end
+	return ex
 end

@@ -1,4 +1,4 @@
-Quantum.jl Documentation
+<!-- Quantum.jl Documentation
 ===
 1. AbstractTypes
 ---
@@ -601,4 +601,4 @@ for the types defined in QuantumJL:
 	endof,
 	start,
 	find,
-	trace
+	trace -->

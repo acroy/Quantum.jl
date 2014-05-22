@@ -8,6 +8,8 @@ type DiracVector{C<:DiracCoeff,K<:BraKet} <: Dirac
 		if K==Ket
 			if size(coeffs)==(length(basis),)
 				new(coeffs, basis)
+			elseif size(coeffs)==(length(basis),1)
+				new(vec(coeffs), basis)
 			else
 				error("Dimensions of coefficient array does not match type $K")
 			end
@@ -75,5 +77,5 @@ for op=(:.*,:.-,:.+,:./,:.^)
 end
 
 *{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, Ket}) = a.coeffs*b.coeffs
-# *{A<:DiracCoeff, B<:DiracCoeff}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket}) = DiracCoeff[a.coeffs[i]*b.coeffs[i] for i=1:length(a)]
+*{A<:DiracCoeff, B<:DiracCoeff}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket}) = length(a)==length(b) ? reduce(+, [a[i]*b[i] for i=1:length(a)]) : error("DimensionMismatch")
 
