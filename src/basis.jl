@@ -62,7 +62,7 @@ end
 isequal(a::AbstractBasis,b::AbstractBasis) = a.states==b.states
 in(s::State, b::AbstractBasis)=in(s, b.states)
 
-filter(f::Function, b::Basis) = Basis(b.label, filter(f, b.states))
+filter(f::Function, b::Basis) = makebasis(b.label, filter(f, b.states))
 function filter(f::Function, b::TensorBasis) 
 	states = filter(f, b.states)
 	b_arr = Array(Basis{kind(b)}, size(b,2))
@@ -81,14 +81,16 @@ endof(b::AbstractBasis) = endof(b.states)
 
 *{K<:BraKet}(a::AbstractBasis{K}, b::AbstractBasis{K}) = tensor(a,b)
 +{K<:BraKet}(a::Basis{K}, b::Basis{K}) = Basis(vcat(a.states,b.states))
--{B<:AbstractBasis}(a::B,b::B) = filter(x->!in(x,b), a)
-setdiff{B<:AbstractBasis}(a::B,b::B) = a-b
+setdiff{B<:AbstractBasis}(a::B,b::B) = setdiff(a.states, b.states)
 
 getindex(b::AbstractBasis, x) = b.states[x]
 setindex!(b::AbstractBasis, y, x) = setindex!(b.states, y, x)
 
-get(b::AbstractBasis, s::AbstractState, notfound) = get(b.statemap, s.label, notfound)
-get(b::AbstractBasis, key) = get(b, key, nothing)
+get(b::AbstractBasis, s::AbstractState, notfound) = get(b.statemap, s, notfound)
+get(b::Basis, s::State) = b.statemap[s]
+get(b::TensorBasis, s::TensorState) = b.statemap[s]
+get(b::Basis, label) = get(b, State(label))
+get(b::TensorBasis, label) = get(b, TensorState(label))
 
 showcompact(io::IO, b::AbstractBasis) = print(io, "$(typeof(b)) $(label(b))")
 

@@ -1,3 +1,5 @@
+typealias DiracCoeff Union(Number, AbstractScalar)
+
 immutable OuterProduct{N<:Number} <: Dirac
 	ket::AbstractState{Ket}
 	bra::AbstractState{Bra}
@@ -23,11 +25,6 @@ conj(i::InnerProduct) = InnerProduct(i.ket', i.bra')
 show(io::IO, i::InnerProduct) = print(io, "$(repr(i.bra)) $(repr(i.ket)[2:end])");
 
 ##########################################################################
-
-typealias DiracCoeff Union(Number, AbstractScalar)
-
-*{C<:DiracCoeff}(c::C, s::AbstractState) = DiracVector([c], statetobasis(s))
-*{C<:DiracCoeff}(s::AbstractState, c::C) = *(c,s)
 
 ##########################################################################
 
@@ -85,6 +82,8 @@ function -(a::DiracCoeff, b::DiracCoeff)
 		return b
 	elseif b==0
 		return a
+	elseif a==b
+		return 0
 	else
 		ScalarExpr(:($(qexpr(a))-$(qexpr(b))))
 	end
@@ -92,7 +91,6 @@ end
 
 -(d::DiracCoeff) = ScalarExpr(:(-$(qexpr(d))))
 -(s::ScalarExpr) = length(s.ex.args)==2 && s.ex.args[1]==:- ? ScalarExpr(s.ex.args[2]) :  ScalarExpr(:(-$(qexpr(s))))
-
 
 function /(a::DiracCoeff, b::DiracCoeff)
 	if a==0
@@ -120,4 +118,9 @@ function qreduce(f::Function, ex::Expr)
 		end
 	end
 	return ex
+end
+
+for op=(:*,:-,:+,:/,:^) #define for elementwise operators
+	elop = symbol(string(:.) * string(op))
+	@eval ($elop)(a::DiracCoeff, b::DiracCoeff) = ($op)(a,b)
 end
