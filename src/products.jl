@@ -1,6 +1,6 @@
 typealias DiracCoeff Union(Number, AbstractScalar)
 
-immutable OuterProduct{N<:Number} <: Dirac
+immutable OuterProduct <: Dirac
 	ket::AbstractState{Ket}
 	bra::AbstractState{Bra}
 end

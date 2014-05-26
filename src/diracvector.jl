@@ -12,14 +12,17 @@ type DiracVector{C<:DiracCoeff,K<:BraKet} <: Dirac
 			elseif size(coeffs)==(length(basis),1)
 				new(vec(coeffs), basis)
 			else
-				error("Dimensions of coefficient array does not match type $K")
+				error("Dimensions of coefficient array does not match type Ket")
 			end
 		else
+			println("not a Ket")
 			if size(coeffs)==(1,length(basis))
 				new(coeffs, basis)
-			else
-				error("Dimensions of coefficient array does not match type $K")
-			end
+			elseif length(coeffs)==1
+		 		new(coeffs.', basis)
+		 	else
+		 		error("Dimensions of coefficient array does not match type Bra")
+		 	end
 		end
 	end
 end
@@ -32,39 +35,50 @@ copy(d::DiracVector) = DiracVector(d.coeffs, d.basis)
 #Show Functions######################
 #####################################
 
-showcompact(io::IO, d::DiracVector) = print(io, "($(d.coeffs[1])$(d.basis[1]))",[" + ($(d.coeffs[i])$(d.basis[i]))" for i=2:length(d)]...)
+
+function showcompact(io::IO, d::DiracVector)
+	if length(d)==0
+		print(io, "$(typeof(d))[]")
+	else
+		print(io, "($(d.coeffs[1])$(d.basis[1]))",[" + ($(d.coeffs[i])$(d.basis[i]))" for i=2:length(d)]...)
+	end
+end
 function show(io::IO, d::DiracVector)
-	println("$(typeof(d)):")
-	table = cell(length(d), 2)	
-	if length(d.coeffs)>=52
-		for i=1:25
-			table[i,1]= d.coeffs[i]
-			table[i,2]= d.basis[i]
+	if length(d)==0
+		print(io, "$(typeof(d))[]")
+	else	
+		println("$(typeof(d)):")
+		table = cell(length(d), 2)	
+		if length(d.coeffs)>=52
+			for i=1:25
+				table[i,1]= d.coeffs[i]
+				table[i,2]= d.basis[i]
+			end
+			table[26:(length(d.coeffs)-25),:] = 0 # prevents access to undefined reference
+			for i=(length(d.coeffs)-25):length(d.coeffs)
+				table[i,1]= d.coeffs[i]
+				table[i,2]= d.basis[i]
+			end
+		else
+			for i=1:length(d.coeffs)
+				table[i,1]= d.coeffs[i]
+				table[i,2]= d.basis[i]
+			end
 		end
-		table[26:(length(d.coeffs)-25),:] = 0 # prevents access to undefined reference
-		for i=(length(d.coeffs)-25):length(d.coeffs)
-			table[i,1]= d.coeffs[i]
-			table[i,2]= d.basis[i]
+		temp_io = IOBuffer()
+		if kind(d)==Ket
+			show(temp_io, table)
+		else
+			show(temp_io, [transpose(table[:,2]), transpose(table[:,1])])
 		end
-	else
-		for i=1:length(d.coeffs)
-			table[i,1]= d.coeffs[i]
-			table[i,2]= d.basis[i]
-		end
+		io_str = takebuf_string(temp_io)
+		io_str = io_str[searchindex(io_str, "\n")+1:end]
+		print(io_str)
 	end
-	temp_io = IOBuffer()
-	if kind(d)==Ket
-		show(temp_io, table)
-	else
-		show(temp_io, [transpose(table[:,2]), transpose(table[:,1])])
-	end
-	io_str = takebuf_string(temp_io)
-	io_str = io_str[searchindex(io_str, "\n")+1:end]
-	print(io_str)
 end
 
 #####################################
-#Vector Functions####################
+#Array/Dict Functions################
 #####################################
 ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
 getindex(d::DiracVector, x) = d.coeffs[x]
@@ -77,33 +91,73 @@ endof(d::DiracVector) = length(d)
 getpos(d::DiracVector, s::AbstractState) = get(d.basis, s)
 function get(d::DiracVector, s::AbstractState, notfound)
 	try
-		return d[get(d.basis, s)]
+		return d[getpos(d, s)]
 	catch
 		return notfound
 	end
 end
 
-get(d::DiracVector, s::AbstractState) = d[get(d.basis, s)]
+get(d::DiracVector, s::AbstractState) = d[getpos(d, s)]
 get(d::DiracVector, label) = get(d, typeof(d.basis)<:Basis ? State(label) : TensorState(label))
 
 #####################################
 #Function-passing Functions##########
 #####################################
 
-
-function map!(f::Function, d::DiracVector)
-	d.coeffs = map!(f, d.coeffs)
-	return d
-end 
-
-#The vcat() used below forces correct typing of the coeff array, but seems sloppy. 
+#The vcat()/hcat() used below forces correct typing of the coeff array, but it's sloppy. 
 #I tried to define this as DiracVector(map(f, d.coeffs), d.basis), but for some 
 #reason it doesn't reduce the coeff array to "lowest" (i.e. most primitive) 
 #common element type, and it would also yield InexactErrors for certain functions (e.g. qeval)
-map(f::Function, d::DiracVector) = DiracVector(vcat([f(i) for i in d.coeffs]...), d.basis)
+
+function map(f::Function, d::DiracVector)
+	if kind(d)==Ket
+		return DiracVector(vcat([f(i) for i in d.coeffs]...), d.basis)
+	else
+		return DiracVector(hcat([f(i) for i in d.coeffs]...), d.basis)
+	end
+end
+function map!(f::Function, d::DiracVector)
+	d.coeffs = kind(d)==Ket ? vcat(map(f, d.coeffs)...) : hcat(map(f, d.coeffs)...)
+	return d
+end
+
+function mapmatch(fstates::Function, fcoeffs::Function, d::DiracVector)
+	matched = map(x->getpos(d,x), filter(fstates, d.basis[:]))	
+	#It would be more efficient to only loop over the matching
+	#states, but there could be typing issues depending on 
+	#what fcoeffs returns. Thus, we use the same hacky vcat method 
+	#used in map(f::Function, d::DiracVector)
+	if kind(d)==Ket
+		return DiracVector(vcat([in(i, matched) ? fcoeffs(d[i]) : d[i] for i=1:length(d.coeffs)]...), d.basis)
+	else
+		return DiracVector(hcat([in(i, matched) ? fcoeffs(d[i]) : d[i] for i=1:length(d.coeffs)]...), d.basis)		
+	end
+end
+function mapmatch!(fstates::Function, fcoeffs::Function, d::DiracVector)
+	d.coeffs = mapmatch(fstates, fcoeffs, d).coeffs
+	return d
+end
+
+function filterstates(f::Function, d::DiracVector)
+	newbasis = filter(f, d.basis)
+	if kind(d)==Ket
+		return DiracVector(vcat([get(d, newbasis[i]) for i=1:length(newbasis)]...), newbasis)
+	else 
+		return DiracVector(hcat([get(d, newbasis[i]) for i=1:length(newbasis)]...), newbasis)
+	end
+end
+
+function filtercoeffs(f::Function, d::DiracVector) #is currently somewhat broken
+	matched = find(map(f, d.coeffs))
+	newbasis = filter(x->in(get(d.basis,x), matched), d.basis)
+	if kind(d)==Ket
+		return DiracVector(vcat(getindex(d, matched)...), newbasis)
+	else
+		return DiracVector(hcat(getindex(d, matched)...), newbasis)
+	end
+end
 
 qeval(f::Function, d::DiracVector) = map(x->qeval(f, x), d)
-
 
 #####################################
 #Arithmetic Functions################
@@ -129,17 +183,28 @@ end
 
 function +{C<:DiracCoeff,K<:BraKet}(d::DiracVector{C,K}, s::AbstractState{K})
 	if in(s, d.basis)
+		d = 1*d #forces the coeff array to eltype DiracCoeff if it is InnerProduct; hacky but works
 		d[getpos(d,s)] = 1+get(d, s)
+		return d
 	else
-		DiracVector(vcat(d.coeffs, 1), d.basis+statetobasis(s))
+		if K==Ket
+			return DiracVector(vcat(d.coeffs, 1), d.basis+statetobasis(s))
+		else
+			return DiracVector(hcat(d.coeffs, 1), d.basis+statetobasis(s))
+		end
 	end
 end
 
 function +{C<:DiracCoeff,K<:BraKet}(s::AbstractState{K}, d::DiracVector{C,K})
 	if in(s, d.basis)
+		d = 1*d #forces the coeff array to eltype DiracCoeff if it is InnerProduct; hacky but works
 		d[getpos(d,s)] = 1+get(d, s)
 	else
-		DiracVector(vcat(1, d.coeffs), statetobasis(s)+d.basis)
+		if K==Ket
+			return DiracVector(vcat(1, d.coeffs), statetobasis(s)+d.basis)
+		else
+			return DiracVector(hcat(1, d.coeffs), statetobasis(s)+d.basis)
+		end
 	end
 end
 
@@ -147,14 +212,17 @@ function +{C1,C2,K<:BraKet}(a::DiracVector{C1,K}, b::DiracVector{C2,K})
 	if a.basis==b.basis
 		return DiracVector(a.coeffs+b.coeffs, a.basis)
 	else
-		res = copy(a)
+		res = 1*copy(a)
 		bdiff = setdiff(b.basis, a.basis) 
 		compl = setdiff(b.basis, bdiff)
 		for i in compl
 			res[getpos(res, i)] = get(res, i) + get(b, i)
 		end
-		res = DiracVector(vcat(res.coeffs, [get(b, bdiff[i]) for i=1:length(bdiff)]), res.basis+Basis(bdiff))
-		return res
+		if K==Ket
+			return DiracVector(vcat(res.coeffs, [get(b, bdiff[i]) for i=1:length(bdiff)]), res.basis+Basis(bdiff))
+		else
+			return DiracVector(hcat(res.coeffs, [get(b, bdiff[i]) for i=1:length(bdiff)]), res.basis+Basis(bdiff))
+		end
 	end
 end
 
@@ -171,10 +239,10 @@ norm{C<:DiracCoeff}(v::Vector{C}, p::Int=2) = reduce(+, [(abs(i))^p for i in v])
 norm(d::DiracVector, p::Int=2) = norm(d.coeffs)
 
 normalize(v::Vector) = (1/norm(v))*v
+normalize(d::DiracVector) = DiracVector(normalize(d.coeffs), d.basis)
 function normalize!(d::DiracVector) 
 	d.coeffs=normalize(d.coeffs)
 	return d
 end
-normalize(d::DiracVector) = DiracVector(normalize(d.coeffs), d.basis)
 
 

@@ -103,6 +103,10 @@ module Quantum
 		   inner,
 		   separate,
 		   normalize!,
-		   normalize
+		   normalize,
+		   mapmatch,
+		   mapmatch!,
+		   filtercoeffs,
+		   filterstates
 end
 print("")
