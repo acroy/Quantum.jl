@@ -27,9 +27,10 @@ end
 DiracVector{C<:DiracCoeff,K<:BraKet}(coeffs::Array{C}, basis::AbstractBasis{K}) = DiracVector{C,K}(coeffs, basis)
 DiracVector(coeffs::Array, basis::AbstractBasis) = DiracVector(convert(Array{DiracCoeff}, coeffs), basis)
 
-# #####################################
-# #Functions###########################
-# #####################################
+copy(d::DiracVector) = DiracVector(d.coeffs, d.basis)
+#####################################
+#Show Functions######################
+#####################################
 
 showcompact(io::IO, d::DiracVector) = print(io, "($(d.coeffs[1])$(d.basis[1]))",[" + ($(d.coeffs[i])$(d.basis[i]))" for i=2:length(d)]...)
 function show(io::IO, d::DiracVector)
@@ -62,7 +63,9 @@ function show(io::IO, d::DiracVector)
 	print(io_str)
 end
 
-#imported############################
+#####################################
+#Vector Functions####################
+#####################################
 ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
 getindex(d::DiracVector, x) = d.coeffs[x]
 length(d::DiracVector) = length(d.coeffs)
@@ -83,6 +86,29 @@ end
 get(d::DiracVector, s::AbstractState) = d[get(d.basis, s)]
 get(d::DiracVector, label) = get(d, typeof(d.basis)<:Basis ? State(label) : TensorState(label))
 
+#####################################
+#Function-passing Functions##########
+#####################################
+
+
+function map!(f::Function, d::DiracVector)
+	d.coeffs = map!(f, d.coeffs)
+	return d
+end 
+
+#The vcat() used below forces correct typing of the coeff array, but seems sloppy. 
+#I tried to define this as DiracVector(map(f, d.coeffs), d.basis), but for some 
+#reason it doesn't reduce the coeff array to "lowest" (i.e. most primitive) 
+#common element type, and it would also yield InexactErrors for certain functions (e.g. qeval)
+map(f::Function, d::DiracVector) = DiracVector(vcat([f(i) for i in d.coeffs]...), d.basis)
+
+qeval(f::Function, d::DiracVector) = map(x->qeval(f, x), d)
+
+
+#####################################
+#Arithmetic Functions################
+#####################################
+
 for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(a::DiracVector, b::DiracVector) = DiracVector(($op)(a.coeffs,b.coeffs), a.basis)
 	@eval ($op)(n, d::DiracVector) = DiracVector(($op)(n,d.coeffs), d.basis)
@@ -102,7 +128,7 @@ end
 *{C<:DiracCoeff}(s::AbstractState, c::C) = *(c,s)
 
 function +{C<:DiracCoeff,K<:BraKet}(d::DiracVector{C,K}, s::AbstractState{K})
-	if in(s, d.states)
+	if in(s, d.basis)
 		d[getpos(d,s)] = 1+get(d, s)
 	else
 		DiracVector(vcat(d.coeffs, 1), d.basis+statetobasis(s))
@@ -110,7 +136,7 @@ function +{C<:DiracCoeff,K<:BraKet}(d::DiracVector{C,K}, s::AbstractState{K})
 end
 
 function +{C<:DiracCoeff,K<:BraKet}(s::AbstractState{K}, d::DiracVector{C,K})
-	if in(s, d.states)
+	if in(s, d.basis)
 		d[getpos(d,s)] = 1+get(d, s)
 	else
 		DiracVector(vcat(1, d.coeffs), statetobasis(s)+d.basis)
@@ -140,3 +166,15 @@ end
 -{K<:BraKet}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1,-1], Basis([a,b])) 
 -(s::AbstractState) = -1*s
 -(d::DiracVector) = DiracVector(-1*d.coeffs, d.basis)
+
+norm{C<:DiracCoeff}(v::Vector{C}, p::Int=2) = reduce(+, [(abs(i))^p for i in v])^(1/p)  
+norm(d::DiracVector, p::Int=2) = norm(d.coeffs)
+
+normalize(v::Vector) = (1/norm(v))*v
+function normalize!(d::DiracVector) 
+	d.coeffs=normalize(d.coeffs)
+	return d
+end
+normalize(d::DiracVector) = DiracVector(normalize(d.coeffs), d.basis)
+
+

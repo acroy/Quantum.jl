@@ -21,7 +21,7 @@ module Quantum
 		   ndims,
 		   size,
 		   length,
-		   slice,
+		   norm,
 		   (.+),
 		   (.^),
 		   (.-),
@@ -32,6 +32,7 @@ module Quantum
 		   +,
 		   -,
 		   /,
+		   abs,
 		   in,
 		   setdiff,
 		   get,
@@ -99,8 +100,9 @@ module Quantum
 		   tensor,
 		   tensorarr,
 		   statejoin,
-		   inner
-		   separate
-		   statetobasis
+		   inner,
+		   separate,
+		   normalize!,
+		   normalize
 end
 print("")

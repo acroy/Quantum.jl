@@ -92,6 +92,9 @@ end
 -(d::DiracCoeff) = ScalarExpr(:(-$(qexpr(d))))
 -(s::ScalarExpr) = length(s.ex.args)==2 && s.ex.args[1]==:- ? ScalarExpr(s.ex.args[2]) :  ScalarExpr(:(-$(qexpr(s))))
 
+abs(i::InnerProduct) = ScalarExpr(:(abs($i)))
+abs(s::ScalarExpr) = length(s.ex.args)==2 && s.ex.args[1]==:abs ? s :  ScalarExpr(:(abs($(qexpr(s)))))
+
 function /(a::DiracCoeff, b::DiracCoeff)
 	if a==0
 		return b
@@ -107,6 +110,8 @@ end
 conj(s::ScalarExpr)	= length(s.ex.args)==2 && s.ex.args[1]==:conj ? ScalarExpr(s.ex.args[2]) :  ScalarExpr(:(conj($(qexpr(s)))))
 
 qeval(f::Function, s::ScalarExpr) = eval(qreduce(f, s.ex))
+qeval(f::Function, i::InnerProduct) = eval(f(i.bra, i.ket))
+qeval(f::Function, n::Number) = n
 
 function qreduce(f::Function, ex::Expr)
 	ex = copy(ex)
@@ -123,4 +128,10 @@ end
 for op=(:*,:-,:+,:/,:^) #define for elementwise operators
 	elop = symbol(string(:.) * string(op))
 	@eval ($elop)(a::DiracCoeff, b::DiracCoeff) = ($op)(a,b)
+	@eval ($elop)(a::AbstractScalar, v::Vector) = broadcast(($op), [a], v)
+	@eval ($elop)(v::Vector, a::AbstractScalar) = ($elop)(a, v)
 end
+
+*(a::AbstractScalar, v::Vector) = a.*v
+*(v::Vector, a::AbstractScalar) = a.*v
+
