@@ -1,3 +1,7 @@
+#####################################
+#DiracMatrix#########################
+#####################################
+
 type DiracMatrix{C<:DiracCoeff} <: Dirac
 	coeffs::Matrix{C}
 	rowbasis::AbstractBasis{Ket}
@@ -29,4 +33,33 @@ function DiracMatrix(fcoeff::Function, flabel::Function, b::AbstractBasis)
 		end
 	end
 	return DiracMatrix(coeffs, b)
+end
+
+#####################################
+#Show Functions######################
+#####################################
+function showcompact(io::IO, op::DiracMatrix)
+	if length(op.coeffs)==0
+		print(io, "$(typeof(op))[]")
+	else
+		tempio = IOBuffer()
+		print(tempio, [" + ($(op.coeffs[i,j])$(op.rowbasis[i])$(op.colbasis[j]))" for i=1:length(op.rowbasis), j=1:length(op.colbasis)]...)
+		print(io, takebuf_string(tempio)[3:end])
+	end
+end
+function show(io::IO, op::DiracMatrix)
+	println("$(typeof(op)):")
+	table = cell(length(op.rowbasis)+1, length(op.colbasis)+1)	
+	for i = 1:length(op.rowbasis)
+		table[i+1,1] = op.rowbasis[i]
+	end
+	for j = 1:length(op.colbasis)
+		table[1,j+1] = op.colbasis[j]
+	end
+	table[1,1] = 0
+	table[2:end, 2:end] = op.coeffs	
+	temp_io = IOBuffer()
+	show(temp_io, table)
+	io_str = takebuf_string(temp_io)
+	print(io, io_str[searchindex(io_str, "\n")+3:end])
 end

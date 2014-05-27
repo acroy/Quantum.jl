@@ -72,7 +72,7 @@ function show(io::IO, d::DiracVector)
 		end
 		io_str = takebuf_string(temp_io)
 		io_str = io_str[searchindex(io_str, "\n")+1:end]
-		print(io_str)
+		print(io, io_str)
 	end
 end
 
