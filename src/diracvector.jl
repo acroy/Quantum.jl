@@ -175,7 +175,8 @@ end
 
 *{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, Ket}) = (a.coeffs*b.coeffs)[1]
 *{A, B}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket}) = length(a)==length(b) ? reduce(+, [a[i]*b[i] for i=1:length(a)]) : throw(DimensionMismatch(""))
-*{A, B}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
+*{A, B}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(kron(a.coeffs,b.coeffs), a.basis, b.basis)
+*{A, B, K<:BraKet}(a::DiracVector{A, K}, b::DiracVector{B, K}) = DiracVector(kron(a.coeffs, b.coeffs), a.basis*b.basis)
 
 
 *{C<:DiracCoeff}(c::C, s::AbstractState) = DiracVector([c], statetobasis(s))
@@ -244,5 +245,3 @@ function normalize!(d::DiracVector)
 	d.coeffs=normalize(d.coeffs)
 	return d
 end
-
-

@@ -35,6 +35,12 @@ function DiracMatrix(fcoeff::Function, flabel::Function, b::AbstractBasis)
 end
 
 #####################################
+#Misc.Functions######################
+#####################################
+
+samebasis(a::DiracMatrix, b::DiracMatrix) = isequal(a.rowbasis,b.rowbasis) && isequal(a.colbasis, b.colbasis)
+
+#####################################
 #Show Functions######################
 #####################################
 function showcompact(io::IO, op::DiracMatrix)
@@ -61,4 +67,14 @@ function show(io::IO, op::DiracMatrix)
 	show(temp_io, table)
 	io_str = takebuf_string(temp_io)
 	print(io, io_str[searchindex(io_str, "\n")+3:end])
+end
+#####################################
+#Arithmetic Functions################
+#####################################
+for op=(:.*,:.-,:.+,:./,:.^)
+	@eval ($op)(a::DiracMatrix, b::DiracVector) = DiracMatrix(($op)(a.coeffs,b.coeffs), a.rowbasis, a.colbasis)
+	@eval ($op)(a::DiracVector, b::DiracMatrix) = DiracMatrix(($op)(a.coeffs,b.coeffs), b.rowbasis, b.colbasis)
+	@eval ($op)(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(($op)(a.coeffs,b.coeffs), a.rowbasis, a.colbasis)
+	@eval ($op)(n, d::DiracMatrix) = DiracVector(($op)(n,d.coeffs), d.rowbasis, d.colbasis)
+	@eval ($op)(d::DiracMatrix, n) = DiracVector(($op)(d.coeffs,n), d.rowbasis, d.colbasis)
 end
