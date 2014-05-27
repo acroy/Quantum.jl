@@ -2,8 +2,8 @@
 #DiracVector#########################
 #####################################
 
-type DiracVector{C<:DiracCoeff,K<:BraKet} <: Dirac
-	coeffs::Array{C} 
+type DiracVector{T,K<:BraKet} <: Dirac
+	coeffs::Array{T} 
 	basis::AbstractBasis{K}
 	function DiracVector(coeffs, basis)
 		if K==Ket
@@ -26,8 +26,7 @@ type DiracVector{C<:DiracCoeff,K<:BraKet} <: Dirac
 	end
 end
 
-DiracVector{C<:DiracCoeff,K<:BraKet}(coeffs::Array{C}, basis::AbstractBasis{K}) = DiracVector{C,K}(coeffs, basis)
-DiracVector(coeffs::Array, basis::AbstractBasis) = DiracVector(convert(Array{DiracCoeff}, coeffs), basis)
+DiracVector{T,K<:BraKet}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{T,K}(coeffs, basis)
 
 copy(d::DiracVector) = DiracVector(d.coeffs, d.basis)
 #####################################
@@ -104,15 +103,15 @@ get(d::DiracVector, label) = get(d, typeof(d.basis)<:Basis ? State(label) : Tens
 #####################################
 
 #The vcat()/hcat() used below forces correct typing of the resultant coeff array, but it's sloppy. 
-#I tried to define this as DiracVector(map(f, d.coeffs), d.basis), but for some 
-#reason it doesn't correctly reduce the coeff array to "lowest" (i.e. most primitive) 
+#I tried to define this as DiracVector(map(f, d.coeffs), d.basis), but it doesn't correctly reduce 
+#the coeff array to "lowest" (i.e. most primitive) 
 #common element type, and it would also yield InexactErrors for certain functions (e.g. qeval).
 
 function map(f::Function, d::DiracVector)
 	if kind(d)==Ket
-		return DiracVector(vcat([f(i) for i in d.coeffs]...), d.basis)
+		return DiracVector(vcat(map(f, d.coeffs)...), d.basis)
 	else
-		return DiracVector(hcat([f(i) for i in d.coeffs]...), d.basis)
+		return DiracVector(hcat(map(f, d.coeffs)...), d.basis)
 	end
 end
 function map!(f::Function, d::DiracVector)
@@ -171,20 +170,18 @@ end
 *(c::DiracCoeff, d::DiracVector) = c.*d
 *(d::DiracVector, c::DiracCoeff) = c*d
 
-*{C<:DiracCoeff}(s::AbstractState{Bra}, d::DiracVector{C, Ket}) = get(d, s', 0)
-*{C<:DiracCoeff}(d::DiracVector{C, Bra}, s::AbstractState{Ket}) = get(d, s', 0)
+*{T}(s::AbstractState{Bra}, d::DiracVector{T, Ket}) = get(d, s', 0)
+*{T}(d::DiracVector{T, Bra}, s::AbstractState{Ket}) = get(d, s', 0)
 
 *{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, Ket}) = (a.coeffs*b.coeffs)[1]
-*{A<:DiracCoeff, B<:DiracCoeff}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket}) = length(a)==length(b) ? reduce(+, [a[i]*b[i] for i=1:length(a)]) : throw(DimensionMismatch(""))
-*{A<:DiracCoeff, B<:DiracCoeff}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
+*{A, B}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket}) = length(a)==length(b) ? reduce(+, [a[i]*b[i] for i=1:length(a)]) : throw(DimensionMismatch(""))
+*{A, B}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
 
 
 *{C<:DiracCoeff}(c::C, s::AbstractState) = DiracVector([c], statetobasis(s))
 *{C<:DiracCoeff}(s::AbstractState, c::C) = *(c,s)
 
-
-
-function +{C<:DiracCoeff,K<:BraKet}(d::DiracVector{C,K}, s::AbstractState{K})
+function +{T,K<:BraKet}(d::DiracVector{T,K}, s::AbstractState{K})
 	if in(s, d.basis)
 		d = 1*d #forces the coeff array to eltype DiracCoeff if it is InnerProduct; hacky but works
 		d[getpos(d,s)] = 1+get(d, s)
@@ -198,7 +195,7 @@ function +{C<:DiracCoeff,K<:BraKet}(d::DiracVector{C,K}, s::AbstractState{K})
 	end
 end
 
-function +{C<:DiracCoeff,K<:BraKet}(s::AbstractState{K}, d::DiracVector{C,K})
+function +{T,K<:BraKet}(s::AbstractState{K}, d::DiracVector{T,K})
 	if in(s, d.basis)
 		d = 1*d #forces the coeff array to eltype DiracCoeff if it is InnerProduct; hacky but works
 		d[getpos(d,s)] = 1+get(d, s)
@@ -211,7 +208,7 @@ function +{C<:DiracCoeff,K<:BraKet}(s::AbstractState{K}, d::DiracVector{C,K})
 	end
 end
 
-function +{C1,C2,K<:BraKet}(a::DiracVector{C1,K}, b::DiracVector{C2,K})
+function +{T1,T2,K<:BraKet}(a::DiracVector{T1,K}, b::DiracVector{T2,K})
 	if a.basis==b.basis
 		return DiracVector(a.coeffs+b.coeffs, a.basis)
 	else
@@ -229,16 +226,16 @@ function +{C1,C2,K<:BraKet}(a::DiracVector{C1,K}, b::DiracVector{C2,K})
 	end
 end
 
--{C<:DiracCoeff,K<:BraKet}(d::DiracVector{C,K}, s::AbstractState{K}) = d+(-s)
--{C<:DiracCoeff,K<:BraKet}(s::AbstractState{K}, d::DiracVector{C,K}) = s+(-d)
--{C1,C2,K<:BraKet}(a::DiracVector{C1,K}, b::DiracVector{C2,K}) = a+(-b)
+-{T<:DiracCoeff,K<:BraKet}(d::DiracVector{T,K}, s::AbstractState{K}) = d+(-s)
+-{T,K<:BraKet}(s::AbstractState{K}, d::DiracVector{T,K}) = s+(-d)
+-{T1,T2,K<:BraKet}(a::DiracVector{T1,K}, b::DiracVector{T2,K}) = a+(-b)
 
 +{K<:BraKet}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1, 1], Basis([a,b])) 
 -{K<:BraKet}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1,-1], Basis([a,b])) 
 -(s::AbstractState) = -1*s
 -(d::DiracVector) = DiracVector(-1*d.coeffs, d.basis)
 
-norm{C<:DiracCoeff}(v::Vector{C}, p::Int=2) = reduce(+, [(abs(i))^p for i in v])^(1/p)  
+norm(v::Vector, p::Int=2) = reduce(+, [(abs(i))^p for i in v])^(1/p)  
 norm(d::DiracVector, p::Int=2) = norm(d.coeffs)
 
 normalize(v::Vector) = (1/norm(v))*v

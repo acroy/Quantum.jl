@@ -2,8 +2,8 @@
 #DiracMatrix#########################
 #####################################
 
-type DiracMatrix{C<:DiracCoeff} <: Dirac
-	coeffs::Matrix{C}
+type DiracMatrix{T} <: Dirac
+	coeffs::Matrix{T}
 	rowbasis::AbstractBasis{Ket}
 	colbasis::AbstractBasis{Bra}
 	function DiracMatrix(coeffs, rowbasis, colbasis)
@@ -15,13 +15,12 @@ type DiracMatrix{C<:DiracCoeff} <: Dirac
 	end
 end
 
-DiracMatrix{C<:DiracCoeff}(coeffs::Matrix{C}, rowbasis::AbstractBasis{Ket}, colbasis::AbstractBasis{Bra}) = DiracMatrix{C}(coeffs, rowbasis, colbasis) 
-DiracMatrix{C<:DiracCoeff}(coeffs::Matrix{C}, b::AbstractBasis{Ket}) = DiracMatrix(coeffs, b, b') 
-DiracMatrix{C<:DiracCoeff}(coeffs::Matrix{C}, b::AbstractBasis{Bra}) = DiracMatrix(coeffs, b', b) 
-DiracMatrix(coeffs::Matrix, basisargs...) = DiracMatrix(convert(Matrix{DiracCoeff}, coeffs), basisargs...)
+DiracMatrix{T}(coeffs::Matrix{T}, rowbasis::AbstractBasis{Ket}, colbasis::AbstractBasis{Bra}) = DiracMatrix{T}(coeffs, rowbasis, colbasis) 
+DiracMatrix(coeffs::Matrix, b::AbstractBasis{Ket}) = DiracMatrix(coeffs, b, b') 
+DiracMatrix(coeffs::Matrix, b::AbstractBasis{Bra}) = DiracMatrix(coeffs, b', b) 
 
 function DiracMatrix(fcoeff::Function, flabel::Function, b::AbstractBasis)
-	coeffs = convert(Array{DiracCoeff}, zeros(length(b), length(b)))
+	coeffs = convert(Array{Any}, zeros(length(b), length(b)))
 	for i=1:length(b)
 		for j=1:length(b)
 			println("getting index of $(State(flabel(b[i])))")
