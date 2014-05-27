@@ -1,3 +1,6 @@
+#the majority of the following code is taken from
+#or inspired by the DataFrames julia package; I didn't
+#want to force it as a dependency for just a few functions
 function rep{T <: Integer}(x::AbstractVector, lengths::AbstractVector{T})
     if length(x) != length(lengths)
         error("vector lengths must match")

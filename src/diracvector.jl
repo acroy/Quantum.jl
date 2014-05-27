@@ -15,7 +15,6 @@ type DiracVector{C<:DiracCoeff,K<:BraKet} <: Dirac
 				error("Dimensions of coefficient array does not match type Ket")
 			end
 		else
-			println("not a Ket")
 			if size(coeffs)==(1,length(basis))
 				new(coeffs, basis)
 			elseif length(coeffs)==1
@@ -104,10 +103,10 @@ get(d::DiracVector, label) = get(d, typeof(d.basis)<:Basis ? State(label) : Tens
 #Function-passing Functions##########
 #####################################
 
-#The vcat()/hcat() used below forces correct typing of the coeff array, but it's sloppy. 
+#The vcat()/hcat() used below forces correct typing of the resultant coeff array, but it's sloppy. 
 #I tried to define this as DiracVector(map(f, d.coeffs), d.basis), but for some 
-#reason it doesn't reduce the coeff array to "lowest" (i.e. most primitive) 
-#common element type, and it would also yield InexactErrors for certain functions (e.g. qeval)
+#reason it doesn't correctly reduce the coeff array to "lowest" (i.e. most primitive) 
+#common element type, and it would also yield InexactErrors for certain functions (e.g. qeval).
 
 function map(f::Function, d::DiracVector)
 	if kind(d)==Ket
@@ -147,7 +146,7 @@ function filterstates(f::Function, d::DiracVector)
 	end
 end
 
-function filtercoeffs(f::Function, d::DiracVector) #is currently somewhat broken
+function filtercoeffs(f::Function, d::DiracVector)
 	matched = find(map(f, d.coeffs))
 	newbasis = filter(x->in(get(d.basis,x), matched), d.basis)
 	if kind(d)==Ket
@@ -177,9 +176,13 @@ end
 
 *{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, Ket}) = (a.coeffs*b.coeffs)[1]
 *{A<:DiracCoeff, B<:DiracCoeff}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket}) = length(a)==length(b) ? reduce(+, [a[i]*b[i] for i=1:length(a)]) : throw(DimensionMismatch(""))
+*{A<:DiracCoeff, B<:DiracCoeff}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
+
 
 *{C<:DiracCoeff}(c::C, s::AbstractState) = DiracVector([c], statetobasis(s))
 *{C<:DiracCoeff}(s::AbstractState, c::C) = *(c,s)
+
+
 
 function +{C<:DiracCoeff,K<:BraKet}(d::DiracVector{C,K}, s::AbstractState{K})
 	if in(s, d.basis)

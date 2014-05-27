@@ -72,6 +72,7 @@ module Quantum
 	include("products.jl")
 	include("basis.jl")
 	include("diracvector.jl")
+	include("diracmatrix.jl")
 
 	#####################################
 	#exports#############################
@@ -89,6 +90,7 @@ module Quantum
 		   InnerProduct,
 		   OuterProduct,
 		   DiracVector,
+		   DiracMatrix,
 		   DiracCoeff,
 		   ScalarExpr,
 		   qeval,
