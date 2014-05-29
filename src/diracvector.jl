@@ -15,7 +15,7 @@ type DiracVector{T,K<:BraKet} <: Dirac
 				elseif size(coeffs)==(length(basis),1)
 					new(vec(coeffs), basis)
 				else
-					error("Dimensions of coefficient array does not match type Ket")
+					error("Dimensions of coefficient array does not match basis")
 				end
 			else
 				if size(coeffs)==(1,length(basis))
@@ -23,7 +23,7 @@ type DiracVector{T,K<:BraKet} <: Dirac
 				elseif length(coeffs)==1
 			 		new(coeffs.', basis)
 			 	else
-			 		error("Dimensions of coefficient array does not match type Bra")
+			 		error("Dimensions of coefficient array does not match basis")
 			 	end
 			end
 		end
@@ -253,7 +253,7 @@ function +{T1,T2,K<:BraKet}(a::DiracVector{T1,K}, b::DiracVector{T2,K})
 		res = 1*a
 		for i=1:length(b)
 			res = res+b.basis[i]
-			res[getpos(res, b.basis[i])] = get(res, b.basis[i]) + b[i]
+			res[getpos(res, b.basis[i])] = get(res, b.basis[i]) + b[i] - 1
 		end
 		return res
 	else
