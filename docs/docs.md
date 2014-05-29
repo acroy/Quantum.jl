@@ -1,3 +1,5 @@
+The documentation is now out of date due to the recent redesign of the project. Once the 
+new design has been more or less fully implemented, I'll come back and fix up the documentation.
 <!-- Quantum.jl Documentation
 ===
 1. AbstractTypes

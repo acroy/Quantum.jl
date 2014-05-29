@@ -22,6 +22,8 @@ function Basis{K<:BraKet}(s::Vector{State{K}})
 	end
 end
 
+copy(b::Basis) = Basis(copy(b.label), copy(b.states), copy(b.statemap))
+
 #####################################
 #TensorBasis#########################
 #####################################
@@ -32,6 +34,8 @@ immutable TensorBasis{K<:BraKet} <: AbstractBasis{K}
 end
 
 TensorBasis{K<:BraKet}(bases::Vector{Basis{K}}, states::Vector{TensorState{K}}) = TensorBasis(bases, unique(states), (TensorState{K}=>Int)[states[i]=>i for i=1:length(states)])
+
+copy(b::TensorBasis) = TensorBasis(copy(b.bases), copy(b.states), copy(b.statemap))
 
 function tensor{K<:BraKet}(bases::AbstractBasis{K}...)
 	TensorBasis(vcat([separate(i) for i in bases]...), convert(Vector{TensorState{K}}, statejoin(tensorarr([i.states for i in bases]...))))
@@ -47,9 +51,11 @@ end
 
 #utility#############################
 
-label(b::Basis) = "$(b.label)"
-function label(b::TensorBasis)
-	labels = [label(i) for i in b.bases]
+label(b::Basis) = b.label
+label(b::TensorBasis) = map(label, b.bases)
+reprlabel(b::Basis) = label(b)
+function reprlabel(b::TensorBasis)
+	labels = label(b)
 	#terrible way to grow a string
 	str = "$(labels[1])"
 	for i=2:length(labels)
@@ -92,7 +98,7 @@ get(b::TensorBasis, s::TensorState) = b.statemap[s]
 get(b::Basis, label) = get(b, State(label))
 get(b::TensorBasis, label) = get(b, TensorState(label))
 
-showcompact(io::IO, b::AbstractBasis) = print(io, "$(typeof(b)) $(label(b))")
+showcompact(io::IO, b::AbstractBasis) = print(io, "$(typeof(b)) $(reprlabel(b))")
 
 function show(io::IO, b::AbstractBasis)
 	showcompact(io, b)

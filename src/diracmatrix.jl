@@ -19,19 +19,17 @@ DiracMatrix{T}(coeffs::Matrix{T}, rowbasis::AbstractBasis{Ket}, colbasis::Abstra
 DiracMatrix(coeffs::Matrix, b::AbstractBasis{Ket}) = DiracMatrix(coeffs, b, b') 
 DiracMatrix(coeffs::Matrix, b::AbstractBasis{Bra}) = DiracMatrix(coeffs, b', b) 
 
-function DiracMatrix(fcoeff::Function, flabel::Function, b::AbstractBasis)
+function DiracMatrix(fcoeff::Function, fstate::Function, b::AbstractBasis)
 	coeffs = convert(Array{Any}, zeros(length(b), length(b)))
 	for i=1:length(b)
 		for j=1:length(b)
-			println("getting index of $(State(flabel(b[i])))")
-			ii = get(b, State(flabel(b[i]), label(b)), -1)
+			ii = get(b, fstate(b[i]), -1)
 			if ii != -1
-				println("doin it: $(b[j]')*$(b[i])")
 				coeffs[ii,j] = fcoeff(b[i])*(b[j]'*b[i])
 			end
 		end
 	end
-	return DiracMatrix(coeffs, b)
+	return DiracMatrix(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), b) #use vcat()/hcat() trick to convert to most primitive common type
 end
 
 #####################################
@@ -68,6 +66,45 @@ function show(io::IO, op::DiracMatrix)
 	io_str = takebuf_string(temp_io)
 	print(io, io_str[searchindex(io_str, "\n")+3:end])
 end
+
+#####################################
+#Matrix/Dict Functions###############
+#####################################
+isequal(a::DiracMatrix, b::DiracMatrix) = isequal(a.coeffs,b.coeffs) && samebasis(a,b)
+==(a::DiracMatrix, b::DiracMatrix) = a.coeffs==b.coeffs && samebasis(a,b)
+
+ndims(op::DiracMatrix) = ndims(op.coeffs)
+size(op::DiracMatrix, args...) = size(op.coeffs, args...)
+length(op::DiracMatrix) = length(op.coeffs)
+
+endof(op::DiracMatrix) = length(op)
+find(op::DiracMatrix) = find(op.coeffs)
+find(f::Function, op::DiracMatrix) = find(f, op.coeffs)
+ctranspose(op::DiracMatrix) = DiracMatrix(op.coeffs', op.colbasis', op.rowbasis')
+getindex(op::DiracMatrix, x...) = op.coeffs[x...]
+setindex!(op::DiracMatrix, y, x) = setindex!(op.coeffs,y,x)
+
+getpos(op::DiracMatrix, k::State{Ket}, b::State{Bra}) = (get(op.rowbasis, k), get(op.colbasis, b))
+get(op::DiracMatrix, s::State{Ket}) = DiracVector(op[get(op.rowbasis, s), :], op.colbasis)
+get(op::DiracMatrix, s::State{Bra}) = DiracVector(op[:, get(op.colbasis, s)], op.rowbasis)
+get(op::DiracMatrix, k::State{Ket}, b::State{Bra}) = op[get(op.rowbasis, k), get(op.colbasis, b)]
+
+function get(op::DiracMatrix, s::State, notfound)
+	try
+		return get(op, s)
+	catch
+		return notfound
+	end
+end
+
+function get(op::DiracMatrix, k::State{Ket}, b::State{Bra}, notfound)
+	try
+		return get(op, k, b)
+	catch
+		return notfound
+	end
+end
+
 #####################################
 #Arithmetic Functions################
 #####################################
@@ -78,3 +115,22 @@ for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(n, d::DiracMatrix) = DiracVector(($op)(n,d.coeffs), d.rowbasis, d.colbasis)
 	@eval ($op)(d::DiracMatrix, n) = DiracVector(($op)(d.coeffs,n), d.rowbasis, d.colbasis)
 end
+
++(a::DiracMatrix, b::DiracMatrix) = samebasis(a,b) ? DiracMatrix(a.coeffs+b.coeffs, a.rowbasis, a.colbasis) : error("BasesMismatch")
+-(a::DiracMatrix, b::DiracMatrix) = samebasis(a,b) ? DiracMatrix(a.coeffs-b.coeffs, a.rowbasis, a.colbasis) : error("BasesMismatch")
+/(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs/d, op.rowbasis, op.colbasis)
+
+*(a::DiracMatrix, b::DiracMatrix) = a.colbasis==b.rowbasis ? DiracMatrix(a.coeffs*b.coeffs, a.rowbasis, b.colbasis) : error("BasesMismatch")
+
+*(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs*d, op.rowbasis, op.colbasis)
+*(d::DiracCoeff, op::DiracMatrix) = DiracMatrix(d*op.coeffs, op.rowbasis, op.colbasis)
+*(op::DiracMatrix, s::State{Ket}) = get(op, s')
+*(s::State{Bra}, op::DiracMatrix) = get(op, s')
+*(op::DiracMatrix, d::DiracVector{Ket}) = op.rowbasis == d.basis ? DiracVector(op.coeffs*d.coeffs, op.rowbasis) : error("BasesMismatch")
+*(d::DiracVector{Bra}, op::DiracMatrix) = op.colbasis == d.basis ? DiracVector(d.coeffs*op.coeffs, op.colbasis) : error("BasesMismatch")
+
+# *{N<:Number}(arr::Array{N, 2}, op::OperatorRep) = size(arr,1)==1 ? StateRep(State(), arr*op.coeffs, op.col_basis) : copy(op, arr*op.coeffs)
+# *{N<:Number}(op::OperatorRep, arr::Array{N, 1}) = StateRep(State([]), op.coeffs*arr, op.row_basis)
+# *{N<:Number}(op::OperatorRep, arr::Array{N, 2}) = size(arr,2)==1 ? StateRep(State(), op.coeffs*arr, op.row_basis) : copy(op,op.coeffs*arr)
+
+# trace(op::OperatorRep) = trace(op.coeffs)

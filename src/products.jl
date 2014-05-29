@@ -23,7 +23,6 @@ end
 
 conj(i::InnerProduct) = InnerProduct(i.ket', i.bra')
 show(io::IO, i::InnerProduct) = print(io, "$(repr(i.bra)) $(repr(i.ket)[2:end])");
-
 ##########################################################################
 
 ##########################################################################
@@ -95,6 +94,8 @@ end
 abs(i::InnerProduct) = ScalarExpr(:(abs($i)))
 abs(s::ScalarExpr) = length(s.ex.args)==2 && s.ex.args[1]==:abs ? s :  ScalarExpr(:(abs($(qexpr(s)))))
 
+exp(a::AbstractScalar) = ScalarExpr(:(exp($(qexpr(a)))))
+
 function /(a::DiracCoeff, b::DiracCoeff)
 	if a==0
 		return b
@@ -128,10 +129,10 @@ end
 for op=(:*,:-,:+,:/,:^) #define for elementwise operators
 	elop = symbol(string(:.) * string(op))
 	@eval ($elop)(a::DiracCoeff, b::DiracCoeff) = ($op)(a,b)
-	@eval ($elop)(a::AbstractScalar, v::Vector) = broadcast(($op), [a], v)
-	@eval ($elop)(v::Vector, a::AbstractScalar) = ($elop)(a, v)
+	@eval ($elop)(a::AbstractScalar, arr::Array) = broadcast(($op), [a], arr)
+	@eval ($elop)(arr::Array, a::AbstractScalar) = broadcast(($op), arr, [a])
 end
 
-*(a::AbstractScalar, v::Vector) = a.*v
-*(v::Vector, a::AbstractScalar) = a.*v
-
+*(a::AbstractScalar, arr::Array) = a.*arr
+*(arr::Array, a::AbstractScalar) = arr.*a
+/(arr::Array, a::AbstractScalar) = arr./a

@@ -4,8 +4,9 @@ immutable State{K<:BraKet} <: AbstractState{K}
   kind::Type{K}
 end
 
-State{K<:BraKet}(label, basislabel::String="?", kind::Type{K}=Ket) = State{kind}(label, basislabel, kind)
+State{K<:BraKet}(label, basislabel::String = "?", kind::Type{K}=Ket) = State{kind}(label, basislabel, kind)
 State{K<:BraKet}(label, kind::Type{K}) = State{K}(label, "?", kind)
+copy(s::State) = State(copy(s.label), copy(s.basislabel), copy(s.kind))
 
 immutable TensorState{K<:BraKet} <: AbstractState{K}
   states::Vector{State{K}}
@@ -16,8 +17,15 @@ TensorState{K<:BraKet}(states::Vector{State{K}}, kind::Type{K}=Ket) = TensorStat
 TensorState{K<:BraKet}(labels::Vector, basislabel::String="?", kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind), kind)
 TensorState{K<:BraKet}(labels::Vector, kind::Type{K}=Ket) = TensorState(labels, "?", kind)
 
+copy(s::TensorState) = TensorState(copy(s.states), copy(s.kind))
+
+
 isequal(a::State,b::State) = isequal(a.label, b.label) && a.basislabel==b.basislabel && a.kind==b.kind
 ==(a::State,b::State) = a.label==b.label && a.basislabel==b.basislabel && a.kind==b.kind
+
+isequal(a::TensorState, b::TensorState) = isequal(a.states, b.states) && a.kind==b.kind
+==(a::TensorState, b::TensorState) = a.states==b.states && a.kind==b.kind
+
 
 ctranspose(s::State) = State(s.label, s.basislabel, !s.kind)
 ctranspose(s::TensorState) = TensorState(map(ctranspose, s.states), !s.kind)

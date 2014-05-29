@@ -18,6 +18,7 @@ module Quantum
 		   getindex,
 		   setindex!,
 		   conj,
+		   copy,
 		   ndims,
 		   size,
 		   length,
@@ -38,15 +39,13 @@ module Quantum
 		   get,
 		   !,
 		   exp,
+		   expm,
 		   map,
 		   map!,
 		   filter,
 		   isequal,
-		   copy,
-		   hash,
-		   isequal,
+		   ==,
 		   endof,
-		   start,
 		   find,
 		   trace
 
@@ -104,11 +103,11 @@ module Quantum
 		   statejoin,
 		   inner,
 		   separate,
-		   normalize!,
 		   normalize,
 		   mapmatch,
 		   mapmatch!,
 		   filtercoeffs,
-		   filterstates
+		   filterstates,
+		   getpos
 end
 print("")

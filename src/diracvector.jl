@@ -6,33 +6,39 @@ type DiracVector{T,K<:BraKet} <: Dirac
 	coeffs::Array{T} 
 	basis::AbstractBasis{K}
 	function DiracVector(coeffs, basis)
-		if K==Ket
-			if size(coeffs)==(length(basis),)
-				new(coeffs, basis)
-			elseif size(coeffs)==(length(basis),1)
-				new(vec(coeffs), basis)
-			else
-				error("Dimensions of coefficient array does not match type Ket")
-			end
+		if in("?", [label(basis)])
+			error("BasisMismatch: use DiracSum() for mixed basis operations")
 		else
-			if size(coeffs)==(1,length(basis))
-				new(coeffs, basis)
-			elseif length(coeffs)==1
-		 		new(coeffs.', basis)
-		 	else
-		 		error("Dimensions of coefficient array does not match type Bra")
-		 	end
+			if K==Ket
+				if size(coeffs)==(length(basis),)
+					new(coeffs, basis)
+				elseif size(coeffs)==(length(basis),1)
+					new(vec(coeffs), basis)
+				else
+					error("Dimensions of coefficient array does not match type Ket")
+				end
+			else
+				if size(coeffs)==(1,length(basis))
+					new(coeffs, basis)
+				elseif length(coeffs)==1
+			 		new(coeffs.', basis)
+			 	else
+			 		error("Dimensions of coefficient array does not match type Bra")
+			 	end
+			end
 		end
 	end
 end
 
 DiracVector{T,K<:BraKet}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{T,K}(coeffs, basis)
+copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
 
-copy(d::DiracVector) = DiracVector(d.coeffs, d.basis)
+isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis==b.basis
+==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
+
 #####################################
 #Show Functions######################
 #####################################
-
 
 function showcompact(io::IO, d::DiracVector)
 	if length(d)==0
@@ -81,11 +87,12 @@ end
 ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
 getindex(d::DiracVector, x) = d.coeffs[x]
 length(d::DiracVector) = length(d.coeffs)
-size(d::DiracVector, x=nothing) = size(d.coeffs, x)
+size(d::DiracVector, args...) = size(d.coeffs, args...)
 kind(d::DiracVector) = kind(d.basis)
 setindex!(d::DiracVector, y, x) = setindex!(d.coeffs, y, x)
 endof(d::DiracVector) = length(d)
-
+find(d::DiracVector) = find(d.coeffs)
+find(f::Function, d::DiracVector) = find(f, d.coeffs)
 getpos(d::DiracVector, s::AbstractState) = get(d.basis, s)
 function get(d::DiracVector, s::AbstractState, notfound)
 	try
@@ -170,42 +177,70 @@ end
 *(c::DiracCoeff, d::DiracVector) = c.*d
 *(d::DiracVector, c::DiracCoeff) = c*d
 
-*{T}(s::AbstractState{Bra}, d::DiracVector{T, Ket}) = get(d, s', 0)
-*{T}(d::DiracVector{T, Bra}, s::AbstractState{Ket}) = get(d, s', 0)
+function *{T}(s::AbstractState{Bra}, d::DiracVector{T, Ket})
+	if basislabel(s)==label(d.basis)	
+		return get(d, s', 0)
+	else
+		return reduce(+, [d[i]*(s*d.basis[i]) for i=1:length(d)])
+	end
+end
+function *{T}(d::DiracVector{T, Bra}, s::AbstractState{Ket})
+	if basislabel(s)==label(d.basis)	
+		return get(d, s', 0)
+	else
+		return reduce(+, [d[i]*(d.basis[i]*s) for i=1:length(d)])
+	end
+end
 
-*{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, Ket}) = (a.coeffs*b.coeffs)[1]
-*{A, B}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket}) = length(a)==length(b) ? reduce(+, [a[i]*b[i] for i=1:length(a)]) : throw(DimensionMismatch(""))
-*{A, B}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(kron(a.coeffs,b.coeffs), a.basis, b.basis)
+function *{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, Ket})
+	if a.basis==b.basis 
+		return (a.coeffs*b.coeffs)[1]
+	else
+		return reduce(+, [a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
+	end
+end
+
+function *{A, B}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket})
+	if a.basis==b.basis 
+		return reduce(+, [a[i]*b[i]*(a.basis[i]*b.basis[i]) for i=1:length(a)]) 
+	else
+		return reduce(+, [a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
+	end
+end	
+
+*{A, B}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(kron(a.coeffs,b.coeffs), copy(a.basis), copy(b.basis))
 *{A, B, K<:BraKet}(a::DiracVector{A, K}, b::DiracVector{B, K}) = DiracVector(kron(a.coeffs, b.coeffs), a.basis*b.basis)
-
 
 *{C<:DiracCoeff}(c::C, s::AbstractState) = DiracVector([c], statetobasis(s))
 *{C<:DiracCoeff}(s::AbstractState, c::C) = *(c,s)
 
 function +{T,K<:BraKet}(d::DiracVector{T,K}, s::AbstractState{K})
 	if in(s, d.basis)
-		d = 1*d #forces the coeff array to eltype DiracCoeff if it is InnerProduct; hacky but works
-		d[getpos(d,s)] = 1+get(d, s)
-		return d
+		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
+		res[getpos(d,s)] = 1+get(res, s)
+		return res
 	else
-		if K==Ket
-			return DiracVector(vcat(d.coeffs, 1), d.basis+statetobasis(s))
-		else
-			return DiracVector(hcat(d.coeffs, 1), d.basis+statetobasis(s))
-		end
+		error("BasisMismatch: implement DiracSum() for mixed basis operations")
+		# if K==Ket
+		# 	return DiracVector(vcat(d.coeffs, 1), d.basis+statetobasis(s))
+		# else
+		# 	return DiracVector(hcat(d.coeffs, 1), d.basis+statetobasis(s))
+		# end
 	end
 end
 
 function +{T,K<:BraKet}(s::AbstractState{K}, d::DiracVector{T,K})
 	if in(s, d.basis)
-		d = 1*d #forces the coeff array to eltype DiracCoeff if it is InnerProduct; hacky but works
-		d[getpos(d,s)] = 1+get(d, s)
+		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
+		res[getpos(d,s)] = 1+get(res, s)
+		return res
 	else
-		if K==Ket
-			return DiracVector(vcat(1, d.coeffs), statetobasis(s)+d.basis)
-		else
-			return DiracVector(hcat(1, d.coeffs), statetobasis(s)+d.basis)
-		end
+		error("BasisMismatch: implement DiracSum() for mixed basis operations")
+		# if K==Ket
+		# 	return DiracVector(vcat(1, d.coeffs), statetobasis(s)+d.basis)
+		# else
+		# 	return DiracVector(hcat(1, d.coeffs), statetobasis(s)+d.basis)
+		# end
 	end
 end
 
@@ -213,21 +248,22 @@ function +{T1,T2,K<:BraKet}(a::DiracVector{T1,K}, b::DiracVector{T2,K})
 	if a.basis==b.basis
 		return DiracVector(a.coeffs+b.coeffs, a.basis)
 	else
-		res = 1*copy(a)
-		bdiff = setdiff(b.basis, a.basis) 
-		compl = setdiff(b.basis, bdiff)
-		for i in compl
-			res[getpos(res, i)] = get(res, i) + get(b, i)
-		end
-		if K==Ket
-			return DiracVector(vcat(res.coeffs, [get(b, bdiff[i]) for i=1:length(bdiff)]), res.basis+Basis(bdiff))
-		else
-			return DiracVector(hcat(res.coeffs, [get(b, bdiff[i]) for i=1:length(bdiff)]), res.basis+Basis(bdiff))
-		end
+		error("BasisMismatch: implement DiracSum() for mixed basis operations")
+		# res = 1*deepcopy(a)
+		# bdiff = setdiff(b.basis, a.basis) 
+		# compl = setdiff(b.basis, bdiff)
+		# for i in compl
+		# 	res[getpos(res, i)] = get(res, i) + get(b, i)
+		# end
+		# if K==Ket
+		# 	return DiracVector(vcat(res.coeffs, [get(b, bdiff[i]) for i=1:length(bdiff)]), res.basis+Basis(bdiff))
+		# else
+		# 	return DiracVector(hcat(res.coeffs, [get(b, bdiff[i]) for i=1:length(bdiff)]), res.basis+Basis(bdiff))
+		# end
 	end
 end
 
--{T<:DiracCoeff,K<:BraKet}(d::DiracVector{T,K}, s::AbstractState{K}) = d+(-s)
+-{T,K<:BraKet}(d::DiracVector{T,K}, s::AbstractState{K}) = d+(-s)
 -{T,K<:BraKet}(s::AbstractState{K}, d::DiracVector{T,K}) = s+(-d)
 -{T1,T2,K<:BraKet}(a::DiracVector{T1,K}, b::DiracVector{T2,K}) = a+(-b)
 
@@ -241,7 +277,3 @@ norm(d::DiracVector, p::Int=2) = norm(d.coeffs)
 
 normalize(v::Vector) = (1/norm(v))*v
 normalize(d::DiracVector) = DiracVector(normalize(d.coeffs), d.basis)
-function normalize!(d::DiracVector) 
-	d.coeffs=normalize(d.coeffs)
-	return d
-end
