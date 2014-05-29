@@ -219,13 +219,14 @@ function +{T,K<:BraKet}(d::DiracVector{T,K}, s::AbstractState{K})
 		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
 		res[getpos(d,s)] = 1+get(res, s)
 		return res
+	elseif basislabel(s)==label(d.basis)
+		if K==Ket
+			return DiracVector(vcat(d.coeffs, 1), d.basis+statetobasis(s))
+		else
+			return DiracVector(hcat(d.coeffs, 1), d.basis+statetobasis(s))
+		end
 	else
 		error("BasisMismatch: implement DiracSum() for mixed basis operations")
-		# if K==Ket
-		# 	return DiracVector(vcat(d.coeffs, 1), d.basis+statetobasis(s))
-		# else
-		# 	return DiracVector(hcat(d.coeffs, 1), d.basis+statetobasis(s))
-		# end
 	end
 end
 
@@ -234,32 +235,30 @@ function +{T,K<:BraKet}(s::AbstractState{K}, d::DiracVector{T,K})
 		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
 		res[getpos(d,s)] = 1+get(res, s)
 		return res
+	elseif basislabel(s)==label(d.basis)
+		if K==Ket
+			return DiracVector(vcat(1, d.coeffs), statetobasis(s)+d.basis)
+		else
+			return DiracVector(hcat(1, d.coeffs), statetobasis(s)+d.basis)
+		end
 	else
 		error("BasisMismatch: implement DiracSum() for mixed basis operations")
-		# if K==Ket
-		# 	return DiracVector(vcat(1, d.coeffs), statetobasis(s)+d.basis)
-		# else
-		# 	return DiracVector(hcat(1, d.coeffs), statetobasis(s)+d.basis)
-		# end
 	end
 end
 
 function +{T1,T2,K<:BraKet}(a::DiracVector{T1,K}, b::DiracVector{T2,K})
 	if a.basis==b.basis
 		return DiracVector(a.coeffs+b.coeffs, a.basis)
+	elseif label(a.basis)==label(b.basis)
+		res = 1*a
+		for i=1:length(b)
+			res = res+b.basis[i]
+			res[getpos(res, b.basis[i])] = get(res, b.basis[i]) + b[i]
+		end
+		return res
 	else
 		error("BasisMismatch: implement DiracSum() for mixed basis operations")
-		# res = 1*deepcopy(a)
-		# bdiff = setdiff(b.basis, a.basis) 
-		# compl = setdiff(b.basis, bdiff)
-		# for i in compl
-		# 	res[getpos(res, i)] = get(res, i) + get(b, i)
-		# end
-		# if K==Ket
-		# 	return DiracVector(vcat(res.coeffs, [get(b, bdiff[i]) for i=1:length(bdiff)]), res.basis+Basis(bdiff))
-		# else
-		# 	return DiracVector(hcat(res.coeffs, [get(b, bdiff[i]) for i=1:length(bdiff)]), res.basis+Basis(bdiff))
-		# end
+
 	end
 end
 

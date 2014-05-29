@@ -65,7 +65,8 @@ function reprlabel(b::TensorBasis)
 end
 
 #imported############################
-isequal(a::AbstractBasis,b::AbstractBasis) = a.states==b.states
+isequal(a::AbstractBasis,b::AbstractBasis) = isequal(a.states, b.states) && label(a)==label(b)
+==(a::AbstractBasis,b::AbstractBasis) = a.states==b.states && label(a)==label(b)
 in(s::State, b::AbstractBasis)=in(s, b.states)
 
 filter(f::Function, b::Basis) = makebasis(b.label, filter(f, b.states))

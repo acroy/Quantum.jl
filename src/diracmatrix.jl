@@ -120,12 +120,24 @@ end
 -(a::DiracMatrix, b::DiracMatrix) = samebasis(a,b) ? DiracMatrix(a.coeffs-b.coeffs, a.rowbasis, a.colbasis) : error("BasesMismatch")
 /(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs/d, op.rowbasis, op.colbasis)
 
-*(a::DiracMatrix, b::DiracMatrix) = a.colbasis==b.rowbasis ? DiracMatrix(a.coeffs*b.coeffs, a.rowbasis, b.colbasis) : error("BasesMismatch")
+*(a::DiracMatrix, b::DiracMatrix) = a.colbasis'==b.rowbasis ? DiracMatrix(a.coeffs*b.coeffs, a.rowbasis, b.colbasis) : error("BasesMismatch")
 
 *(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs*d, op.rowbasis, op.colbasis)
 *(d::DiracCoeff, op::DiracMatrix) = DiracMatrix(d*op.coeffs, op.rowbasis, op.colbasis)
-*(op::DiracMatrix, s::State{Ket}) = get(op, s')
-*(s::State{Bra}, op::DiracMatrix) = get(op, s')
+function *(op::DiracMatrix, s::State{Ket}) 
+	if label(op.colbasis)==basislabel(s) 
+		return get(op, s')
+	else
+		return reduce(+, [op.rowbasis[i]*((op.colbasis[j]*s)*op[i,j]) for i=1:length(op.rowbasis), j=1:length(op.colbasis)])
+	end
+end
+function *(s::State{Bra}, op::DiracMatrix)
+	if label(op.rowbasis)==basislabel(s) 
+		return get(op, s')
+	else
+		return reduce(+, [op.colbasis[i]*((s*op.rowbasis[j])*op[i,j]) for i=1:length(op.rowbasis), j=1:length(op.colbasis)])
+	end
+end
 *(op::DiracMatrix, d::DiracVector{Ket}) = op.rowbasis == d.basis ? DiracVector(op.coeffs*d.coeffs, op.rowbasis) : error("BasesMismatch")
 *(d::DiracVector{Bra}, op::DiracMatrix) = op.colbasis == d.basis ? DiracVector(d.coeffs*op.coeffs, op.colbasis) : error("BasesMismatch")
 
