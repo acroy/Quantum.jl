@@ -41,8 +41,8 @@ Features
 	 	- filterstates
 	- The ability to index into Quantum Objects using States, e.g. to find the coefficient
 	  of a state in a DiracVector, one can simply call get(d::DiracVector, s::State) 
-	- Arithmetic/Linear algebra operations that are logically consistent w.r.t. to the bases that Quantum 
-	  objects are represented in. Examples: 
+	- Arithmetic/Linear algebra operations that are logically consistent w.r.t. to the 
+	  bases that Quantum objects are represented in. Examples: 
 		- matrix/vector arithmetic with Quantum objects
 		- inner/outer products of Bras and Kets
 		- computing expectation values/transition matrices
