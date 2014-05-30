@@ -138,11 +138,8 @@ function *(s::State{Bra}, op::DiracMatrix)
 		return reduce(+, [op.colbasis[i]*((s*op.rowbasis[j])*op[i,j]) for i=1:length(op.rowbasis), j=1:length(op.colbasis)])
 	end
 end
-*(op::DiracMatrix, d::DiracVector{Ket}) = op.rowbasis == d.basis ? DiracVector(op.coeffs*d.coeffs, op.rowbasis) : error("BasesMismatch")
-*(d::DiracVector{Bra}, op::DiracMatrix) = op.colbasis == d.basis ? DiracVector(d.coeffs*op.coeffs, op.colbasis) : error("BasesMismatch")
 
-# *{N<:Number}(arr::Array{N, 2}, op::OperatorRep) = size(arr,1)==1 ? StateRep(State(), arr*op.coeffs, op.col_basis) : copy(op, arr*op.coeffs)
-# *{N<:Number}(op::OperatorRep, arr::Array{N, 1}) = StateRep(State([]), op.coeffs*arr, op.row_basis)
-# *{N<:Number}(op::OperatorRep, arr::Array{N, 2}) = size(arr,2)==1 ? StateRep(State(), op.coeffs*arr, op.row_basis) : copy(op,op.coeffs*arr)
+*{T}(op::DiracMatrix, d::DiracVector{T, Ket}) = op.rowbasis == d.basis ? DiracVector(op.coeffs*d.coeffs, op.rowbasis) : error("BasesMismatch")
+*{T}(d::DiracVector{T, Bra}, op::DiracMatrix) = op.colbasis == d.basis ? DiracVector(d.coeffs*op.coeffs, op.colbasis) : error("BasesMismatch")
 
-# trace(op::OperatorRep) = trace(op.coeffs)
+trace(op::DiracMatrix) = trace(op.coeffs)

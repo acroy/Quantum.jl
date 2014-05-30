@@ -26,37 +26,34 @@ users will be able to define their own bases, and define operators and
 states in terms of those bases, and perform complex combinatorial filtering
 and mapping on the labels of basis states.
 
-All linear algebra operations are implemented via Julia's normal libraries.
-The main feature provided by this package is the ability to relate the linear
-algebraic representations back to abstract Quantum objects (e.g. Operators and
-states).
-
 Features
 ==========
-A redesign of this package is currently underway; several of these features 
-are currently broken/not present in the new version but will soon 
-be reimplemented. 
 
 ###Current:
-	- basis, state, state representation, and operator type implementations
-	- tensor product structure for bases, states, and state representations
-	- application of arbitrary selection rules to extract subspaces from all types of 
+	- Basis, State, Scalar, DiracVector, and DiracMatrix type implementations
+	- Tensor product structure for Quantum objects
+	- Application of arbitrary selection rules to extract subspaces from all types of 
 	  Quantum.jl objects. Related methods:
-	  	- filter/filter!
+	  	- filter
 	  	- map/map!
 	  	- mapmatch/mapmatch!
-	  	- filtercoeffs/filtercoeffs!
-	 	- filterstates/filterstates!
-	- Arithmetic/Linear algebra operations. Examples: 
-		- normalization
+	  	- filtercoeffs
+	 	- filterstates
+	- The ability to index into Quantum Objects using States, e.g. to find the coefficient
+	  of a state in a DiracVector, one can simply call get(d::DiracVector, s::State) 
+	- Arithmetic/Linear algebra operations that are logically consistent w.r.t. to the bases that Quantum 
+	  objects are represented in. Examples: 
 		- matrix/vector arithmetic with Quantum objects
 		- inner/outer products of Bras and Kets
 		- computing expectation values/transition matrices
 		- commutator of operators
-		- operator trace/partial trace
+		- trace/partial trace
+		- normalization
+	- ScalarExpr objects for holding off calculation of mixed basis inner products. ScalarExpr
+	  objects support almost all basic arithmetic operations.
 
 ###Upcoming:
-	- Abstract symbolic manipulation/simplification for mixed basis operations (implement QuantumExpr)
+	- Mixed basis operations (implement DiracSum)
 	- HDF5 support
 	- design a system for data visualization of common state properties/operations
 	- package Quantum.jl as an open-source library that other Julia users can utilize
