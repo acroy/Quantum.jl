@@ -153,5 +153,5 @@ function ptrace(op::DiracMatrix, ind::Int)
 	else
 		error("BasesMismatch")
 	end
-	return DiracMatrix(coeffs, trrow, trcol)
+	return DiracMatrix(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), trrow, trcol) #use vcat()/hcat() trick to convert to most primitive common type
 end

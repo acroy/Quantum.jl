@@ -108,6 +108,7 @@ module Quantum
 		   mapmatch!,
 		   filtercoeffs,
 		   filterstates,
-		   getpos
+		   getpos,
+		   ptrace
 end
 print("")
