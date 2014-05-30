@@ -143,3 +143,15 @@ end
 *{T}(d::DiracVector{T, Bra}, op::DiracMatrix) = op.colbasis == d.basis ? DiracVector(d.coeffs*op.coeffs, op.colbasis) : error("BasesMismatch")
 
 trace(op::DiracMatrix) = trace(op.coeffs)
+
+function ptrace(op::DiracMatrix, ind::Int)
+	if isequal(op.colbasis, op.rowbasis')
+		trrow = tensor(vcat(separate(op.rowbasis)[1:ind-1], separate(op.rowbasis)[ind+1:end])...)
+		trcol = trrow'
+		len = length(trcol)
+		coeffs = [sum([op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.rowbasis)[ind])]) for j=1:length(trrow), k=1:length(trcol)] 
+	else
+		error("BasesMismatch")
+	end
+	return DiracMatrix(coeffs, trrow, trcol)
+end
