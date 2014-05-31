@@ -47,7 +47,8 @@ module Quantum
 		   ==,
 		   endof,
 		   find,
-		   trace
+		   trace,
+		   hash
 
 	#####################################
 	#abstract types######################

@@ -35,6 +35,15 @@ end
 
 TensorBasis{K<:BraKet}(bases::Vector{Basis{K}}, states::Vector{TensorState{K}}) = TensorBasis(bases, unique(states), (TensorState{K}=>Int)[states[i]=>i for i=1:length(states)])
 
+function TensorBasis{K<:BraKet}(states::Vector{TensorState{K}})
+	sepstates = hcat(map(separate, states)...).'
+	bases = Array(Basis{K}, size(sepstates, 2))
+	for i=1:size(sepstates, 2)
+		bases[i] = Basis(sepstates[:, i])
+	end
+	return TensorBasis(bases, states)
+end
+
 copy(b::TensorBasis) = TensorBasis(copy(b.bases), copy(b.states), copy(b.statemap))
 
 function tensor{K<:BraKet}(bases::AbstractBasis{K}...)
@@ -67,7 +76,7 @@ end
 #imported############################
 isequal(a::AbstractBasis,b::AbstractBasis) = isequal(a.states, b.states) && label(a)==label(b)
 ==(a::AbstractBasis,b::AbstractBasis) = a.states==b.states && label(a)==label(b)
-in(s::State, b::AbstractBasis)=in(s, b.states)
+in(s::AbstractState, b::AbstractBasis)=in(s, b.states)
 
 filter(f::Function, b::Basis) = makebasis(b.label, filter(f, b.states))
 function filter(f::Function, b::TensorBasis) 
@@ -79,6 +88,15 @@ function filter(f::Function, b::TensorBasis)
 	TensorBasis(b_arr, states)
 end
 
+function map(f::Function, b::AbstractBasis) 
+	newstates = map(f, b.states)
+	if eltype(newstates) <: TensorState
+		return TensorBasis(newstates)
+	else
+		return Basis(newstates)
+	end
+end
+
 ctranspose(b::TensorBasis) = TensorBasis(map(ctranspose, b.bases), map(ctranspose, b.states))
 ctranspose(b::Basis) = Basis(map(ctranspose, b.states))
 
@@ -88,6 +106,8 @@ endof(b::AbstractBasis) = endof(b.states)
 
 *{K<:BraKet}(a::AbstractBasis{K}, b::AbstractBasis{K}) = tensor(a,b)
 +{K<:BraKet}(a::Basis{K}, b::Basis{K}) = Basis(vcat(a.states,b.states))
++{K<:BraKet}(a::TensorBasis{K}, b::TensorBasis{K}) = TensorBasis(vcat(a.states,b.states))
+
 setdiff{B<:AbstractBasis}(a::B,b::B) = setdiff(a.states, b.states)
 
 getindex(b::AbstractBasis, x) = b.states[x]

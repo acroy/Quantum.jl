@@ -19,6 +19,8 @@ TensorState{K<:BraKet}(labels::Vector, kind::Type{K}=Ket) = TensorState(labels, 
 
 copy(s::TensorState) = TensorState(copy(s.states), copy(s.kind))
 
+hash(s::State) = hash(s.label)+hash(s.basislabel)+hash(kind)
+hash(s::TensorState) = sum(map(hash, s.states))+hash(kind)
 
 isequal(a::State,b::State) = isequal(a.label, b.label) && a.basislabel==b.basislabel && a.kind==b.kind
 ==(a::State,b::State) = a.label==b.label && a.basislabel==b.basislabel && a.kind==b.kind

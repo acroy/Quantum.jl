@@ -84,12 +84,12 @@ ctranspose(op::DiracMatrix) = DiracMatrix(op.coeffs', op.colbasis', op.rowbasis'
 getindex(op::DiracMatrix, x...) = op.coeffs[x...]
 setindex!(op::DiracMatrix, y, x) = setindex!(op.coeffs,y,x)
 
-getpos(op::DiracMatrix, k::State{Ket}, b::State{Bra}) = (get(op.rowbasis, k), get(op.colbasis, b))
-get(op::DiracMatrix, s::State{Ket}) = DiracVector(op[get(op.rowbasis, s), :], op.colbasis)
-get(op::DiracMatrix, s::State{Bra}) = DiracVector(op[:, get(op.colbasis, s)], op.rowbasis)
-get(op::DiracMatrix, k::State{Ket}, b::State{Bra}) = op[get(op.rowbasis, k), get(op.colbasis, b)]
+getpos(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}) = (get(op.rowbasis, k), get(op.colbasis, b))
+get(op::DiracMatrix, s::AbstractState{Ket}) = DiracVector(op[get(op.rowbasis, s), :], op.colbasis)
+get(op::DiracMatrix, s::AbstractState{Bra}) = DiracVector(op[:, get(op.colbasis, s)], op.rowbasis)
+get(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}) = op[get(op.rowbasis, k), get(op.colbasis, b)]
 
-function get(op::DiracMatrix, s::State, notfound)
+function get(op::DiracMatrix, s::AbstractState, notfound)
 	try
 		return get(op, s)
 	catch
@@ -97,7 +97,7 @@ function get(op::DiracMatrix, s::State, notfound)
 	end
 end
 
-function get(op::DiracMatrix, k::State{Ket}, b::State{Bra}, notfound)
+function get(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}, notfound)
 	try
 		return get(op, k, b)
 	catch
@@ -112,8 +112,8 @@ for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(a::DiracMatrix, b::DiracVector) = DiracMatrix(($op)(a.coeffs,b.coeffs), a.rowbasis, a.colbasis)
 	@eval ($op)(a::DiracVector, b::DiracMatrix) = DiracMatrix(($op)(a.coeffs,b.coeffs), b.rowbasis, b.colbasis)
 	@eval ($op)(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(($op)(a.coeffs,b.coeffs), a.rowbasis, a.colbasis)
-	@eval ($op)(n, d::DiracMatrix) = DiracVector(($op)(n,d.coeffs), d.rowbasis, d.colbasis)
-	@eval ($op)(d::DiracMatrix, n) = DiracVector(($op)(d.coeffs,n), d.rowbasis, d.colbasis)
+	@eval ($op)(n, d::DiracMatrix) = DiracMatrix(($op)(n,d.coeffs), d.rowbasis, d.colbasis)
+	@eval ($op)(d::DiracMatrix, n) = DiracMatrix(($op)(d.coeffs,n), d.rowbasis, d.colbasis)
 end
 
 +(a::DiracMatrix, b::DiracMatrix) = samebasis(a,b) ? DiracMatrix(a.coeffs+b.coeffs, a.rowbasis, a.colbasis) : error("BasesMismatch")
@@ -124,18 +124,24 @@ end
 
 *(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs*d, op.rowbasis, op.colbasis)
 *(d::DiracCoeff, op::DiracMatrix) = DiracMatrix(d*op.coeffs, op.rowbasis, op.colbasis)
-function *(op::DiracMatrix, s::State{Ket}) 
+function *(op::DiracMatrix, s::AbstractState{Ket}) 
 	if label(op.colbasis)==basislabel(s) 
 		return get(op, s')
 	else
-		return reduce(+, [op.rowbasis[i]*((op.colbasis[j]*s)*op[i,j]) for i=1:length(op.rowbasis), j=1:length(op.colbasis)])
+		error("BasesMismatch")
+		# for i=1:length(op.rowbasis), j=1:length(op.colbasis)
+		# 	print("$(op.colbasis[j])*$s*$(op[i,j])*$(op.rowbasis[i]): ")
+		# 	println(((op.colbasis[j]*s)*op[i,j])*op.rowbasis[i])
+		# end
+		# return reduce(+, [((op.colbasis[j]*s)*op[i,j])*op.rowbasis[i] for i=1:length(op.rowbasis), j=1:length(op.colbasis)])
 	end
 end
-function *(s::State{Bra}, op::DiracMatrix)
+function *(s::AbstractState{Bra}, op::DiracMatrix)
 	if label(op.rowbasis)==basislabel(s) 
 		return get(op, s')
 	else
-		return reduce(+, [op.colbasis[i]*((s*op.rowbasis[j])*op[i,j]) for i=1:length(op.rowbasis), j=1:length(op.colbasis)])
+		error("BasesMismatch")
+		#return reduce(+, [op.colbasis[i]*((s*op.rowbasis[j])*op[i,j]) for i=1:length(op.rowbasis), j=1:length(op.colbasis)])
 	end
 end
 
