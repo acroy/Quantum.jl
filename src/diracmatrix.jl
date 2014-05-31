@@ -124,20 +124,8 @@ end
 
 *(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs*d, op.rowbasis, op.colbasis)
 *(d::DiracCoeff, op::DiracMatrix) = DiracMatrix(d*op.coeffs, op.rowbasis, op.colbasis)
-function *(op::DiracMatrix, s::AbstractState{Ket}) 
-	if in(s, op.colbasis) 
-		return get(op, s')
-	else
-		error("BasesMismatch")
-	end
-end
-*(s::AbstractState{Bra}, op::DiracMatrix) 
-	if in(s, op.rowbasis)
-		return get(op, s')
-	else
-		error("BasesMismatch")
-	end
-end
+*(op::DiracMatrix, s::AbstractState{Ket}) = in(s, op.colbasis) ? get(op, s') : error("BasesMismatch")
+*(s::AbstractState{Bra}, op::DiracMatrix) = in(s, op.rowbasis) ? get(op, s') : error("BasesMismatch")
 
 *{T}(op::DiracMatrix, d::DiracVector{T, Ket}) = op.rowbasis == d.basis ? DiracVector(op.coeffs*d.coeffs, op.rowbasis) : error("BasesMismatch")
 *{T}(d::DiracVector{T, Bra}, op::DiracMatrix) = op.colbasis == d.basis ? DiracVector(d.coeffs*op.coeffs, op.colbasis) : error("BasesMismatch")
