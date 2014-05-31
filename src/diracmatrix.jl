@@ -125,23 +125,17 @@ end
 *(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs*d, op.rowbasis, op.colbasis)
 *(d::DiracCoeff, op::DiracMatrix) = DiracMatrix(d*op.coeffs, op.rowbasis, op.colbasis)
 function *(op::DiracMatrix, s::AbstractState{Ket}) 
-	if label(op.colbasis)==basislabel(s) 
+	if in(s, op.colbasis) 
 		return get(op, s')
 	else
 		error("BasesMismatch")
-		# for i=1:length(op.rowbasis), j=1:length(op.colbasis)
-		# 	print("$(op.colbasis[j])*$s*$(op[i,j])*$(op.rowbasis[i]): ")
-		# 	println(((op.colbasis[j]*s)*op[i,j])*op.rowbasis[i])
-		# end
-		# return reduce(+, [((op.colbasis[j]*s)*op[i,j])*op.rowbasis[i] for i=1:length(op.rowbasis), j=1:length(op.colbasis)])
 	end
 end
-function *(s::AbstractState{Bra}, op::DiracMatrix)
-	if label(op.rowbasis)==basislabel(s) 
+*(s::AbstractState{Bra}, op::DiracMatrix) 
+	if in(s, op.rowbasis)
 		return get(op, s')
 	else
 		error("BasesMismatch")
-		#return reduce(+, [op.colbasis[i]*((s*op.rowbasis[j])*op[i,j]) for i=1:length(op.rowbasis), j=1:length(op.colbasis)])
 	end
 end
 
