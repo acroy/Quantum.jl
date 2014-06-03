@@ -5,13 +5,30 @@ immutable OuterProduct <: Dirac
 	bra::AbstractState{Bra}
 end
 
+basislabel(o::OuterProduct) = [basislabel(o.ket), basislabel(o.bra)]
+label(o::OuterProduct) = [label(o.ket), label(o.bra)]
 *(o::OuterProduct, s::AbstractState{Ket}) = DiracVector([(o.bra*s)], tobasis(o.ket))
 *(o::OuterProduct, s::AbstractState{Bra}) = OuterProduct(o.ket, o.bra*s)
 *(s::AbstractState{Bra}, o::OuterProduct) = DiracVector([(s*o.ket)], tobasis(o.bra))
 *(s::AbstractState{Ket}, o::OuterProduct) = OuterProduct(s*o.ket, o.bra)
 *(d::DiracCoeff, o::OuterProduct) = DiracMatrix([d]', tobasis(o.ket), tobasis(o.bra))
 *(o::OuterProduct, d::DiracCoeff) = *(d,o)
-+(a::OuterProduct, b::OuterProduct) = DiracMatrix(eye(2), tobasis([a.ket, b.ket]), tobasis([a.bra, b.bra]))
+-(o::OuterProduct) = -1*o
+
+function +(a::OuterProduct, b::OuterProduct)
+	if a==b
+		return DiracMatrix(2.0, tobasis(a.ket), tobasis(b.bra))
+	elseif basislabel(a)==basislabel(b)
+		rowb = tobasis([a.ket, b.ket])
+		colb = tobasis([a.bra, b.bra])
+		res = DiracMatrix(zeros(2,2)[1:length(rowb), 1:length(colb)], rowb, colb)
+		res[getpos(res, a)...] = 1.0
+		res[getpos(res, b)...] = 1.0
+		return res
+	end
+end
+
+-(a::OuterProduct, b::OuterProduct) = a+(-b)
 
 ctranspose(o::OuterProduct) = OuterProduct(o.bra', o.ket')
 
@@ -24,6 +41,8 @@ immutable InnerProduct <: AbstractScalar
 	ket::AbstractState{Ket}
 end
 
+basislabel(i::InnerProduct) = [basislabel(i.bra), basislabel(i.ket)]
+label(i::InnerProduct) = [label(i.bra), label(o.ket)]
 conj(i::InnerProduct) = InnerProduct(i.ket', i.bra')
 show(io::IO, i::InnerProduct) = print(io, "$(repr(i.bra)) $(repr(i.ket)[2:end])");
 ##########################################################################

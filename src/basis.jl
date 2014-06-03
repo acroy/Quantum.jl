@@ -9,7 +9,8 @@ immutable Basis{K<:BraKet} <: AbstractBasis{K}
 end
 
 function makebasis{K<:BraKet}(label::String, states::Vector{State{K}})
-	return Basis(label, unique(states), ((Any,String)=>Int)[(states[i].label,states[i].basislabel)=>i for i=1:length(states)])
+	states = unique(states)
+	return Basis(label, states, ((Any,String)=>Int)[(states[i].label,states[i].basislabel)=>i for i=1:length(states)])
 end
 
 Basis{K<:BraKet}(labelvec::Vector, label::String, kind::Type{K}=Ket) = makebasis(label, statearr(labelvec, label, kind))
@@ -147,7 +148,6 @@ tobasis(s::State) = Basis(s)
 tobasis(s::TensorState) = TensorBasis(map(Basis, separate(s)), [s])
 tobasis{S<:State}(v::Vector{S}) = Basis(v)
 tobasis{S<:TensorState}(v::Vector{S}) = TensorBasis(v)
-tobasis(args...) = tobasis(vcat(args...))
 
 separate(b::Basis)=b
 separate(b::TensorBasis) = b.bases

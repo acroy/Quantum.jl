@@ -14,6 +14,7 @@ module Quantum
 		   show,
 		   showcompact,
 		   norm,
+		   zero,
 		   convert,	
 		   getindex,
 		   setindex!,

@@ -32,7 +32,6 @@ end
 
 DiracVector{T,K<:BraKet}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{T,K}(coeffs, basis)
 copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
-
 isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis==b.basis
 ==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
 

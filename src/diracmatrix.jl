@@ -32,9 +32,8 @@ end
 #####################################
 #Misc.Functions######################
 #####################################
-
+basislabel(op::DiracMatrix) = [label(op.rowbasis), label(op.colbasis)]
 samebasis(a::DiracMatrix, b::DiracMatrix) = isequal(a.rowbasis,b.rowbasis) && isequal(a.colbasis, b.colbasis)
-
 #####################################
 #Show Functions######################
 #####################################
@@ -79,12 +78,15 @@ find(op::DiracMatrix) = find(op.coeffs)
 find(f::Function, op::DiracMatrix) = find(f, op.coeffs)
 ctranspose(op::DiracMatrix) = DiracMatrix(op.coeffs', op.colbasis', op.rowbasis')
 getindex(op::DiracMatrix, x...) = op.coeffs[x...]
-setindex!(op::DiracMatrix, y, x) = setindex!(op.coeffs,y,x)
+setindex!(op::DiracMatrix, y, x...) = setindex!(op.coeffs,y,x...)
 
 getpos(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}) = (get(op.rowbasis, k), get(op.colbasis, b))
+getpos(op::DiracMatrix, o::OuterProduct) = getpos(op, o.ket, o.bra)
+
 get(op::DiracMatrix, s::AbstractState{Ket}) = DiracVector(op[get(op.rowbasis, s), :], op.colbasis)
 get(op::DiracMatrix, s::AbstractState{Bra}) = DiracVector(op[:, get(op.colbasis, s)], op.rowbasis)
 get(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}) = op[get(op.rowbasis, k), get(op.colbasis, b)]
+get(op::DiracMatrix, o::OuterProduct) = get(op, o.ket, o.bra)
 
 function get(op::DiracMatrix, s::AbstractState, notfound)
 	try
@@ -113,17 +115,24 @@ for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(d::DiracMatrix, n) = DiracMatrix(($op)(d.coeffs,n), d.rowbasis, d.colbasis)
 end
 
--(a::DiracMatrix, b::DiracMatrix) = samebasis(a,b) ? DiracMatrix(a.coeffs-b.coeffs, a.rowbasis, a.colbasis) : error("BasisMismatch")
 /(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs/d, op.rowbasis, op.colbasis)
-
-*(a::DiracMatrix, b::DiracMatrix) = a.colbasis'==b.rowbasis ? DiracMatrix(a.coeffs*b.coeffs, a.rowbasis, b.colbasis) : error("BasisMismatch")
-
 *(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs*d, op.rowbasis, op.colbasis)
 *(d::DiracCoeff, op::DiracMatrix) = DiracMatrix(d*op.coeffs, op.rowbasis, op.colbasis)
 
-*(op::DiracMatrix, s::AbstractState{Ket}) = in(s', op.colbasis) ? get(op, s') : error("BasisMismatch")
-*(s::AbstractState{Bra}, op::DiracMatrix) = in(s', op.rowbasis) ? get(op, s') : error("BasisMismatch")
-
+function *(op::DiracMatrix, s::AbstractState{Ket}) 
+	if in(s', op.colbasis) 
+		return get(op, s') 
+	else
+		return sum([op.rowbasis[i]*sum([op[i,j]*(op.colbasis[j]*d) for j=1:length(op.colbasis)]) for i=1:length(op.rowbasis)])
+	end
+end
+function *(s::AbstractState{Bra}, op::DiracMatrix)
+	if in(s', op.rowbasis) 
+		return get(op, s')
+	else
+		return sum([op.colbasis[j]*sum([op[i,j]*(d*op.rowbasis[i]) for j=1:length(op.rowbasis)]) for i=1:length(op.colbasis)])
+	end
+end
 function *{T}(op::DiracMatrix, d::DiracVector{T, Ket})
 	if op.colbasis == d.basis'
 		return DiracVector(op.coeffs*d.coeffs, op.rowbasis)
@@ -140,29 +149,74 @@ function *{T}(d::DiracVector{T, Bra}, op::DiracMatrix)
 	end
 end
 
+function *(a::DiracMatrix, b::DiracMatrix)
+	if a.colbasis'==b.rowbasis 
+		return DiracMatrix(a.coeffs*b.coeffs, a.rowbasis, b.colbasis)
+	else
+		terms = [(a[i,j]*b[m,n]*(a.colbasis[j]*b.rowbasis[m]))*(a.rowbasis[i]*b.colbasis[n]) 
+						 for n=1:size(b,2), m=1:size(b,1), j=1:size(a,2), i=1:size(a,1)]
+		terms = filter(x->x[1]!=0, terms)
+		return isempty(terms) ? 0 : reduce(+, terms)
+	end
+end
+
 function +(op::DiracMatrix, o::OuterProduct)
 	if in(o.bra, op.colbasis) && in(o.ket, op.rowbasis)
 		res = 1*op
-		res[getpos(op, o.ket, o.bra)...]=1+get(op, o.ket, o.bra)
+		res[getpos(op, o)...] = 1+get(op, o)
 		return res
-	# elseif basislabel(o.bra)==label(op.colbasis) && basislabel(o.ket)==label(op.rowbasis)
-	# 	rescoeffs = vcat(hcat(op.coeffs, zeros(length(op.rowbasis))), vcat(zeros(length(colbasis)), 1)')
-
-	# 	return DiracMatrix(rescoeffs, 
+	elseif basislabel(o)==basislabel(op)
+		#unecessary rehashing occurs here...
+		rowb = tobasis(vcat(op.rowbasis[:], o.ket))
+		colb = tobasis(vcat(op.colbasis[:], o.bra))
+		res = DiracMatrix(convert(typeof(op.coeffs), zeros(length(rowb),length(colb))), rowb, colb)
+		res[1:size(op,1), 1:size(op,2)] = op.coeffs
+		res[getpos(res, o)...] = 1+get(res, o)
+		return res
 	else
 		error("BasisMismatch")
 	end
 end
+
+function +(o::OuterProduct, op::DiracMatrix)
+	if in(o.bra, op.colbasis) && in(o.ket, op.rowbasis)
+		res = 1*op
+		res[getpos(op, o)...] = 1+get(op, o)
+		return res
+	elseif basislabel(o)==basislabel(op)
+		#unecessary rehashing occurs here...
+		rowb = tobasis(vcat(o.ket, op.rowbasis[:]))
+		colb = tobasis(vcat(o.bra, op.colbasis[:]))
+		res = DiracMatrix(convert(typeof(op.coeffs), zeros(length(rowb),length(colb))), rowb, colb)
+		res[(size(res,1)-size(op,1)+1):size(op,1), (size(res,2)-size(op,2)+1):size(op,2)] = op.coeffs
+		res[getpos(res, o)...] = 1+get(res, o)
+		return res
+	else
+		error("BasisMismatch")
+	end
+end
+
 
 function +(a::DiracMatrix, b::DiracMatrix)
 	if samebasis(a,b)
 		return DiracMatrix(a.coeffs+b.coeffs, a.rowbasis, a.colbasis) 
-	# elseif label(a.colbasis)==label(b.colbasis) && label(a.rowbasis)==label(b.rowbasis)
-	# 	#stuff goes here
+	elseif basislabel(a)==basislabel(b)
+		for i=1:size(b, 1)
+			for j=1:size(b, 2)
+				if b[i,j]!=0
+					a=a+(b.rowbasis[i]*b.colbasis[j])
+					a[getpos(a, b.rowbasis[i], b.colbasis[j])...] = get(a, b.rowbasis[i], b.colbasis[j])+b[i,j]-1
+				end
+			end
+		end
+		return a
 	else
 		error("BasisMismatch")
 	end
 end
+
+-(op::DiracMatrix) = -1*op
+-(a::DiracMatrix, b::DiracMatrix) = a+(-b)
 
 trace(op::DiracMatrix) = trace(op.coeffs)
 
