@@ -94,7 +94,7 @@ module Quantum
 		   DiracCoeff,
 		   ScalarExpr,
 		   qeval,
-		   statetobasis,
+		   tobasis,
 		   basislabel,
 		   kind,
 		   label,

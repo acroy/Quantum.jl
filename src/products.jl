@@ -5,10 +5,13 @@ immutable OuterProduct <: Dirac
 	bra::AbstractState{Bra}
 end
 
-*(o::OuterProduct, s::AbstractState{Ket}) = DiracVector([(o.bra*s)], statetobasis(o.ket))
+*(o::OuterProduct, s::AbstractState{Ket}) = DiracVector([(o.bra*s)], tobasis(o.ket))
 *(o::OuterProduct, s::AbstractState{Bra}) = OuterProduct(o.ket, o.bra*s)
-*(s::AbstractState{Bra}, o::OuterProduct) = DiracVector([(s*o.ket)], statetobasis(o.bra))
+*(s::AbstractState{Bra}, o::OuterProduct) = DiracVector([(s*o.ket)], tobasis(o.bra))
 *(s::AbstractState{Ket}, o::OuterProduct) = OuterProduct(s*o.ket, o.bra)
+*(d::DiracCoeff, o::OuterProduct) = DiracMatrix([d]', tobasis(o.ket), tobasis(o.bra))
+*(o::OuterProduct, d::DiracCoeff) = *(d,o)
++(a::OuterProduct, b::OuterProduct) = DiracMatrix(eye(2), tobasis([a.ket, b.ket]), tobasis([a.bra, b.bra]))
 
 ctranspose(o::OuterProduct) = OuterProduct(o.bra', o.ket')
 

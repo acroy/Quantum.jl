@@ -213,7 +213,7 @@ end
 *{T, K<:BraKet}(s::AbstractState{K}, d::DiracVector{T, K}) = DiracVector(d.coeffs, map(x->s*x, d.basis))
 *{T, K<:BraKet}(d::DiracVector{T, K}, s::AbstractState{K}) = DiracVector(d.coeffs, map(x->x*s, d.basis))
 
-*{C<:DiracCoeff}(c::C, s::AbstractState) = DiracVector([c], statetobasis(s))
+*{C<:DiracCoeff}(c::C, s::AbstractState) = DiracVector([c], tobasis(s))
 *{C<:DiracCoeff}(s::AbstractState, c::C) = *(c,s)
 
 function +{T,K<:BraKet}(d::DiracVector{T,K}, s::AbstractState{K})
@@ -223,12 +223,12 @@ function +{T,K<:BraKet}(d::DiracVector{T,K}, s::AbstractState{K})
 		return res
 	elseif basislabel(s)==label(d.basis)
 		if K==Ket
-			return DiracVector(vcat(d.coeffs, 1), d.basis+statetobasis(s))
+			return DiracVector(vcat(d.coeffs, 1), d.basis+tobasis(s))
 		else
-			return DiracVector(hcat(d.coeffs, 1), d.basis+statetobasis(s))
+			return DiracVector(hcat(d.coeffs, 1), d.basis+tobasis(s))
 		end
 	else
-		error("BasisMismatch: implement DiracSum() for mixed basis operations")
+		error("BasisMismatch")
 	end
 end
 
@@ -239,12 +239,12 @@ function +{T,K<:BraKet}(s::AbstractState{K}, d::DiracVector{T,K})
 		return res
 	elseif basislabel(s)==label(d.basis)
 		if K==Ket
-			return DiracVector(vcat(1, d.coeffs), statetobasis(s)+d.basis)
+			return DiracVector(vcat(1, d.coeffs), tobasis(s)+d.basis)
 		else
-			return DiracVector(hcat(1, d.coeffs), statetobasis(s)+d.basis)
+			return DiracVector(hcat(1, d.coeffs), tobasis(s)+d.basis)
 		end
 	else
-		error("BasisMismatch: implement DiracSum() for mixed basis operations")
+		error("BasisMismatch")
 	end
 end
 
@@ -259,7 +259,7 @@ function +{T1,T2,K<:BraKet}(a::DiracVector{T1,K}, b::DiracVector{T2,K})
 		end
 		return res
 	else
-		error("BasisMismatch: implement DiracSum() for mixed basis operations")
+		error("BasisMismatch")
 
 	end
 end

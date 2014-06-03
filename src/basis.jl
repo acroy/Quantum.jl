@@ -5,13 +5,14 @@
 immutable Basis{K<:BraKet} <: AbstractBasis{K}
 	label::String
 	states::Vector{State{K}}
-	statemap::Dict{State{K}, Int}
+	statemap::Dict{(Any,String), Int}
 end
 
-makebasis{K<:BraKet}(label::String, states::Vector{State{K}}) = Basis(label, unique(states), (State{K}=>Int)[states[i]=>i for i=1:length(states)])
+function makebasis{K<:BraKet}(label::String, states::Vector{State{K}})
+	return Basis(label, unique(states), ((Any,String)=>Int)[(states[i].label,states[i].basislabel)=>i for i=1:length(states)])
+end
 
-Basis{K<:BraKet}(label::String, labelvec::Vector, kind::Type{K}=Ket) = makebasis(label, statearr(labelvec, label, kind))
-Basis{K<:BraKet}(labelvec::Vector, kind::Type{K}=Ket) = Basis("?", labelvec, kind)														
+Basis{K<:BraKet}(labelvec::Vector, label::String, kind::Type{K}=Ket) = makebasis(label, statearr(labelvec, label, kind))
 Basis{K<:BraKet}(s::State{K}...) = Basis(vcat(s...))
 function Basis{K<:BraKet}(s::Vector{State{K}}) 
 	bases = unique(map(basislabel, s))
@@ -30,10 +31,12 @@ copy(b::Basis) = Basis(copy(b.label), copy(b.states), copy(b.statemap))
 immutable TensorBasis{K<:BraKet} <: AbstractBasis{K}
 	bases::Vector{Basis{K}}
 	states::Vector{TensorState{K}}
-	statemap::Dict{TensorState{K}, Int}
+	statemap::Dict{(Vector, Vector{String}), Int}
 end
 
-TensorBasis{K<:BraKet}(bases::Vector{Basis{K}}, states::Vector{TensorState{K}}) = TensorBasis(bases, unique(states), (TensorState{K}=>Int)[states[i]=>i for i=1:length(states)])
+function TensorBasis{K<:BraKet}(bases::Vector{Basis{K}}, states::Vector{TensorState{K}})
+	return TensorBasis(bases, unique(states), ((Vector, Vector{String})=>Int)[(label(states[i]), basislabel(states[i]))=>i for i=1:length(states)])
+end
 
 function TensorBasis{K<:BraKet}(states::Vector{TensorState{K}})
 	sepstates = hcat(map(separate, states)...).'
@@ -97,8 +100,8 @@ function map(f::Function, b::AbstractBasis)
 	end
 end
 
-ctranspose(b::TensorBasis) = TensorBasis(map(ctranspose, b.bases), map(ctranspose, b.states))
-ctranspose(b::Basis) = Basis(map(ctranspose, b.states))
+ctranspose(b::TensorBasis) = TensorBasis(map(ctranspose, b.bases), map(ctranspose, b.states), b.statemap)
+ctranspose(b::Basis) = Basis(b.label, map(ctranspose, b.states), b.statemap)
 
 size(b::TensorBasis) = (length(b.states), length(b.bases))
 length(b::AbstractBasis) = length(b.states)
@@ -113,11 +116,11 @@ setdiff{B<:AbstractBasis}(a::B,b::B) = setdiff(a.states, b.states)
 getindex(b::AbstractBasis, x) = b.states[x]
 setindex!(b::AbstractBasis, y, x) = setindex!(b.states, y, x)
 
-get(b::AbstractBasis, s::AbstractState, notfound) = get(b.statemap, s, notfound)
-get(b::Basis, s::State) = b.statemap[s]
-get(b::TensorBasis, s::TensorState) = b.statemap[s]
-get(b::Basis, label) = get(b, State(label))
-get(b::TensorBasis, label) = get(b, TensorState(label))
+get(b::AbstractBasis, s::AbstractState, notfound) = get(b.statemap, (label(s), basislabel(s)), notfound)
+get(b::Basis, s::AbstractState, notfound::String) = get(b.statemap, (label(s), basislabel(s)), notfound) #this definition resolves ambiguities
+get(b::AbstractBasis, s::AbstractState) = b.statemap[(label(s), basislabel(s))]
+get(b::Basis, label, basislabel::String) = b.statemap[(label, basislabel)]
+get(b::TensorBasis, label::Vector, basislabel::Vector{String}) = b.statemap[(label, basislabel)]
 
 showcompact(io::IO, b::AbstractBasis) = print(io, "$(typeof(b)) $(reprlabel(b))")
 
@@ -140,8 +143,11 @@ function show(io::IO, b::AbstractBasis)
 end
 
 # #exported############################
-statetobasis(s::State) = Basis(s)
-statetobasis(s::TensorState) = TensorBasis(map(Basis, separate(s)), [s])
+tobasis(s::State) = Basis(s)
+tobasis(s::TensorState) = TensorBasis(map(Basis, separate(s)), [s])
+tobasis{S<:State}(v::Vector{S}) = Basis(v)
+tobasis{S<:TensorState}(v::Vector{S}) = TensorBasis(v)
+tobasis(args...) = tobasis(vcat(args...))
 
 separate(b::Basis)=b
 separate(b::TensorBasis) = b.bases

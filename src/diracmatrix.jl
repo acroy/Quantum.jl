@@ -19,14 +19,11 @@ DiracMatrix{T}(coeffs::Matrix{T}, rowbasis::AbstractBasis{Ket}, colbasis::Abstra
 DiracMatrix(coeffs::Matrix, b::AbstractBasis{Ket}) = DiracMatrix(coeffs, b, b') 
 DiracMatrix(coeffs::Matrix, b::AbstractBasis{Bra}) = DiracMatrix(coeffs, b', b) 
 
-function DiracMatrix(fcoeff::Function, fstate::Function, b::AbstractBasis)
+function DiracMatrix(fcoeff::Function, fstate::Function, b::AbstractBasis{Ket})
 	coeffs = convert(Array{Any}, zeros(length(b), length(b)))
 	for i=1:length(b)
 		for j=1:length(b)
-			ii = get(b, fstate(b[i]), -1)
-			if ii != -1
-				coeffs[ii,j] = fcoeff(b[i])*(b[j]'*b[i])
-			end
+			coeffs[i,j] = fcoeff(b[j])*(b[i]'*fstate(b[j]))
 		end
 	end
 	return DiracMatrix(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), b) #use vcat()/hcat() trick to convert to most primitive common type
@@ -116,19 +113,56 @@ for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(d::DiracMatrix, n) = DiracMatrix(($op)(d.coeffs,n), d.rowbasis, d.colbasis)
 end
 
-+(a::DiracMatrix, b::DiracMatrix) = samebasis(a,b) ? DiracMatrix(a.coeffs+b.coeffs, a.rowbasis, a.colbasis) : error("BasesMismatch")
--(a::DiracMatrix, b::DiracMatrix) = samebasis(a,b) ? DiracMatrix(a.coeffs-b.coeffs, a.rowbasis, a.colbasis) : error("BasesMismatch")
+-(a::DiracMatrix, b::DiracMatrix) = samebasis(a,b) ? DiracMatrix(a.coeffs-b.coeffs, a.rowbasis, a.colbasis) : error("BasisMismatch")
 /(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs/d, op.rowbasis, op.colbasis)
 
-*(a::DiracMatrix, b::DiracMatrix) = a.colbasis'==b.rowbasis ? DiracMatrix(a.coeffs*b.coeffs, a.rowbasis, b.colbasis) : error("BasesMismatch")
+*(a::DiracMatrix, b::DiracMatrix) = a.colbasis'==b.rowbasis ? DiracMatrix(a.coeffs*b.coeffs, a.rowbasis, b.colbasis) : error("BasisMismatch")
 
 *(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs*d, op.rowbasis, op.colbasis)
 *(d::DiracCoeff, op::DiracMatrix) = DiracMatrix(d*op.coeffs, op.rowbasis, op.colbasis)
-*(op::DiracMatrix, s::AbstractState{Ket}) = in(s, op.colbasis) ? get(op, s') : error("BasesMismatch")
-*(s::AbstractState{Bra}, op::DiracMatrix) = in(s, op.rowbasis) ? get(op, s') : error("BasesMismatch")
 
-*{T}(op::DiracMatrix, d::DiracVector{T, Ket}) = op.rowbasis == d.basis ? DiracVector(op.coeffs*d.coeffs, op.rowbasis) : error("BasesMismatch")
-*{T}(d::DiracVector{T, Bra}, op::DiracMatrix) = op.colbasis == d.basis ? DiracVector(d.coeffs*op.coeffs, op.colbasis) : error("BasesMismatch")
+*(op::DiracMatrix, s::AbstractState{Ket}) = in(s', op.colbasis) ? get(op, s') : error("BasisMismatch")
+*(s::AbstractState{Bra}, op::DiracMatrix) = in(s', op.rowbasis) ? get(op, s') : error("BasisMismatch")
+
+function *{T}(op::DiracMatrix, d::DiracVector{T, Ket})
+	if op.colbasis == d.basis'
+		return DiracVector(op.coeffs*d.coeffs, op.rowbasis)
+	else
+		return sum([op.rowbasis[i]*sum([op[i,j]*(op.colbasis[j]*d) for j=1:length(op.colbasis)]) for i=1:length(op.rowbasis)])
+	end
+end
+
+function *{T}(d::DiracVector{T, Bra}, op::DiracMatrix) 
+	if op.rowbasis == d.basis' 
+		return DiracVector(d.coeffs*op.coeffs, op.colbasis)
+	else
+		return sum([op.colbasis[j]*sum([op[i,j]*(d*op.rowbasis[i]) for j=1:length(op.rowbasis)]) for i=1:length(op.colbasis)])
+	end
+end
+
+function +(op::DiracMatrix, o::OuterProduct)
+	if in(o.bra, op.colbasis) && in(o.ket, op.rowbasis)
+		res = 1*op
+		res[getpos(op, o.ket, o.bra)...]=1+get(op, o.ket, o.bra)
+		return res
+	# elseif basislabel(o.bra)==label(op.colbasis) && basislabel(o.ket)==label(op.rowbasis)
+	# 	rescoeffs = vcat(hcat(op.coeffs, zeros(length(op.rowbasis))), vcat(zeros(length(colbasis)), 1)')
+
+	# 	return DiracMatrix(rescoeffs, 
+	else
+		error("BasisMismatch")
+	end
+end
+
+function +(a::DiracMatrix, b::DiracMatrix)
+	if samebasis(a,b)
+		return DiracMatrix(a.coeffs+b.coeffs, a.rowbasis, a.colbasis) 
+	# elseif label(a.colbasis)==label(b.colbasis) && label(a.rowbasis)==label(b.rowbasis)
+	# 	#stuff goes here
+	else
+		error("BasisMismatch")
+	end
+end
 
 trace(op::DiracMatrix) = trace(op.coeffs)
 
@@ -139,7 +173,7 @@ function ptrace(op::DiracMatrix, ind::Int)
 		len = length(trcol)
 		coeffs = [sum([op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.rowbasis)[ind])]) for j=1:length(trrow), k=1:length(trcol)] 
 	else
-		error("BasesMismatch")
+		error("BasisMismatch")
 	end
 	return DiracMatrix(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), trrow, trcol) #use vcat()/hcat() trick to convert to most primitive common type
 end
