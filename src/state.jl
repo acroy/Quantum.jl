@@ -74,12 +74,12 @@ end
 
 function *(a::TensorState{Bra}, b::State{Ket}) 
 	ind = findfirst(s->s.basislabel==b.basislabel, reverse(a.states))
-	ind==0 ? InnerProduct(a,b) : inner(a,b,ind)
+	ind==0 ? reduce(*,a[1:end-1])*(last(a)*b) : inner(a,b,ind)
 end
 
 function *(a::State{Bra}, b::TensorState{Ket}) 
 	ind = findfirst(s->s.basislabel==a.basislabel, b.states)
-	ind==0 ? InnerProduct(a,b) : inner(a,b,ind)
+	ind==0 ? (a*b[1])*reduce(*,b[2:end]) : inner(a,b,ind)
 end
 
 function *(a::TensorState{Bra}, b::TensorState{Ket})
@@ -96,6 +96,7 @@ function inner{K<:BraKet}(a::TensorState{Bra}, b::TensorState{Ket}, i::Int, targ
 		return reduce(*, vcat(a[1:i-1], a[i+1:end], a[i]*b))
 	end
 end
+
 inner(a::State{Bra}, b::TensorState{Ket}, i::Int) = reduce(*, vcat(a*b[i], b[1:i-1], b[i+1:end]))
 inner(a::TensorState{Bra}, b::State{Ket}, i::Int) = reduce(*, vcat(a[1:i-1], a[i+1:end], a[i]*b))
 
