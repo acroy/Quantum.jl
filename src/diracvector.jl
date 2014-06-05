@@ -34,6 +34,10 @@ DiracVector{T,K<:BraKet}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVecto
 copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
 isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis==b.basis
 ==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
+basislabel(d::DiracVector) = label(d.basis)
+isdual{A,B}(a::DiracVector{A,Ket}, b::DiracVector{B,Bra}) = isdual(a.basis, b.basis) && a.coeffs==b.coeffs'
+isdual{A,B}(a::DiracVector{A,Bra}, b::DiracVector{B,Ket}) = isdual(b,a)
+isdual{A,B,K}(a::DiracVector{A,K}, b::DiracVector{B,K}) = false #default to false
 
 #####################################
 #Show Functions######################

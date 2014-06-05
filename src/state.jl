@@ -6,7 +6,6 @@ end
 
 State{K<:BraKet}(label, basislabel::String = "?", kind::Type{K}=Ket) = State{kind}(label, basislabel, kind)
 State{K<:BraKet}(label, kind::Type{K}) = State{K}(label, "?", kind)
-copy(s::State) = State(copy(s.label), copy(s.basislabel), copy(s.kind))
 
 immutable TensorState{K<:BraKet} <: AbstractState{K}
   states::Vector{State{K}}
@@ -17,6 +16,7 @@ TensorState{K<:BraKet}(states::Vector{State{K}}, kind::Type{K}=Ket) = TensorStat
 TensorState{K<:BraKet}(labels::Vector, basislabel::String="?", kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind), kind)
 TensorState{K<:BraKet}(labels::Vector, kind::Type{K}=Ket) = TensorState(labels, "?", kind)
 
+copy(s::State) = State(copy(s.label), copy(s.basislabel), copy(s.kind))
 copy(s::TensorState) = TensorState(copy(s.states), copy(s.kind))
 
 hash(s::State) = hash((s.label, s.basislabel, s.kind))
@@ -114,3 +114,10 @@ statearr{K<:BraKet}(arr::Array, kind::Type{K}) = statearr(arr, "?", kind)
 statejoin{S<:AbstractState}(state_arr::Array{S,2}) = [reduce(*, state_arr[i, :]) for i=1:size(state_arr, 1)]
 
 separate{K<:BraKet}(s::TensorState{K}) = s.states
+
+isdual(a::State{Ket}, b::State{Bra}) = label(a)==label(b) && basislabel(a)==basislabel(b)
+isdual(a::State{Bra}, b::State{Ket}) = isdual(b,a)
+isdual(a::TensorState{Ket}, b::TensorState{Bra}) = label(a)==label(b) && basislabel(a)==basislabel(b)
+isdual(a::TensorState{Bra}, b::TensorState{Ket}) = isdual(b,a)
+isdual(a::AbstractState, b::AbstractState) = false #default to false
+

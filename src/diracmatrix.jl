@@ -29,11 +29,9 @@ function DiracMatrix(fcoeff::Function, fstate::Function, b::AbstractBasis{Ket})
 	return DiracMatrix(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), b) #use vcat()/hcat() trick to convert to most primitive common type
 end
 
-#####################################
-#Misc.Functions######################
-#####################################
 basislabel(op::DiracMatrix) = [label(op.rowbasis), label(op.colbasis)]
-samebasis(a::DiracMatrix, b::DiracMatrix) = isequal(a.rowbasis,b.rowbasis) && isequal(a.colbasis, b.colbasis)
+isdual(a::DiracMatrix, b::DiracMatrix) = a'==b
+
 #####################################
 #Show Functions######################
 #####################################

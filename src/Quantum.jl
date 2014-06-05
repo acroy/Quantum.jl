@@ -74,6 +74,22 @@ module Quantum
 	include("diracvector.jl")
 	include("diracmatrix.jl")
 
+
+	#####################################
+	#additional functions################
+	#####################################
+
+	samebasis(a::AbstractBasis, b::AbstractBasis)= a==b
+	samebasis(a::DiracMatrix, b::DiracMatrix) = a.rowbasis==b.rowbasis && a.colbasis==b.colbasis
+	samebasis(a::DiracVector, b::DiracVector) = a.basis==b.basis
+	samebasis(a::AbstractState, b::AbstractState) = basislabel(a)==basislabel(b)
+	samebasis(a::InnerProduct, b::InnerProduct) = basislabel(a)==basislabel(b)
+	samebasis(a::OuterProduct, b::OuterProduct) = basislabel(a)==basislabel(b)
+	samebasis{T,K}(a::AbstractState{K}, b::DiracVector{T,K}) = basislabel(a)==label(b.basis)
+	samebasis{T,K}(a::DiracVector{T,K}, b::AbstractState{K}) = samebasis(b,a)
+	samebasis{K}(a::AbstractState{K}, b::Basis{K}) = basislabel(a)==label(b)
+	samebasis{K}(a::Basis{K}, b::AbstractState{K}) = samebasis(b,a)
+	
 	#####################################
 	#exports#############################
 	#####################################
@@ -87,6 +103,7 @@ module Quantum
 		   State,
 		   TensorState,
 		   Basis,
+		   TensorBasis,
 		   InnerProduct,
 		   OuterProduct,
 		   DiracVector,
@@ -110,6 +127,8 @@ module Quantum
 		   filtercoeffs,
 		   filterstates,
 		   getpos,
-		   ptrace
+		   ptrace,
+		   isdual,
+		   samebasis
 end
 print("")

@@ -7,6 +7,7 @@ end
 
 basislabel(o::OuterProduct) = [basislabel(o.ket), basislabel(o.bra)]
 label(o::OuterProduct) = [label(o.ket), label(o.bra)]
+
 *(o::OuterProduct, s::AbstractState{Ket}) = DiracVector([(o.bra*s)], tobasis(o.ket))
 *(o::OuterProduct, s::AbstractState{Bra}) = OuterProduct(o.ket, o.bra*s)
 *(s::AbstractState{Bra}, o::OuterProduct) = DiracVector([(s*o.ket)], tobasis(o.bra))
@@ -31,6 +32,7 @@ end
 -(a::OuterProduct, b::OuterProduct) = a+(-b)
 
 ctranspose(o::OuterProduct) = OuterProduct(o.bra', o.ket')
+isdual(a::OuterProduct, b::OuterProduct) = isdual(a.ket, b.bra) && isdual(b.ket, a.bra)
 
 show(io::IO, o::OuterProduct) = print(io, "$(repr(o.ket))$(repr(o.bra))");
 
@@ -41,8 +43,10 @@ immutable InnerProduct <: AbstractScalar
 	ket::AbstractState{Ket}
 end
 
+
 basislabel(i::InnerProduct) = [basislabel(i.bra), basislabel(i.ket)]
 label(i::InnerProduct) = [label(i.bra), label(o.ket)]
+isdual(a::InnerProduct, b::InnerProduct) = isdual(a.ket, b.bra) && isdual(b.ket, a.bra)
 conj(i::InnerProduct) = InnerProduct(i.ket', i.bra')
 show(io::IO, i::InnerProduct) = print(io, "$(repr(i.bra)) $(repr(i.ket)[2:end])");
 ##########################################################################

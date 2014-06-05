@@ -78,8 +78,8 @@ function reprlabel(b::TensorBasis)
 end
 
 #imported############################
-isequal(a::AbstractBasis,b::AbstractBasis) = isequal(a.states, b.states) && label(a)==label(b)
-==(a::AbstractBasis,b::AbstractBasis) = a.states==b.states && label(a)==label(b)
+isequal(a::AbstractBasis, b::AbstractBasis) = isequal(a.states, b.states) && label(a)==label(b)
+==(a::AbstractBasis, b::AbstractBasis) = a.states==b.states && label(a)==label(b)
 in(s::AbstractState, b::AbstractBasis)=in(s, b.states)
 
 filter(f::Function, b::Basis) = makebasis(b.label, filter(f, b.states))
@@ -148,6 +148,22 @@ tobasis(s::State) = Basis(s)
 tobasis(s::TensorState) = TensorBasis(map(Basis, separate(s)), [s])
 tobasis{S<:State}(v::Vector{S}) = Basis(v)
 tobasis{S<:TensorState}(v::Vector{S}) = TensorBasis(v)
+
+isdual(a::Basis{Ket}, b::Basis{Bra}) = label(a)==label(b) && a.statemap==b.statemap
+isdual(a::Basis{Bra}, b::Basis{Ket}) = isdual(b,a)
+isdual(a::TensorBasis{Ket}, b::TensorBasis{Bra}) = label(a)==label(b) && a.statemap==b.statemap
+isdual(a::TensorBasis{Bra}, b::TensorBasis{Ket}) = isdual(b,a)
+isdual(a::AbstractBasis,b::AbstractBasis)=false #default to false
+
+function join{K<:BraKet}(b::Basis{K}, s::State{K})
+	resmap = copy(b.statemap)
+	resmap[(s.label, s.basislabel)] = length(b)+1
+	if samebasis(b, s)
+		return Basis(b.label, vcat(b.statemap), resmap)
+	else
+		return Basis("?", vcat(b.statemap), resmap)
+	end
+end
 
 separate(b::Basis)=b
 separate(b::TensorBasis) = b.bases
