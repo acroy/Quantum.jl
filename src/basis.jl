@@ -8,13 +8,13 @@ immutable Basis{K<:BraKet} <: AbstractBasis{K}
 	statemap::Dict{(Any,String), Int}
 end
 
-function makebasis{K<:BraKet}(label::String, states::Vector{State{K}})
+function makebasis{K}(label::String, states::Vector{State{K}})
 	states = unique(states)
 	return Basis(label, states, ((Any,String)=>Int)[(states[i].label,states[i].basislabel)=>i for i=1:length(states)])
 end
 
 Basis{K<:BraKet}(labelvec::Vector, label::String, kind::Type{K}=Ket) = makebasis(label, statearr(labelvec, label, kind))
-Basis{K<:BraKet}(s::State{K}...) = Basis(vcat(s...))
+Basis{K}(s::State{K}...) = Basis(vcat(s...))
 function Basis{K<:BraKet}(s::Vector{State{K}}) 
 	bases = unique(map(basislabel, s))
 	if length(bases)>1
@@ -35,11 +35,11 @@ immutable TensorBasis{K<:BraKet} <: AbstractBasis{K}
 	statemap::Dict{(Vector, Vector{String}), Int}
 end
 
-function TensorBasis{K<:BraKet}(bases::Vector{Basis{K}}, states::Vector{TensorState{K}})
+function TensorBasis{K}(bases::Vector{Basis{K}}, states::Vector{TensorState{K}})
 	return TensorBasis(bases, unique(states), ((Vector, Vector{String})=>Int)[(label(states[i]), basislabel(states[i]))=>i for i=1:length(states)])
 end
 
-function TensorBasis{K<:BraKet}(states::Vector{TensorState{K}})
+function TensorBasis{K}(states::Vector{TensorState{K}})
 	sepstates = hcat(map(separate, states)...).'
 	bases = Array(Basis{K}, size(sepstates, 2))
 	for i=1:size(sepstates, 2)
@@ -50,11 +50,11 @@ end
 
 copy(b::TensorBasis) = TensorBasis(copy(b.bases), copy(b.states), copy(b.statemap))
 
-function tensor{K<:BraKet}(bases::AbstractBasis{K}...)
+function tensor{K}(bases::AbstractBasis{K}...)
 	TensorBasis(vcat([separate(i) for i in bases]...), convert(Vector{TensorState{K}}, statejoin(tensorarr([i.states for i in bases]...))))
 end
 
-function tensor{K<:BraKet}(basis::AbstractBasis{K})
+function tensor{K}(basis::AbstractBasis{K})
 	return basis
 end
 
@@ -109,9 +109,57 @@ size(b::TensorBasis) = (length(b.states), length(b.bases))
 length(b::AbstractBasis) = length(b.states)
 endof(b::AbstractBasis) = endof(b.states)
 
-*{K<:BraKet}(a::AbstractBasis{K}, b::AbstractBasis{K}) = tensor(a,b)
-+{K<:BraKet}(a::Basis{K}, b::Basis{K}) = Basis(vcat(a.states,b.states))
-+{K<:BraKet}(a::TensorBasis{K}, b::TensorBasis{K}) = TensorBasis(vcat(a.states,b.states))
+function basisjoin{K}(b::Basis{K}, s::State{K})
+	resmap = copy(b.statemap)
+	resmap[(label(s), basislabel(s))] = length(b)+1
+	if samebasis(b, s)
+		return Basis(b.label, vcat(b.states, s), resmap)
+	else
+		return Basis("?", vcat(b.states, s), resmap)
+	end
+end
+
+basisjoin{K}(s::State{K}, b::Basis{K}) = Basis(vcat(s, b.states))
+
+function basisjoin{K}(a::Basis{K}, b::Basis{K})
+	resmap = copy(a.statemap)
+	for i=1:length(b)
+		resmap[(label(b[i]), basislabel(b[i]))] = length(b)+i
+	end
+	if samebasis(a,b)
+		return Basis(a.label, vcat(a.states, b.states), resmap)
+	else
+		return Basis("?", vcat(a.states, b.states), resmap)
+	end
+end
+
+function basisjoin{K}(b::TensorBasis{K}, s::TensorState{K})
+	if samebasis(b, s)
+		resmap = copy(b.statemap)
+		resmap[(label(s), basislabel(s))] = length(b)+1
+		return TensorBasis(b.bases, vcat(b.states, s), resmap)
+	else
+		return TensorBasis(vcat(b.states, s))
+	end
+end
+
+basisjoin{K}(s::TensorState{K}, b::TensorBasis{K}) = TensorBasis(vcat(s, b.states))
+
+function basisjoin{K}(a::TensorBasis{K}, b::TensorBasis{K})
+	if samebasis(a, b)
+		resmap = copy(b.statemap)
+		for i=1:length(b)
+			resmap[(label(b[i]), basislabel(b[i]))] = length(b)+i
+		end
+		return TensorBasis(a.bases, vcat(a.states, b.states), resmap)
+	else
+		return TensorBasis(vcat(a.states, b.states))
+	end
+end
+
+
+*{K}(a::AbstractBasis{K}, b::AbstractBasis{K}) = tensor(a,b)
++{K}(a::AbstractBasis{K}, b::AbstractBasis{K}) = basisjoin(a,b)
 
 setdiff{B<:AbstractBasis}(a::B,b::B) = setdiff(a.states, b.states)
 
@@ -156,15 +204,7 @@ isdual(a::TensorBasis{Ket}, b::TensorBasis{Bra}) = label(a)==label(b) && a.state
 isdual(a::TensorBasis{Bra}, b::TensorBasis{Ket}) = isdual(b,a)
 isdual(a::AbstractBasis,b::AbstractBasis)=false #default to false
 
-function join{K<:BraKet}(b::Basis{K}, s::State{K})
-	resmap = copy(b.statemap)
-	resmap[(s.label, s.basislabel)] = length(b)+1
-	if samebasis(b, s)
-		return Basis(b.label, vcat(b.states, s), resmap)
-	else
-		return Basis("?", vcat(b.states, s), resmap)
-	end
-end
+
 
 separate(b::Basis)=b
 separate(b::TensorBasis) = b.bases
