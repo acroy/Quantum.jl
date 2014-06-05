@@ -217,6 +217,7 @@ end
 -(a::DiracMatrix, b::DiracMatrix) = a+(-b)
 
 trace(op::DiracMatrix) = trace(op.coeffs)
+commutator(a::DiracMatrix, b::DiracMatrix) = (a*b) - (b*a)
 
 function ptrace(op::DiracMatrix, ind::Int)
 	if isequal(op.colbasis, op.rowbasis')
