@@ -55,10 +55,10 @@ for op=(:length, :endof)
 	@eval ($op)(s::TensorState) = $(op)(s.states)
 end
 
-*{K<:BraKet}(a::State{K}, b::State{K}) = TensorState([a,b], K)
-*{K<:BraKet}(a::TensorState{K}, b::State{K}) = TensorState(vcat(a.states, b), K)
-*{K<:BraKet}(a::State{K}, b::TensorState{K}) = TensorState(vcat(a, b.states), K)
-*{K<:BraKet}(a::TensorState{K}, b::TensorState{K}) = TensorState(vcat(a.states, b.states), K)
+*{K}(a::State{K}, b::State{K}) = TensorState([a,b], K)
+*{K}(a::TensorState{K}, b::State{K}) = TensorState(vcat(a.states, b), K)
+*{K}(a::State{K}, b::TensorState{K}) = TensorState(vcat(a, b.states), K)
+*{K}(a::TensorState{K}, b::TensorState{K}) = TensorState(vcat(a.states, b.states), K)
 
 function *(a::State{Bra}, b::State{Ket})
 	if samebasis(a, b) && !samebasis(a, "?") && !samebasis(b, "?")
@@ -104,7 +104,7 @@ inner(a::TensorState{Bra}, b::State{Ket}, i::Int) = reduce(*, vcat(a[1:i-1], a[i
 
 tensor() = nothing
 tensor(s::AbstractState) = s
-tensor{K<:BraKet}(s::AbstractState{K}...) = reduce(*, s) 
+tensor{K}(s::AbstractState{K}...) = reduce(*, s) 
 tensor{S<:AbstractState}(arr::Array{S}) = tensor(arr...)
 
 tensorarr(arrs::Array...) = crossjoin(arrs...)
@@ -113,7 +113,7 @@ statearr{K<:BraKet}(arr::Array, basislabel::String="?", kind::Type{K}=Ket) = Sta
 statearr{K<:BraKet}(arr::Array, kind::Type{K}) = statearr(arr, "?", kind)
 statejoin{S<:AbstractState}(state_arr::Array{S,2}) = [reduce(*, state_arr[i, :]) for i=1:size(state_arr, 1)]
 
-separate{K<:BraKet}(s::TensorState{K}) = s.states
+separate(s::TensorState) = s.states
 
 isdual(a::State{Ket}, b::State{Bra}) = label(a)==label(b) && samebasis(a,b)
 isdual(a::State{Bra}, b::State{Ket}) = isdual(b,a)

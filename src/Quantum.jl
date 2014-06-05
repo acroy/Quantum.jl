@@ -74,7 +74,6 @@ module Quantum
 	include("diracvector.jl")
 	include("diracmatrix.jl")
 
-
 	#####################################
 	#additional functions################
 	#####################################
