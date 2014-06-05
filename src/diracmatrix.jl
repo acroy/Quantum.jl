@@ -132,7 +132,7 @@ function *(s::AbstractState{Bra}, op::DiracMatrix)
 	end
 end
 function *{T}(op::DiracMatrix, d::DiracVector{T, Ket})
-	if op.colbasis == d.basis'
+	if isdual(op.colbasis, d.basis)
 		return DiracVector(op.coeffs*d.coeffs, op.rowbasis)
 	else
 		return sum([op.rowbasis[i]*sum([op[i,j]*(op.colbasis[j]*d) for j=1:length(op.colbasis)]) for i=1:length(op.rowbasis)])
@@ -140,7 +140,7 @@ function *{T}(op::DiracMatrix, d::DiracVector{T, Ket})
 end
 
 function *{T}(d::DiracVector{T, Bra}, op::DiracMatrix) 
-	if op.rowbasis == d.basis' 
+	if isdual(op.rowbasis, d.basis)
 		return DiracVector(d.coeffs*op.coeffs, op.colbasis)
 	else
 		return sum([op.colbasis[j]*sum([op[i,j]*(d*op.rowbasis[i]) for j=1:length(op.rowbasis)]) for i=1:length(op.colbasis)])
@@ -148,7 +148,7 @@ function *{T}(d::DiracVector{T, Bra}, op::DiracMatrix)
 end
 
 function *(a::DiracMatrix, b::DiracMatrix)
-	if a.colbasis'==b.rowbasis 
+	if isdual(a.colbasis, b.rowbasis)
 		return DiracMatrix(a.coeffs*b.coeffs, a.rowbasis, b.colbasis)
 	else
 		terms = [(a[i,j]*b[m,n]*(a.colbasis[j]*b.rowbasis[m]))*(a.rowbasis[i]*b.colbasis[n]) 
@@ -220,7 +220,7 @@ trace(op::DiracMatrix) = trace(op.coeffs)
 commutator(a::DiracMatrix, b::DiracMatrix) = (a*b) - (b*a)
 
 function ptrace(op::DiracMatrix, ind::Int)
-	if isequal(op.colbasis, op.rowbasis')
+	if isdual(op.colbasis, op.rowbasis)
 		trrow = tensor(vcat(separate(op.rowbasis)[1:ind-1], separate(op.rowbasis)[ind+1:end])...)
 		trcol = trrow'
 		len = length(trcol)
