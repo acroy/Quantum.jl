@@ -181,14 +181,14 @@ end
 *(d::DiracVector, c::DiracCoeff) = c*d
 
 function *{T}(s::AbstractState{Bra}, d::DiracVector{T, Ket})
-	if basislabel(s)==label(d.basis)	
+	if samebasis(d,s)	
 		return get(d, s', 0)
 	else
 		return reduce(+, [d[i]*(s*d.basis[i]) for i=1:length(d)])
 	end
 end
 function *{T}(d::DiracVector{T, Bra}, s::AbstractState{Ket})
-	if basislabel(s)==label(d.basis)	
+	if samebasis(d,s)	
 		return get(d, s', 0)
 	else
 		return reduce(+, [d[i]*(d.basis[i]*s) for i=1:length(d)])
@@ -224,7 +224,7 @@ function +{T,K<:BraKet}(d::DiracVector{T,K}, s::AbstractState{K})
 		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
 		res[getpos(d,s)] = 1+get(res, s)
 		return res
-	elseif basislabel(s)==label(d.basis)
+	elseif samebasis(d,s)
 		if K==Ket
 			return DiracVector(vcat(d.coeffs, 1), d.basis+tobasis(s))
 		else
@@ -240,7 +240,7 @@ function +{T,K<:BraKet}(s::AbstractState{K}, d::DiracVector{T,K})
 		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
 		res[getpos(d,s)] = 1+get(res, s)
 		return res
-	elseif basislabel(s)==label(d.basis)
+	elseif samebasis(d,s)
 		if K==Ket
 			return DiracVector(vcat(1, d.coeffs), tobasis(s)+d.basis)
 		else
@@ -254,7 +254,7 @@ end
 function +{T1,T2,K<:BraKet}(a::DiracVector{T1,K}, b::DiracVector{T2,K})
 	if a.basis==b.basis
 		return DiracVector(a.coeffs+b.coeffs, a.basis)
-	elseif label(a.basis)==label(b.basis)
+	elseif samebasis(a,b)
 		res = 1*a
 		for i=1:length(b)
 			res = res+b.basis[i]

@@ -64,8 +64,8 @@ end
 #####################################
 #Matrix/Dict Functions###############
 #####################################
-isequal(a::DiracMatrix, b::DiracMatrix) = isequal(a.coeffs,b.coeffs) && samebasis(a,b)
-==(a::DiracMatrix, b::DiracMatrix) = a.coeffs==b.coeffs && samebasis(a,b)
+isequal(a::DiracMatrix, b::DiracMatrix) = isequal(a.coeffs,b.coeffs) && a.rowbasis==b.rowbasis && a.colbasis==b.colbasis 
+==(a::DiracMatrix, b::DiracMatrix) = a.coeffs==b.coeffs && a.rowbasis==b.rowbasis && a.colbasis==b.colbasis 
 
 ndims(op::DiracMatrix) = ndims(op.coeffs)
 size(op::DiracMatrix, args...) = size(op.coeffs, args...)
@@ -163,7 +163,7 @@ function +(op::DiracMatrix, o::OuterProduct)
 		res = 1*op
 		res[getpos(op, o)...] = 1+get(op, o)
 		return res
-	elseif basislabel(o)==basislabel(op)
+	elseif samebasis(op, o)
 		#unecessary rehashing occurs here...
 		rowb = tobasis(vcat(op.rowbasis[:], o.ket))
 		colb = tobasis(vcat(op.colbasis[:], o.bra))
@@ -181,7 +181,7 @@ function +(o::OuterProduct, op::DiracMatrix)
 		res = 1*op
 		res[getpos(op, o)...] = 1+get(op, o)
 		return res
-	elseif basislabel(o)==basislabel(op)
+	elseif samebasis(o,op)
 		#unecessary rehashing occurs here...
 		rowb = tobasis(vcat(o.ket, op.rowbasis[:]))
 		colb = tobasis(vcat(o.bra, op.colbasis[:]))
@@ -196,9 +196,9 @@ end
 
 
 function +(a::DiracMatrix, b::DiracMatrix)
-	if samebasis(a,b)
+	if a.rowbasis==b.rowbasis && a.colbasis==b.colbasis 
 		return DiracMatrix(a.coeffs+b.coeffs, a.rowbasis, a.colbasis) 
-	elseif basislabel(a)==basislabel(b)
+	elseif samebasis(a, b)
 		for i=1:size(b, 1)
 			for j=1:size(b, 2)
 				if b[i,j]!=0

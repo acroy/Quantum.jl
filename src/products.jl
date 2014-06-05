@@ -19,7 +19,7 @@ label(o::OuterProduct) = [label(o.ket), label(o.bra)]
 function +(a::OuterProduct, b::OuterProduct)
 	if a==b
 		return DiracMatrix(2.0, tobasis(a.ket), tobasis(b.bra))
-	elseif basislabel(a)==basislabel(b)
+	elseif samebasis(a)==samebasis(b)
 		rowb = tobasis([a.ket, b.ket])
 		colb = tobasis([a.bra, b.bra])
 		res = DiracMatrix(zeros(2,2)[1:length(rowb), 1:length(colb)], rowb, colb)

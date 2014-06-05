@@ -79,17 +79,9 @@ module Quantum
 	#additional functions################
 	#####################################
 
-	samebasis(a::AbstractBasis, b::AbstractBasis)= a==b
-	samebasis(a::DiracMatrix, b::DiracMatrix) = a.rowbasis==b.rowbasis && a.colbasis==b.colbasis
-	samebasis(a::DiracVector, b::DiracVector) = a.basis==b.basis
-	samebasis(a::AbstractState, b::AbstractState) = basislabel(a)==basislabel(b)
-	samebasis(a::InnerProduct, b::InnerProduct) = basislabel(a)==basislabel(b)
-	samebasis(a::OuterProduct, b::OuterProduct) = basislabel(a)==basislabel(b)
-	samebasis{T,K}(a::AbstractState{K}, b::DiracVector{T,K}) = basislabel(a)==label(b.basis)
-	samebasis{T,K}(a::DiracVector{T,K}, b::AbstractState{K}) = samebasis(b,a)
-	samebasis{K}(a::AbstractState{K}, b::Basis{K}) = basislabel(a)==label(b)
-	samebasis{K}(a::Basis{K}, b::AbstractState{K}) = samebasis(b,a)
-	
+	samebasis(a::Dirac, b::Dirac)= basislabel(a)==basislabel(b)
+	samebasis(a::String, b::Dirac)= a==basislabel(b)
+	samebasis(a::Dirac, b::String)= basislabel(a)==b
 	#####################################
 	#exports#############################
 	#####################################

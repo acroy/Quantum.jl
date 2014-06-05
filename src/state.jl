@@ -61,7 +61,7 @@ end
 *{K<:BraKet}(a::TensorState{K}, b::TensorState{K}) = TensorState(vcat(a.states, b.states), K)
 
 function *(a::State{Bra}, b::State{Ket})
-	if a.basislabel==b.basislabel && a.basislabel!="?" && b.basislabel!="?"
+	if samebasis(a, b) && !samebasis(a, "?") && !samebasis(b, "?")
 		if a.label == b.label
 			return 1
 		else
@@ -73,12 +73,12 @@ function *(a::State{Bra}, b::State{Ket})
 end
 
 function *(a::TensorState{Bra}, b::State{Ket}) 
-	ind = findfirst(s->s.basislabel==b.basislabel, reverse(a.states))
+	ind = findfirst(s->samebasis(s,b), reverse(a.states))
 	ind==0 ? reduce(*,a[1:end-1])*(last(a)*b) : inner(a,b,ind)
 end
 
 function *(a::State{Bra}, b::TensorState{Ket}) 
-	ind = findfirst(s->s.basislabel==a.basislabel, b.states)
+	ind = findfirst(s->samebasis(s,a), b.states)
 	ind==0 ? (a*b[1])*reduce(*,b[2:end]) : inner(a,b,ind)
 end
 
@@ -115,9 +115,9 @@ statejoin{S<:AbstractState}(state_arr::Array{S,2}) = [reduce(*, state_arr[i, :])
 
 separate{K<:BraKet}(s::TensorState{K}) = s.states
 
-isdual(a::State{Ket}, b::State{Bra}) = label(a)==label(b) && basislabel(a)==basislabel(b)
+isdual(a::State{Ket}, b::State{Bra}) = label(a)==label(b) && samebasis(a,b)
 isdual(a::State{Bra}, b::State{Ket}) = isdual(b,a)
-isdual(a::TensorState{Ket}, b::TensorState{Bra}) = label(a)==label(b) && basislabel(a)==basislabel(b)
+isdual(a::TensorState{Ket}, b::TensorState{Bra}) = label(a)==label(b) && samebasis(a,b)
 isdual(a::TensorState{Bra}, b::TensorState{Ket}) = isdual(b,a)
 isdual(a::AbstractState, b::AbstractState) = false #default to false
 

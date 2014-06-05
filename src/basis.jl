@@ -66,6 +66,7 @@ end
 
 label(b::Basis) = b.label
 label(b::TensorBasis) = map(label, b.bases)
+basislabel(b::AbstractBasis) = label(b)
 reprlabel(b::Basis) = label(b)
 function reprlabel(b::TensorBasis)
 	labels = label(b)
@@ -159,9 +160,9 @@ function join{K<:BraKet}(b::Basis{K}, s::State{K})
 	resmap = copy(b.statemap)
 	resmap[(s.label, s.basislabel)] = length(b)+1
 	if samebasis(b, s)
-		return Basis(b.label, vcat(b.statemap), resmap)
+		return Basis(b.label, vcat(b.states, s), resmap)
 	else
-		return Basis("?", vcat(b.statemap), resmap)
+		return Basis("?", vcat(b.states, s), resmap)
 	end
 end
 
