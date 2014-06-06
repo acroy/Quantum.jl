@@ -1,4 +1,3 @@
-typealias DiracCoeff Union(Number, AbstractScalar)
 
 immutable OuterProduct <: Dirac
 	ket::AbstractState{Ket}
@@ -12,8 +11,8 @@ label(o::OuterProduct) = [label(o.ket), label(o.bra)]
 *(o::OuterProduct, s::AbstractState{Bra}) = OuterProduct(o.ket, o.bra*s)
 *(s::AbstractState{Bra}, o::OuterProduct) = DiracVector([(s*o.ket)], tobasis(o.bra))
 *(s::AbstractState{Ket}, o::OuterProduct) = OuterProduct(s*o.ket, o.bra)
-*(d::DiracCoeff, o::OuterProduct) = DiracMatrix([d]', tobasis(o.ket), tobasis(o.bra))
-*(o::OuterProduct, d::DiracCoeff) = *(d,o)
+*(c::DiracCoeff,o::OuterProduct) = c==0 ? 0 : (c==1 ? o : DiracMatrix([c]', tobasis(o.ket), tobasis(o.bra)))
+*(o::OuterProduct, c::DiracCoeff) = *(c,o)
 -(o::OuterProduct) = -1*o
 
 function +(a::OuterProduct, b::OuterProduct)

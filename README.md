@@ -39,8 +39,8 @@ Features
 ###Current:
 	- Basis, State, Scalar, DiracVector, and DiracMatrix type implementations
 	- Tensor product structure for Dirac objects
-	- Application of arbitrary selection rules to extract subspaces from all types of 
-	  Quantum.jl objects. Related methods:
+	- Application of arbitrary selection rules to extract subspaces from most types of 
+	  Quantum.jl collection objects. Related methods:
 	  	- filter
 	  	- map/map!
 	  	- mapmatch/mapmatch!
@@ -54,14 +54,13 @@ Features
 		- inner/outer products implementations
 		- idiomatic computation of expectation values/transition matrices
 		- commutator of DiracMatrices
-		- trace/partial trace
-		- normalization
+		- trace/partial trace, normalization, kron, and more
 	- ScalarExpr objects for delayed calculation of mixed basis inner products. ScalarExpr
 	  objects support all basic arithmetic operations. 
 	- The ability to perform mixed basis calculation via the use of ScalarExprs and InnerProducts
 
 ###Upcoming:
-	- Optimization/code cleaning
+	- More functions; almost finished with the basic package!
 	- Documentation
 	- HDF5 support
 	- design a system for data visualization of common state properties/operations

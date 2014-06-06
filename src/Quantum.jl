@@ -61,6 +61,8 @@ module Quantum
 	abstract AbstractBasis{K<:BraKet} <: Dirac
 	abstract AbstractState{K<:BraKet} <: Dirac
 	abstract AbstractScalar <: Dirac
+	typealias DiracCoeff Union(Number, AbstractScalar)
+
 
 	!(K::Type{Ket}) = Bra
 	!(B::Type{Bra}) = Ket
@@ -82,6 +84,14 @@ module Quantum
 	samebasis(a::Dirac, b::Dirac)= basislabel(a)=="?" || basislabel(b)=="?" ? false : basislabel(a)==basislabel(b)
 	samebasis(a::String, b::Dirac)= a=="?" ? false : a==basislabel(b)
 	samebasis(a::Dirac, b::String)= samebasis(b, a)
+
+	#additive identities
+	for t=(:DiracMatrix, :DiracVector, :AbstractState, :OuterProduct)
+		@eval +(n::Number, d::($t)) = n==0 ? d : error("cannot add number and $(string($t))")
+		@eval +(d::($t), n::Number) = +(n,d)
+		@eval -(n::Number, d::($t)) = +(n,d)
+		@eval -(d::($t), n::Number) = +(n,d)
+	end
 	#####################################
 	#exports#############################
 	#####################################
@@ -100,7 +110,6 @@ module Quantum
 		   OuterProduct,
 		   DiracVector,
 		   DiracMatrix,
-		   DiracCoeff,
 		   ScalarExpr,
 		   qeval,
 		   tobasis,

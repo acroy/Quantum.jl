@@ -7,10 +7,14 @@ type DiracMatrix{T} <: Dirac
 	rowbasis::AbstractBasis{Ket}
 	colbasis::AbstractBasis{Bra}
 	function DiracMatrix(coeffs, rowbasis, colbasis)
-		if size(coeffs)==(length(rowbasis), length(colbasis))
-			new(coeffs, rowbasis, colbasis)
+		if samebasis("?", rowbasis) || samebasis("?", colbasis)
+			error("BasisMismatch: cannot represent mixed basis object as linear combination")
 		else
-			throw(DimensionMismatch("Bases do not match coefficient matrix"))
+			if size(coeffs)==(length(rowbasis), length(colbasis))
+				new(coeffs, rowbasis, colbasis)
+			else
+				throw(DimensionMismatch("Bases do not match coefficient matrix"))
+			end
 		end
 	end
 end
@@ -73,8 +77,6 @@ length(op::DiracMatrix) = length(op.coeffs)
 
 endof(op::DiracMatrix) = length(op)
 find(op::DiracMatrix) = find(op.coeffs)
-find(f::Function, op::DiracMatrix) = find(f, op.coeffs)
-findstates(f::Function, op::DiracMatrix) = find(f, [op.rowbasis[i]*op.colbasis[j] for i=1:length(op.rowbasis), j=1:length(op.colbasis)]) #f takes outer product as argument
 
 ctranspose(op::DiracMatrix) = DiracMatrix(op.coeffs', op.colbasis', op.rowbasis')
 getindex(op::DiracMatrix, x...) = op.coeffs[x...]
@@ -103,6 +105,40 @@ function get(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}, notf
 		return notfound
 	end
 end
+
+#####################################
+#Function-passing Functions##########
+#####################################
+
+find(f::Function, op::DiracMatrix) = find(f, op.coeffs)
+findstates(f::Function, op::DiracMatrix) = find(f, [op.rowbasis[i]*op.colbasis[j] for i=1:length(op.rowbasis), j=1:length(op.colbasis)]) #f takes OuterProduct as argument
+
+map(f::Function, op::DiracMatrix) = DiracMatrix(map(f, op.coeffs), op.rowbasis, op.colbasis)
+
+function map!(f::Function, op::DiracMatrix)
+	op.coeffs = map(f, op.coeffs)
+	return op
+end
+
+function mapmatch(fstates::Function, fcoeffs::Function, op::DiracMatrix) #fstates takes OuterProduct as argument
+	matched = findstates(fstates, op)
+	coeffs = convert(Array{Any}, op.coeffs)
+	for i in matched
+		coeffs[i] = fcoeffs(coeffs[i])
+	end
+	#hacky concat strategy to force corect typing
+	DiracMatrix(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), op.rowbasis, op.colbasis)
+end
+
+function mapmatch!(fstates::Function, fcoeffs::Function, op::DiracMatrix)
+	matched = findstates(fstates, op)
+	for i in matched
+		op[i] = fcoeffs(op[i])
+	end
+	return op
+end
+
+qeval(f::Function, op::DiracMatrix) = map(x->qeval(f, x), op)
 
 #####################################
 #Arithmetic Functions################

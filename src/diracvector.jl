@@ -6,8 +6,8 @@ type DiracVector{T,K<:BraKet} <: Dirac
 	coeffs::Array{T} 
 	basis::AbstractBasis{K}
 	function DiracVector(coeffs, basis)
-		if in("?", [label(basis)])
-			error("BasisMismatch: use DiracSum() for mixed basis operations")
+		if samebasis("?", basis)
+			error("BasisMismatch: cannot represent mixed basis object as linear combination")
 		else
 			if K==Ket
 				if size(coeffs)==(length(basis),)
@@ -113,37 +113,32 @@ get(d::DiracVector, label) = get(d, typeof(d.basis)<:Basis ? State(label) : Tens
 #Function-passing Functions##########
 #####################################
 
-#The vcat()/hcat() used below forces correct typing of the resultant coeff array, but it's sloppy. 
-#I tried to define this as DiracVector(map(f, d.coeffs), d.basis), but it doesn't correctly reduce 
-#the coeff array to "lowest" (i.e. most primitive) 
-#common element type, and it would also yield InexactErrors for certain functions (e.g. qeval).
+map(f::Function, d::DiracVector)=DiracVector(map(f, d.coeffs), d.basis)
 
-function map(f::Function, d::DiracVector)
-	if kind(d)==Ket
-		return DiracVector(vcat(map(f, d.coeffs)...), d.basis)
-	else
-		return DiracVector(hcat(map(f, d.coeffs)...), d.basis)
-	end
-end
 function map!(f::Function, d::DiracVector)
-	d.coeffs = kind(d)==Ket ? vcat(map(f, d.coeffs)...) : hcat(map(f, d.coeffs)...)
+	d.coeffs = map(f, d.coeffs)
 	return d
 end
 
 function mapmatch(fstates::Function, fcoeffs::Function, d::DiracVector)
-	matched = map(x->getpos(d,x), filter(fstates, d.basis[:]))	
-	#It would be more efficient to only loop over the matching
-	#states, but there could be typing issues depending on 
-	#what fcoeffs returns. Thus, we use the same hacky vcat method 
-	#used in map(f::Function, d::DiracVector)
+	matched = findstates(fstates, d)	
+	coeffs = convert(Array{Any}, d.coeffs)
+	for i in matched
+		coeffs[i] = fcoeffs(coeffs[i])
+	end
+	#hacky concat strategy to force corect typing
 	if kind(d)==Ket
-		return DiracVector(vcat([in(i, matched) ? fcoeffs(d[i]) : d[i] for i=1:length(d.coeffs)]...), d.basis)
+		return DiracVector(vcat(coeffs...), d.basis)
 	else
-		return DiracVector(hcat([in(i, matched) ? fcoeffs(d[i]) : d[i] for i=1:length(d.coeffs)]...), d.basis)		
+		return DiracVector(hcat(coeffs...), d.basis)		
 	end
 end
+
 function mapmatch!(fstates::Function, fcoeffs::Function, d::DiracVector)
-	d.coeffs = mapmatch(fstates, fcoeffs, d).coeffs
+	matched = findstates(fstates, d)	
+	for i in matched
+		d[i] = fcoeffs(d[i])
+	end
 	return d
 end
 
@@ -216,9 +211,6 @@ end
 *{A, B, K}(a::DiracVector{A, K}, b::DiracVector{B, K}) = DiracVector(a.coeffs*b.coeffs, a.basis*b.basis)
 *{T,K}(s::AbstractState{K}, d::DiracVector{T, K}) = DiracVector(d.coeffs, map(x->s*x, d.basis))
 *{T, K}(d::DiracVector{T, K}, s::AbstractState{K}) = DiracVector(d.coeffs, map(x->x*s, d.basis))
-
-*{C<:DiracCoeff}(c::C, s::AbstractState) = DiracVector([c], tobasis(s))
-*{C<:DiracCoeff}(s::AbstractState, c::C) = *(c,s)
 
 function +{T,K}(d::DiracVector{T,K}, s::AbstractState{K})
 	if in(s, d.basis)

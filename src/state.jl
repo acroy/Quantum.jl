@@ -59,6 +59,8 @@ end
 *{K}(a::TensorState{K}, b::State{K}) = TensorState(vcat(a.states, b), K)
 *{K}(a::State{K}, b::TensorState{K}) = TensorState(vcat(a, b.states), K)
 *{K}(a::TensorState{K}, b::TensorState{K}) = TensorState(vcat(a.states, b.states), K)
+*(c::DiracCoeff, s::AbstractState) = c==0 ? 0 : (c==1 ? s : DiracVector([c], tobasis(s)))
+*(s::AbstractState, c::DiracCoeff) = *(c,s)
 
 function *(a::State{Bra}, b::State{Ket})
 	if samebasis(a, b) && !samebasis(a, "?") && !samebasis(b, "?")

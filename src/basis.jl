@@ -195,6 +195,7 @@ end
 # #exported############################
 tobasis(s::State) = Basis(s)
 tobasis(s::TensorState) = TensorBasis(map(Basis, separate(s)), [s])
+tobasis(s::AbstractState...) = tobasis(vcat(s...))
 tobasis{S<:State}(v::Vector{S}) = Basis(v)
 tobasis{S<:TensorState}(v::Vector{S}) = TensorBasis(v)
 
