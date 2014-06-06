@@ -19,7 +19,7 @@ label(o::OuterProduct) = [label(o.ket), label(o.bra)]
 function +(a::OuterProduct, b::OuterProduct)
 	if a==b
 		return DiracMatrix(2.0, tobasis(a.ket), tobasis(b.bra))
-	elseif samebasis(a)==samebasis(b)
+	elseif samebasis(a,b)
 		rowb = tobasis([a.ket, b.ket])
 		colb = tobasis([a.bra, b.bra])
 		res = DiracMatrix(zeros(2,2)[1:length(rowb), 1:length(colb)], rowb, colb)
@@ -42,7 +42,6 @@ immutable InnerProduct <: AbstractScalar
 	bra::AbstractState{Bra}
 	ket::AbstractState{Ket}
 end
-
 
 basislabel(i::InnerProduct) = [basislabel(i.bra), basislabel(i.ket)]
 label(i::InnerProduct) = [label(i.bra), label(o.ket)]

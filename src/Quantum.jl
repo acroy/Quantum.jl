@@ -48,7 +48,8 @@ module Quantum
 		   endof,
 		   find,
 		   trace,
-		   hash
+		   hash,
+		   kron
 
 	#####################################
 	#abstract types######################
@@ -117,6 +118,7 @@ module Quantum
 		   mapmatch!,
 		   filtercoeffs,
 		   filterstates,
+		   findstates,
 		   getpos,
 		   ptrace,
 		   isdual,

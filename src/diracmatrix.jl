@@ -74,6 +74,8 @@ length(op::DiracMatrix) = length(op.coeffs)
 endof(op::DiracMatrix) = length(op)
 find(op::DiracMatrix) = find(op.coeffs)
 find(f::Function, op::DiracMatrix) = find(f, op.coeffs)
+findstates(f::Function, op::DiracMatrix) = find(f, [op.rowbasis[i]*op.colbasis[j] for i=1:length(op.rowbasis), j=1:length(op.colbasis)]) #f takes outer product as argument
+
 ctranspose(op::DiracMatrix) = DiracMatrix(op.coeffs', op.colbasis', op.rowbasis')
 getindex(op::DiracMatrix, x...) = op.coeffs[x...]
 setindex!(op::DiracMatrix, y, x...) = setindex!(op.coeffs,y,x...)
@@ -215,6 +217,15 @@ end
 
 -(op::DiracMatrix) = -1*op
 -(a::DiracMatrix, b::DiracMatrix) = a+(-b)
+
+kron(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(kron(a.coeffs, b.coeffs), tensor(a.rowbasis, b.rowbasis), tensor(a.colbasis, b.colbasis)) 
+kron(op::DiracMatrix, d::DiracVector{Ket}) = DiracMatrix(kron(op.coeffs, d.coeffs), tensor(op.rowbasis, d.basis), op.colbasis)
+kron(op::DiracMatrix, d::DiracVector{Bra}) = DiracMatrix(kron(op.coeffs, d.coeffs), op.rowbasis, tensor(op.colbasis, d.basis))
+kron(d::DiracVector{Ket}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), tensor(d.basis, op.rowbasis), op.colbasis)
+kron(d::DiracVector{Bra}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), op.rowbasis, tensor(d.basis, op.colbasis))
+kron{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(kron(a.coeffs, b.coeffs), tensor(a.basis, b.basis))
+kron(a::DiracVector{Ket}, b::DiracVector{Bra}) = DiracMatrix(kron(a.coeffs, b.coeffs), a.basis, b.basis)
+kron(a::DiracVector{Bra}, b::DiracVector{Ket}) = kron(b,a)
 
 trace(op::DiracMatrix) = trace(op.coeffs)
 commutator(a::DiracMatrix, b::DiracMatrix) = (a*b) - (b*a)

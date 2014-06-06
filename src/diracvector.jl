@@ -96,6 +96,7 @@ setindex!(d::DiracVector, y, x) = setindex!(d.coeffs, y, x)
 endof(d::DiracVector) = length(d)
 find(d::DiracVector) = find(d.coeffs)
 find(f::Function, d::DiracVector) = find(f, d.coeffs)
+findstates(f::Function, d::DiracVector) = find(f, d.basis)
 getpos(d::DiracVector, s::AbstractState) = get(d.basis, s)
 function get(d::DiracVector, s::AbstractState, notfound)
 	try
@@ -211,8 +212,8 @@ function *{A, B}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket})
 	end
 end	
 
-*{A, B}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(kron(a.coeffs,b.coeffs), copy(a.basis), copy(b.basis))
-*{A, B, K}(a::DiracVector{A, K}, b::DiracVector{B, K}) = DiracVector(kron(a.coeffs, b.coeffs), a.basis*b.basis)
+*{A, B}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(a.coeffs*b.coeffs, copy(a.basis), copy(b.basis))
+*{A, B, K}(a::DiracVector{A, K}, b::DiracVector{B, K}) = DiracVector(a.coeffs*b.coeffs, a.basis*b.basis)
 *{T,K}(s::AbstractState{K}, d::DiracVector{T, K}) = DiracVector(d.coeffs, map(x->s*x, d.basis))
 *{T, K}(d::DiracVector{T, K}, s::AbstractState{K}) = DiracVector(d.coeffs, map(x->x*s, d.basis))
 

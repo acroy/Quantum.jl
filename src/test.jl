@@ -7,7 +7,7 @@ xb2 = xb*xb
 rx = DiracMatrix(s->sqrt(label(s)+1), s->State(label(s)+1, label(xb)), xb)
 # r1 = DiracMatrix(s->sqrt(label(s[1])+1), s->State(label(s[1])+1, label(xb))*s[2], xb2)
 # r2 = DiracMatrix(s->sqrt(label(s[2])+1), s->s[1]*State(label(s[2])+1, label(xb)), xb2)
-
+d =sum([State(i, "X") for i=1:5])
 o1 = xb[1]*xb[1]'
 o2 = xb[1]*xb[2]'
 res = o1+o2

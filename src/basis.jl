@@ -82,7 +82,7 @@ end
 isequal(a::AbstractBasis, b::AbstractBasis) = isequal(a.states, b.states) && label(a)==label(b)
 ==(a::AbstractBasis, b::AbstractBasis) = a.states==b.states && label(a)==label(b)
 in(s::AbstractState, b::AbstractBasis)=in(s, b.states)
-
+find(f::Function, b::Basis) = find(f, b.states)
 filter(f::Function, b::Basis) = makebasis(b.label, filter(f, b.states))
 function filter(f::Function, b::TensorBasis) 
 	states = filter(f, b.states)
