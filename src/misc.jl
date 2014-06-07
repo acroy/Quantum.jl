@@ -1,6 +1,9 @@
-#the majority of the following code is taken from
-#or inspired by the DataFrames julia package; I didn't
-#want to force it as a dependency for just a few functions
+#the majority of the following code is inspired by/pulled from 
+#the DataFrames.jl package (https://github.com/JuliaStats/DataFrames.jl)
+#I didn't want to force DataFrames as a dependency for just a few functions.
+#DataFrames.jl is licensed under the MIT License, a copy of which
+#can be found in this repo in LICENSE.md.
+
 function rep{T <: Integer}(x::AbstractVector, lengths::AbstractVector{T})
     if length(x) != length(lengths)
         error("vector lengths must match")
