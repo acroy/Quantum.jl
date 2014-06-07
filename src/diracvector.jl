@@ -269,7 +269,7 @@ end
 -(s::AbstractState) = -1*s
 -(d::DiracVector) = DiracVector(-1*d.coeffs, d.basis)
 
-norm(v::Vector, p::Int=2) = reduce(+, [(abs(i))^p for i in v])^(1/p)  
+norm(v::Vector, p::Int=2) = sum([(abs(i))^p for i in v])^(1/p)  
 norm(d::DiracVector, p::Int=2) = norm(d.coeffs)
 
 normalize(v::Vector) = (1/norm(v))*v

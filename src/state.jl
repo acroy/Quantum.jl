@@ -76,12 +76,12 @@ end
 
 function *(a::TensorState{Bra}, b::State{Ket}) 
 	ind = findfirst(s->samebasis(s,b), reverse(a.states))
-	ind==0 ? reduce(*,a[1:end-1])*(last(a)*b) : inner(a,b,ind)
+	ind==0 ? prod(a[1:end-1])*(last(a)*b) : inner(a,b,ind)
 end
 
 function *(a::State{Bra}, b::TensorState{Ket}) 
 	ind = findfirst(s->samebasis(s,a), b.states)
-	ind==0 ? (a*b[1])*reduce(*,b[2:end]) : inner(a,b,ind)
+	ind==0 ? (a*b[1])*prod(b[2:end]) : inner(a,b,ind)
 end
 
 function *(a::TensorState{Bra}, b::TensorState{Ket})
@@ -93,27 +93,27 @@ end
 
 function inner{K<:BraKet}(a::TensorState{Bra}, b::TensorState{Ket}, i::Int, target::Type{K}=Ket)
 	if target==Ket
-		return reduce(*, vcat(a*b[i], b[1:i-1], b[i+1:end]))
+		return prod(vcat(a*b[i], b[1:i-1], b[i+1:end]))
 	else 
-		return reduce(*, vcat(a[1:i-1], a[i+1:end], a[i]*b))
+		return prod(vcat(a[1:i-1], a[i+1:end], a[i]*b))
 	end
 end
 
-inner(a::State{Bra}, b::TensorState{Ket}, i::Int) = reduce(*, vcat(a*b[i], b[1:i-1], b[i+1:end]))
-inner(a::TensorState{Bra}, b::State{Ket}, i::Int) = reduce(*, vcat(a[1:i-1], a[i+1:end], a[i]*b))
+inner(a::State{Bra}, b::TensorState{Ket}, i::Int) = prod(vcat(a*b[i], b[1:i-1], b[i+1:end]))
+inner(a::TensorState{Bra}, b::State{Ket}, i::Int) = prod(vcat(a[1:i-1], a[i+1:end], a[i]*b))
 
 *(a::AbstractState{Ket}, b::AbstractState{Bra}) = OuterProduct(a,b)
 
 tensor() = nothing
 tensor(s::AbstractState) = s
-tensor{K}(s::AbstractState{K}...) = reduce(*, s) 
+tensor{K}(s::AbstractState{K}...) = prod(s) 
 tensor{S<:AbstractState}(arr::Array{S}) = tensor(arr...)
 
 tensorarr(arrs::Array...) = crossjoin(arrs...)
 
 statearr{K<:BraKet}(arr::Array, basislabel::String="?", kind::Type{K}=Ket) = State{K}[State(i, basislabel, kind) for i in arr]
 statearr{K<:BraKet}(arr::Array, kind::Type{K}) = statearr(arr, "?", kind)
-statejoin{S<:AbstractState}(state_arr::Array{S,2}) = [reduce(*, state_arr[i, :]) for i=1:size(state_arr, 1)]
+statejoin{S<:AbstractState}(state_arr::Array{S,2}) = [prod(state_arr[i, :]) for i=1:size(state_arr, 1)]
 
 separate(s::TensorState) = s.states
 
