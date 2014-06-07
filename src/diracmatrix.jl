@@ -189,10 +189,8 @@ function *(a::DiracMatrix, b::DiracMatrix)
 	if isdual(a.colbasis, b.rowbasis)
 		return DiracMatrix(a.coeffs*b.coeffs, a.rowbasis, b.colbasis)
 	else
-		terms = [(a[i,j]*b[m,n]*(a.colbasis[j]*b.rowbasis[m]))*(a.rowbasis[i]*b.colbasis[n]) 
-						 for n=1:size(b,2), m=1:size(b,1), j=1:size(a,2), i=1:size(a,1)]
-		terms = filter(x->x[1]!=0, terms)
-		return isempty(terms) ? 0 : reduce(+, terms)
+		return sum([(a[i,j]*b[m,n]*(a.colbasis[j]*b.rowbasis[m]))*(a.rowbasis[i]*b.colbasis[n]) 
+						 for n=1:size(b,2), m=1:size(b,1), j=1:size(a,2), i=1:size(a,1)])
 	end
 end
 
@@ -203,8 +201,8 @@ function +(op::DiracMatrix, o::OuterProduct)
 		return res
 	elseif samebasis(op, o)
 		#unecessary rehashing occurs here...
-		rowb = tobasis(vcat(op.rowbasis[:], o.ket))
-		colb = tobasis(vcat(op.colbasis[:], o.bra))
+		rowb = basisjoin(op.rowbasis, o.ket)
+		colb = basisjoin(op.colbasis, o.bra)
 		res = DiracMatrix(convert(typeof(op.coeffs), zeros(length(rowb),length(colb))), rowb, colb)
 		res[1:size(op,1), 1:size(op,2)] = op.coeffs
 		res[getpos(res, o)...] = 1+get(res, o)
@@ -221,8 +219,8 @@ function +(o::OuterProduct, op::DiracMatrix)
 		return res
 	elseif samebasis(o,op)
 		#unecessary rehashing occurs here...
-		rowb = tobasis(vcat(o.ket, op.rowbasis[:]))
-		colb = tobasis(vcat(o.bra, op.colbasis[:]))
+		rowb = basisjoin(o.ket, op.rowbasis)
+		colb = basisjoin(o.bra, op.colbasis)
 		res = DiracMatrix(convert(typeof(op.coeffs), zeros(length(rowb),length(colb))), rowb, colb)
 		res[(size(res,1)-size(op,1)+1):size(op,1), (size(res,2)-size(op,2)+1):size(op,2)] = op.coeffs
 		res[getpos(res, o)...] = 1+get(res, o)
@@ -254,6 +252,9 @@ end
 -(op::DiracMatrix) = -1*op
 -(a::DiracMatrix, b::DiracMatrix) = a+(-b)
 
+exp(op::DiracMatrix) = DiracMatrix(exp(op.coeffs), op.rowbasis, op.colbasis)
+expm(op::DiracMatrix) = DiracMatrix(expm(op.coeffs), op.rowbasis, op.colbasis)
+
 kron(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(kron(a.coeffs, b.coeffs), tensor(a.rowbasis, b.rowbasis), tensor(a.colbasis, b.colbasis)) 
 kron(op::DiracMatrix, d::DiracVector{Ket}) = DiracMatrix(kron(op.coeffs, d.coeffs), tensor(op.rowbasis, d.basis), op.colbasis)
 kron(op::DiracMatrix, d::DiracVector{Bra}) = DiracMatrix(kron(op.coeffs, d.coeffs), op.rowbasis, tensor(op.colbasis, d.basis))
@@ -262,6 +263,9 @@ kron(d::DiracVector{Bra}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeff
 kron{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(kron(a.coeffs, b.coeffs), tensor(a.basis, b.basis))
 kron(a::DiracVector{Ket}, b::DiracVector{Bra}) = DiracMatrix(kron(a.coeffs, b.coeffs), a.basis, b.basis)
 kron(a::DiracVector{Bra}, b::DiracVector{Ket}) = kron(b,a)
+kron(a::AbstractScalar, b::AbstractScalar) = a*b
+kron(a::Dirac, b::DiracCoeff) = a*b
+kron(a::DiracCoeff, b::Dirac) = b*a
 
 trace(op::DiracMatrix) = trace(op.coeffs)
 commutator(a::DiracMatrix, b::DiracMatrix) = (a*b) - (b*a)

@@ -180,14 +180,14 @@ function *{T}(s::AbstractState{Bra}, d::DiracVector{T, Ket})
 	if samebasis(d,s)	
 		return get(d, s', 0)
 	else
-		return reduce(+, [d[i]*(s*d.basis[i]) for i=1:length(d)])
+		return sum([d[i]*(s*d.basis[i]) for i=1:length(d)])
 	end
 end
 function *{T}(d::DiracVector{T, Bra}, s::AbstractState{Ket})
 	if samebasis(d,s)	
 		return get(d, s', 0)
 	else
-		return reduce(+, [d[i]*(d.basis[i]*s) for i=1:length(d)])
+		return sum([d[i]*(d.basis[i]*s) for i=1:length(d)])
 	end
 end
 
@@ -195,19 +195,19 @@ function *{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, K
 	if a.basis==b.basis 
 		return (a.coeffs*b.coeffs)[1]
 	else
-		return reduce(+, [a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
+		return sum([a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
 	end
 end
 
 function *{A, B}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket})
 	if a.basis==b.basis 
-		return reduce(+, [a[i]*b[i]*(a.basis[i]*b.basis[i]) for i=1:length(a)]) 
+		return sum([a[i]*b[i]*(a.basis[i]*b.basis[i]) for i=1:length(a)]) 
 	else
-		return reduce(+, [a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
+		return sum([a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
 	end
 end	
 
-*{A, B}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(a.coeffs*b.coeffs, copy(a.basis), copy(b.basis))
+*{A, B}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
 *{A, B, K}(a::DiracVector{A, K}, b::DiracVector{B, K}) = DiracVector(a.coeffs*b.coeffs, a.basis*b.basis)
 *{T,K}(s::AbstractState{K}, d::DiracVector{T, K}) = DiracVector(d.coeffs, map(x->s*x, d.basis))
 *{T, K}(d::DiracVector{T, K}, s::AbstractState{K}) = DiracVector(d.coeffs, map(x->x*s, d.basis))
@@ -219,9 +219,9 @@ function +{T,K}(d::DiracVector{T,K}, s::AbstractState{K})
 		return res
 	elseif samebasis(d,s)
 		if K==Ket
-			return DiracVector(vcat(d.coeffs, 1), d.basis+tobasis(s))
+			return DiracVector(vcat(d.coeffs, 1), basisjoin(d.basis,s))
 		else
-			return DiracVector(hcat(d.coeffs, 1), d.basis+tobasis(s))
+			return DiracVector(hcat(d.coeffs, 1), basisjoin(d.basis,s))
 		end
 	else
 		error("BasisMismatch")
@@ -235,9 +235,9 @@ function +{T,K}(s::AbstractState{K}, d::DiracVector{T,K})
 		return res
 	elseif samebasis(d,s)
 		if K==Ket
-			return DiracVector(vcat(1, d.coeffs), tobasis(s)+d.basis)
+			return DiracVector(vcat(1, d.coeffs), basisjoin(s, d.basis))
 		else
-			return DiracVector(hcat(1, d.coeffs), tobasis(s)+d.basis)
+			return DiracVector(hcat(1, d.coeffs), basisjoin(s, d.basis))
 		end
 	else
 		error("BasisMismatch")
