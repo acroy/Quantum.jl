@@ -124,15 +124,8 @@ end
 #####################################
 
 find(f::Function, b::Basis) = find(f, b.states)
-filter(f::Function, b::Basis) = makebasis(b.label, filter(f, b.states))
-function filter(f::Function, b::TensorBasis) 
-	states = filter(f, b.states)
-	b_arr = Array(Basis{kind(b)}, size(b,2))
-	for i=1:size(b)[2]
-		b_arr[i] = Basis("?", unique(map(x->getindex(x,i), states)))
-    end
-	TensorBasis(b_arr, states)
-end
+filter(f::Function, b::Basis) = Basis(filter(f, b.states))
+filter(f::Function, b::TensorBasis) = TensorBasis(filter(f, b.states))
 
 function map(f::Function, b::AbstractBasis) 
 	newstates = map(f, b.states)
@@ -211,8 +204,8 @@ setdiff{B<:AbstractBasis}(a::B,b::B) = setdiff(a.states, b.states)
 tobasis(s::State) = Basis(s)
 tobasis(s::TensorState) = TensorBasis(map(Basis, separate(s)), [s])
 tobasis(s::AbstractState...) = tobasis(vcat(s...))
-tobasis{S<:State}(v::Vector{S}) = Basis(v)
-tobasis{S<:TensorState}(v::Vector{S}) = TensorBasis(v)
+tobasis{S<:State}(v::Array{S}) = Basis(vec(v))
+tobasis{S<:TensorState}(v::Array{S}) = TensorBasis(vec(v))
 
-separate(b::Basis)=b
+separate(b::Basis)=[b]
 separate(b::TensorBasis) = b.bases
