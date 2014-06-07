@@ -62,14 +62,13 @@ module Quantum
 	abstract AbstractScalar <: Dirac
 	typealias DiracCoeff Union(Number, AbstractScalar)
 
-
 	!(K::Type{Ket}) = Bra
 	!(B::Type{Bra}) = Ket
 
 	#####################################
 	#includes############################
 	#####################################
-	include("util.jl")
+	include("crossjoin.jl")
 	include("state.jl")
 	include("basis.jl")
 	include("products.jl")

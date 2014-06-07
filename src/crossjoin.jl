@@ -4,7 +4,7 @@
 #DataFrames.jl is licensed under the MIT License, a copy of which
 #can be found in this repo in LICENSE.md.
 
-#This whole thing contains functions that are useful for crossjoining 
+#This file contains functions that are useful for crossjoining 
 #arbitrary arrays, and are thus useful for building a tensor product
 #structure. 
 
