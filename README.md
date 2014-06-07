@@ -59,9 +59,12 @@ Features
 	  objects support all basic arithmetic operations. 
 	- The ability to perform mixed basis calculation via the use of ScalarExprs and InnerProducts
 
-###Upcoming:
-	- More functions; almost finished with the basic package!
+###Planned (i.e. Coming Soon):
+	- Test modules
+	- Arithmetic operations between Dirac types and generic arrays
 	- Documentation
+	- register Quantum.jl as julia package
+
+###Long Term:
 	- HDF5 support
 	- design a system for data visualization of common state properties/operations
-	- package Quantum.jl as an open-source library that other Julia users can utilize

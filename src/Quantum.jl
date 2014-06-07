@@ -143,4 +143,3 @@ module Quantum
 		   isdual,
 		   samebasis
 end
-print("")
