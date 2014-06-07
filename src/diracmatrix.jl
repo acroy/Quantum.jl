@@ -33,43 +33,16 @@ function DiracMatrix(fcoeff::Function, fstate::Function, b::AbstractBasis{Ket})
 	return DiracMatrix(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), b) #use vcat()/hcat() trick to convert to most primitive common type
 end
 
+#####################################
+#Misc Functions######################
+#####################################
+
 basislabel(op::DiracMatrix) = [label(op.rowbasis), label(op.colbasis)]
-isdual(a::DiracMatrix, b::DiracMatrix) = a'==b
 
-#####################################
-#Show Functions######################
-#####################################
-function showcompact(io::IO, op::DiracMatrix)
-	if length(op.coeffs)==0
-		print(io, "$(typeof(op))[]")
-	else
-		tempio = IOBuffer()
-		print(tempio, [" + ($(op.coeffs[i,j])$(op.rowbasis[i])$(op.colbasis[j]))" for i=1:length(op.rowbasis), j=1:length(op.colbasis)]...)
-		print(io, takebuf_string(tempio)[3:end])
-	end
-end
-function show(io::IO, op::DiracMatrix)
-	println("$(typeof(op)):")
-	table = cell(length(op.rowbasis)+1, length(op.colbasis)+1)	
-	for i = 1:length(op.rowbasis)
-		table[i+1,1] = op.rowbasis[i]
-	end
-	for j = 1:length(op.colbasis)
-		table[1,j+1] = op.colbasis[j]
-	end
-	table[1,1] = 0
-	table[2:end, 2:end] = op.coeffs	
-	temp_io = IOBuffer()
-	show(temp_io, table)
-	io_str = takebuf_string(temp_io)
-	print(io, io_str[searchindex(io_str, "\n")+3:end])
-end
-
-#####################################
-#Matrix/Dict Functions###############
-#####################################
 isequal(a::DiracMatrix, b::DiracMatrix) = isequal(a.coeffs,b.coeffs) && a.rowbasis==b.rowbasis && a.colbasis==b.colbasis 
 ==(a::DiracMatrix, b::DiracMatrix) = a.coeffs==b.coeffs && a.rowbasis==b.rowbasis && a.colbasis==b.colbasis 
+
+isdual(a::DiracMatrix, b::DiracMatrix) = a'==b
 
 ndims(op::DiracMatrix) = ndims(op.coeffs)
 size(op::DiracMatrix, args...) = size(op.coeffs, args...)
@@ -105,11 +78,40 @@ function get(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}, notf
 		return notfound
 	end
 end
+#####################################
+#Show Functions######################
+#####################################
+function showcompact(io::IO, op::DiracMatrix)
+	if length(op.coeffs)==0
+		print(io, "$(typeof(op))[]")
+	else
+		tempio = IOBuffer()
+		print(tempio, [" + ($(op.coeffs[i,j])$(op.rowbasis[i])$(op.colbasis[j]))" for i=1:length(op.rowbasis), j=1:length(op.colbasis)]...)
+		print(io, takebuf_string(tempio)[3:end])
+	end
+end
+function show(io::IO, op::DiracMatrix)
+	println("$(typeof(op)):")
+	table = cell(length(op.rowbasis)+1, length(op.colbasis)+1)	
+	for i = 1:length(op.rowbasis)
+		table[i+1,1] = op.rowbasis[i]
+	end
+	for j = 1:length(op.colbasis)
+		table[1,j+1] = op.colbasis[j]
+	end
+	table[1,1] = 0
+	table[2:end, 2:end] = op.coeffs	
+	temp_io = IOBuffer()
+	show(temp_io, table)
+	io_str = takebuf_string(temp_io)
+	print(io, io_str[searchindex(io_str, "\n")+3:end])
+end
 
 #####################################
 #Function-passing Functions##########
 #####################################
 
+find(op::DiracMatrix) = find(op.coeffs)
 find(f::Function, op::DiracMatrix) = find(f, op.coeffs)
 findstates(f::Function, op::DiracMatrix) = find(f, [op.rowbasis[i]*op.colbasis[j] for i=1:length(op.rowbasis), j=1:length(op.colbasis)]) #f takes OuterProduct as argument
 
@@ -141,7 +143,7 @@ end
 qeval(f::Function, op::DiracMatrix) = map(x->qeval(f, x), op)
 
 #####################################
-#Arithmetic Functions################
+#Arithmetic Operations###############
 #####################################
 for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(a::DiracMatrix, b::DiracVector) = DiracMatrix(($op)(a.coeffs,b.coeffs), a.rowbasis, a.colbasis)
@@ -254,18 +256,6 @@ end
 
 exp(op::DiracMatrix) = DiracMatrix(exp(op.coeffs), op.rowbasis, op.colbasis)
 expm(op::DiracMatrix) = DiracMatrix(expm(op.coeffs), op.rowbasis, op.colbasis)
-
-kron(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(kron(a.coeffs, b.coeffs), tensor(a.rowbasis, b.rowbasis), tensor(a.colbasis, b.colbasis)) 
-kron(op::DiracMatrix, d::DiracVector{Ket}) = DiracMatrix(kron(op.coeffs, d.coeffs), tensor(op.rowbasis, d.basis), op.colbasis)
-kron(op::DiracMatrix, d::DiracVector{Bra}) = DiracMatrix(kron(op.coeffs, d.coeffs), op.rowbasis, tensor(op.colbasis, d.basis))
-kron(d::DiracVector{Ket}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), tensor(d.basis, op.rowbasis), op.colbasis)
-kron(d::DiracVector{Bra}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), op.rowbasis, tensor(d.basis, op.colbasis))
-kron{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(kron(a.coeffs, b.coeffs), tensor(a.basis, b.basis))
-kron(a::DiracVector{Ket}, b::DiracVector{Bra}) = DiracMatrix(kron(a.coeffs, b.coeffs), a.basis, b.basis)
-kron(a::DiracVector{Bra}, b::DiracVector{Ket}) = kron(b,a)
-kron(a::AbstractScalar, b::AbstractScalar) = a*b
-kron(a::Dirac, b::DiracCoeff) = a*b
-kron(a::DiracCoeff, b::Dirac) = b*a
 
 trace(op::DiracMatrix) = trace(op.coeffs)
 commutator(a::DiracMatrix, b::DiracMatrix) = (a*b) - (b*a)

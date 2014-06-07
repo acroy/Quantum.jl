@@ -1,3 +1,7 @@
+#####################################
+#State/TensorState###################
+#####################################
+
 immutable State{K<:BraKet} <: AbstractState{K}
   label
   basislabel::String
@@ -16,6 +20,10 @@ TensorState{K<:BraKet}(states::Vector{State{K}}, kind::Type{K}=Ket) = TensorStat
 TensorState{K<:BraKet}(labels::Vector, basislabel::String="?", kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind), kind)
 TensorState{K<:BraKet}(labels::Vector, kind::Type{K}=Ket) = TensorState(labels, "?", kind)
 
+#####################################
+#Misc Functions######################
+#####################################
+
 copy(s::State) = State(copy(s.label), copy(s.basislabel), copy(s.kind))
 copy(s::TensorState) = TensorState(copy(s.states), copy(s.kind))
 
@@ -33,6 +41,26 @@ ctranspose(s::TensorState) = TensorState(map(ctranspose, s.states), !s.kind)
 
 getindex(s::TensorState, x) = s.states[x]
 
+kind(s::AbstractState) = s.kind
+basislabel(s::State) = s.basislabel
+label(s::State) = s.label
+basislabel(s::TensorState) = map(basislabel, s.states)
+label(s::TensorState) = map(label, s.states)
+
+isdual(a::State{Ket}, b::State{Bra}) = label(a)==label(b) && samebasis(a,b)
+isdual(a::State{Bra}, b::State{Ket}) = isdual(b,a)
+isdual(a::TensorState{Ket}, b::TensorState{Bra}) = label(a)==label(b) && samebasis(a,b)
+isdual(a::TensorState{Bra}, b::TensorState{Ket}) = isdual(b,a)
+isdual(a::AbstractState, b::AbstractState) = false #default to false
+
+for op=(:length, :endof)
+	@eval ($op)(s::TensorState) = $(op)(s.states)
+end
+
+#####################################
+#Show Functions######################
+#####################################
+
 reprlabel(s::State) = "$(repr(s.label))_$(s.basislabel)"
 function reprlabel(s::TensorState)
 	str = "$(reprlabel(s.states[1]))"
@@ -45,15 +73,9 @@ end
 show(io::IO, s::AbstractState{Ket}) = print(io, "| $(reprlabel(s)) $rang")
 show(io::IO, s::AbstractState{Bra}) = print(io, "$lang $(reprlabel(s)) |")
 
-kind(s::AbstractState) = s.kind
-basislabel(s::State) = s.basislabel
-label(s::State) = s.label
-basislabel(s::TensorState) = map(basislabel, s.states)
-label(s::TensorState) = map(label, s.states)
-
-for op=(:length, :endof)
-	@eval ($op)(s::TensorState) = $(op)(s.states)
-end
+#####################################
+#Arithmetic Operations###############
+#####################################
 
 *{K}(a::State{K}, b::State{K}) = TensorState([a,b], K)
 *{K}(a::TensorState{K}, b::State{K}) = TensorState(vcat(a.states, b), K)
@@ -91,6 +113,12 @@ function *(a::TensorState{Bra}, b::TensorState{Ket})
 	return b
 end
 
+*(a::AbstractState{Ket}, b::AbstractState{Bra}) = OuterProduct(a,b)
+
+#####################################
+#Product Functions###################
+#####################################
+
 function inner{K<:BraKet}(a::TensorState{Bra}, b::TensorState{Ket}, i::Int, target::Type{K}=Ket)
 	if target==Ket
 		return prod(vcat(a*b[i], b[1:i-1], b[i+1:end]))
@@ -101,8 +129,6 @@ end
 
 inner(a::State{Bra}, b::TensorState{Ket}, i::Int) = prod(vcat(a*b[i], b[1:i-1], b[i+1:end]))
 inner(a::TensorState{Bra}, b::State{Ket}, i::Int) = prod(vcat(a[1:i-1], a[i+1:end], a[i]*b))
-
-*(a::AbstractState{Ket}, b::AbstractState{Bra}) = OuterProduct(a,b)
 
 tensor() = nothing
 tensor(s::AbstractState) = s
@@ -116,10 +142,3 @@ statearr{K<:BraKet}(arr::Array, kind::Type{K}) = statearr(arr, "?", kind)
 statejoin{S<:AbstractState}(state_arr::Array{S,2}) = [prod(state_arr[i, :]) for i=1:size(state_arr, 1)]
 
 separate(s::TensorState) = s.states
-
-isdual(a::State{Ket}, b::State{Bra}) = label(a)==label(b) && samebasis(a,b)
-isdual(a::State{Bra}, b::State{Ket}) = isdual(b,a)
-isdual(a::TensorState{Ket}, b::TensorState{Bra}) = label(a)==label(b) && samebasis(a,b)
-isdual(a::TensorState{Bra}, b::TensorState{Ket}) = isdual(b,a)
-isdual(a::AbstractState, b::AbstractState) = false #default to false
-

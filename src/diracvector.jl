@@ -31,6 +31,11 @@ type DiracVector{T,K<:BraKet} <: Dirac
 end
 
 DiracVector{T,K}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{T,K}(coeffs, basis)
+
+#####################################
+#Misc Functions######################
+#####################################
+
 copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
 isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis==b.basis
 ==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
@@ -38,6 +43,28 @@ basislabel(d::DiracVector) = label(d.basis)
 isdual{A,B}(a::DiracVector{A,Ket}, b::DiracVector{B,Bra}) = isdual(a.basis, b.basis) && a.coeffs==b.coeffs'
 isdual{A,B}(a::DiracVector{A,Bra}, b::DiracVector{B,Ket}) = isdual(b,a)
 isdual{A,B,K}(a::DiracVector{A,K}, b::DiracVector{B,K}) = false #default to false
+
+ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
+getindex(d::DiracVector, x) = d.coeffs[x]
+length(d::DiracVector) = length(d.coeffs)
+size(d::DiracVector, args...) = size(d.coeffs, args...)
+kind(d::DiracVector) = kind(d.basis)
+setindex!(d::DiracVector, y, x) = setindex!(d.coeffs, y, x)
+endof(d::DiracVector) = length(d)
+find(d::DiracVector) = find(d.coeffs)
+find(f::Function, d::DiracVector) = find(f, d.coeffs)
+findstates(f::Function, d::DiracVector) = find(f, d.basis)
+getpos(d::DiracVector, s::AbstractState) = get(d.basis, s)
+function get(d::DiracVector, s::AbstractState, notfound)
+	try
+		return d[getpos(d, s)]
+	catch
+		return notfound
+	end
+end
+
+get(d::DiracVector, s::AbstractState) = d[getpos(d, s)]
+get(d::DiracVector, label) = get(d, typeof(d.basis)<:Basis ? State(label) : TensorState(label))
 
 #####################################
 #Show Functions######################
@@ -83,31 +110,6 @@ function show(io::IO, d::DiracVector)
 		print(io, io_str)
 	end
 end
-
-#####################################
-#Array/Dict Functions################
-#####################################
-ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
-getindex(d::DiracVector, x) = d.coeffs[x]
-length(d::DiracVector) = length(d.coeffs)
-size(d::DiracVector, args...) = size(d.coeffs, args...)
-kind(d::DiracVector) = kind(d.basis)
-setindex!(d::DiracVector, y, x) = setindex!(d.coeffs, y, x)
-endof(d::DiracVector) = length(d)
-find(d::DiracVector) = find(d.coeffs)
-find(f::Function, d::DiracVector) = find(f, d.coeffs)
-findstates(f::Function, d::DiracVector) = find(f, d.basis)
-getpos(d::DiracVector, s::AbstractState) = get(d.basis, s)
-function get(d::DiracVector, s::AbstractState, notfound)
-	try
-		return d[getpos(d, s)]
-	catch
-		return notfound
-	end
-end
-
-get(d::DiracVector, s::AbstractState) = d[getpos(d, s)]
-get(d::DiracVector, label) = get(d, typeof(d.basis)<:Basis ? State(label) : TensorState(label))
 
 #####################################
 #Function-passing Functions##########
@@ -164,7 +166,7 @@ end
 qeval(f::Function, d::DiracVector) = map(x->qeval(f, x), d)
 
 #####################################
-#Arithmetic Functions################
+#Arithmetic Operations###############
 #####################################
 
 for op=(:.*,:.-,:.+,:./,:.^)
