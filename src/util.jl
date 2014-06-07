@@ -8,9 +8,6 @@
 #arbitrary arrays, and are thus useful for building a tensor product
 #structure. 
 
-#At some point, this code should be refactored to utilize Base.Cartesian
-#since, AFAIK, julia does not yet feature tail-call optimization. 
-
 function rep{T <: Integer}(x::AbstractVector, lengths::AbstractVector{T})
     if length(x) != length(lengths)
         error("vector lengths must match")
