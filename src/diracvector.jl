@@ -210,7 +210,7 @@ function *(a::DiracVector{Bra}, b::DiracVector{Ket})
 end	
 
 *(a::DiracVector{Ket}, b::DiracVector{Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
-*{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(a.coeffs*b.coeffs, a.basis*b.basis)
+*{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(kron(a.coeffs,b.coeffs), a.basis*b.basis)
 *{K}(s::AbstractState{K}, d::DiracVector{K}) = DiracVector(d.coeffs, map(x->s*x, d.basis))
 *{K}(d::DiracVector{K}, s::AbstractState{K}) = DiracVector(d.coeffs, map(x->x*s, d.basis))
 
