@@ -85,7 +85,7 @@ show(io::IO, s::AbstractState{Bra}) = print(io, "$lang $(reprlabel(s)) |")
 *(s::AbstractState, c::DiracCoeff) = *(c,s)
 
 function *(a::State{Bra}, b::State{Ket})
-	if samebasis(a, b) && !samebasis(a, "?") && !samebasis(b, "?")
+	if samebasis(a, b)
 		if a.label == b.label
 			return 1
 		else

@@ -257,7 +257,8 @@ end
 
 exp(op::DiracMatrix) = DiracMatrix(exp(op.coeffs), op.rowbasis, op.colbasis)
 expm(op::DiracMatrix) = DiracMatrix(expm(op.coeffs), op.rowbasis, op.colbasis)
-
+^(op::DiracMatrix, i::Integer) = DiracMatrix(^(op.coeffs, i), op.rowbasis, op.colbasis)
+^(op::DiracMatrix, n::Number) = DiracMatrix(^(op.coeffs, n), op.rowbasis, op.colbasis)
 trace(op::DiracMatrix) = trace(op.coeffs)
 commutator(a::DiracMatrix, b::DiracMatrix) = (a*b) - (b*a)
 
