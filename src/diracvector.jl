@@ -2,7 +2,7 @@
 #DiracVector#########################
 #####################################
 
-type DiracVector{T,K<:BraKet} <: Dirac
+type DiracVector{K<:BraKet, T} <: Dirac
 	coeffs::Array{T} 
 	basis::AbstractBasis{K}
 	function DiracVector(coeffs, basis)
@@ -30,7 +30,7 @@ type DiracVector{T,K<:BraKet} <: Dirac
 	end
 end
 
-DiracVector{T,K}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{T,K}(coeffs, basis)
+DiracVector{K,T}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{K,T}(coeffs, basis)
 
 #####################################
 #Misc Functions######################
@@ -40,10 +40,10 @@ copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
 isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis==b.basis
 ==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
 basislabel(d::DiracVector) = label(d.basis)
-isdual{A,B}(a::DiracVector{A,Ket}, b::DiracVector{B,Bra}) = isdual(a.basis, b.basis) && a.coeffs==b.coeffs'
-isdual{A,B}(a::DiracVector{A,Bra}, b::DiracVector{B,Ket}) = isdual(b,a)
-isdual{A,B,K}(a::DiracVector{A,K}, b::DiracVector{B,K}) = false #default to false
-
+isdual(a::DiracVector{Ket}, b::DiracVector{Bra}) = isdual(a.basis, b.basis) && a.coeffs==b.coeffs'
+isdual(a::DiracVector{Bra}, b::DiracVector{Ket}) = isdual(b,a)
+isdual{K}(a::DiracVector{K}, b::DiracVector{K}) = false #default to false
+eltype(d::DiracVector) = eltype(d.coeffs)
 ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
 getindex(d::DiracVector, x) = d.coeffs[x]
 length(d::DiracVector) = length(d.coeffs)
@@ -178,14 +178,14 @@ end
 *(c::DiracCoeff, d::DiracVector) = c.*d
 *(d::DiracVector, c::DiracCoeff) = c*d
 
-function *{T}(s::AbstractState{Bra}, d::DiracVector{T, Ket})
+function *(s::AbstractState{Bra}, d::DiracVector{Ket})
 	if samebasis(d,s)	
 		return get(d, s', 0)
 	else
 		return sum([d[i]*(s*d.basis[i]) for i=1:length(d)])
 	end
 end
-function *{T}(d::DiracVector{T, Bra}, s::AbstractState{Ket})
+function *(d::DiracVector{Bra}, s::AbstractState{Ket})
 	if samebasis(d,s)	
 		return get(d, s', 0)
 	else
@@ -193,7 +193,7 @@ function *{T}(d::DiracVector{T, Bra}, s::AbstractState{Ket})
 	end
 end
 
-function *{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, Ket})
+function *{N1<:Number, N2<:Number}(a::DiracVector{Bra, N1}, b::DiracVector{Ket, N2})
 	if a.basis==b.basis 
 		return (a.coeffs*b.coeffs)[1]
 	else
@@ -201,7 +201,7 @@ function *{N1<:Number, N2<:Number}(a::DiracVector{N1, Bra}, b::DiracVector{N2, K
 	end
 end
 
-function *{A, B}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket})
+function *(a::DiracVector{Bra}, b::DiracVector{Ket})
 	if a.basis==b.basis 
 		return sum([a[i]*b[i]*(a.basis[i]*b.basis[i]) for i=1:length(a)]) 
 	else
@@ -209,12 +209,12 @@ function *{A, B}(a::DiracVector{A, Bra}, b::DiracVector{B, Ket})
 	end
 end	
 
-*{A, B}(a::DiracVector{A, Ket}, b::DiracVector{B, Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
-*{A, B, K}(a::DiracVector{A, K}, b::DiracVector{B, K}) = DiracVector(a.coeffs*b.coeffs, a.basis*b.basis)
-*{T,K}(s::AbstractState{K}, d::DiracVector{T, K}) = DiracVector(d.coeffs, map(x->s*x, d.basis))
-*{T, K}(d::DiracVector{T, K}, s::AbstractState{K}) = DiracVector(d.coeffs, map(x->x*s, d.basis))
+*(a::DiracVector{Ket}, b::DiracVector{Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
+*{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(a.coeffs*b.coeffs, a.basis*b.basis)
+*{K}(s::AbstractState{K}, d::DiracVector{K}) = DiracVector(d.coeffs, map(x->s*x, d.basis))
+*{K}(d::DiracVector{K}, s::AbstractState{K}) = DiracVector(d.coeffs, map(x->x*s, d.basis))
 
-function +{T,K}(d::DiracVector{T,K}, s::AbstractState{K})
+function +{K}(d::DiracVector{K}, s::AbstractState{K})
 	if in(s, d.basis)
 		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
 		res[getpos(d,s)] = 1+get(res, s)
@@ -230,7 +230,7 @@ function +{T,K}(d::DiracVector{T,K}, s::AbstractState{K})
 	end
 end
 
-function +{T,K}(s::AbstractState{K}, d::DiracVector{T,K})
+function +{K}(s::AbstractState{K}, d::DiracVector{K})
 	if in(s, d.basis)
 		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
 		res[getpos(d,s)] = 1+get(res, s)
@@ -246,7 +246,7 @@ function +{T,K}(s::AbstractState{K}, d::DiracVector{T,K})
 	end
 end
 
-function +{T1,T2,K}(a::DiracVector{T1,K}, b::DiracVector{T2,K})
+function +{K}(a::DiracVector{K}, b::DiracVector{K})
 	if a.basis==b.basis
 		return DiracVector(a.coeffs+b.coeffs, a.basis)
 	elseif samebasis(a,b)
@@ -262,9 +262,9 @@ function +{T1,T2,K}(a::DiracVector{T1,K}, b::DiracVector{T2,K})
 	end
 end
 
--{T,K}(d::DiracVector{T,K}, s::AbstractState{K}) = d+(-s)
--{T,K}(s::AbstractState{K}, d::DiracVector{T,K}) = s+(-d)
--{T1,T2,K}(a::DiracVector{T1,K}, b::DiracVector{T2,K}) = a+(-b)
+-{K}(d::DiracVector{K}, s::AbstractState{K}) = d+(-s)
+-{K}(s::AbstractState{K}, d::DiracVector{K}) = s+(-d)
+-{K}(a::DiracVector{K}, b::DiracVector{K}) = a+(-b)
 
 +{K}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1, 1], Basis([a,b])) 
 -{K}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1,-1], Basis([a,b])) 

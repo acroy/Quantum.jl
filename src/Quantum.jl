@@ -48,7 +48,8 @@ module Quantum
 		   find,
 		   trace,
 		   hash,
-		   kron
+		   kron,
+		   eltype
 
 	#####################################
 	#abstract types######################

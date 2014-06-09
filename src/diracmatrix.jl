@@ -50,6 +50,7 @@ length(op::DiracMatrix) = length(op.coeffs)
 
 endof(op::DiracMatrix) = length(op)
 find(op::DiracMatrix) = find(op.coeffs)
+eltype(op::DiracMatrix) = eltype(op.coeffs)
 
 ctranspose(op::DiracMatrix) = DiracMatrix(op.coeffs', op.colbasis', op.rowbasis')
 getindex(op::DiracMatrix, x...) = op.coeffs[x...]
@@ -171,7 +172,7 @@ function *(s::AbstractState{Bra}, op::DiracMatrix)
 		return sum([op.colbasis[j]*sum([op[i,j]*(d*op.rowbasis[i]) for j=1:length(op.rowbasis)]) for i=1:length(op.colbasis)])
 	end
 end
-function *{T}(op::DiracMatrix, d::DiracVector{T, Ket})
+function *(op::DiracMatrix, d::DiracVector{Ket})
 	if isdual(op.colbasis, d.basis)
 		return DiracVector(op.coeffs*d.coeffs, op.rowbasis)
 	else
@@ -179,7 +180,7 @@ function *{T}(op::DiracMatrix, d::DiracVector{T, Ket})
 	end
 end
 
-function *{T}(d::DiracVector{T, Bra}, op::DiracMatrix) 
+function *(d::DiracVector{Bra}, op::DiracMatrix) 
 	if isdual(op.rowbasis, d.basis)
 		return DiracVector(d.coeffs*op.coeffs, op.colbasis)
 	else
