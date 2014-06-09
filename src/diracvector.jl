@@ -40,7 +40,7 @@ copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
 isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis==b.basis
 ==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
 basislabel(d::DiracVector) = label(d.basis)
-isdual(a::DiracVector{Ket}, b::DiracVector{Bra}) = isdual(a.basis, b.basis) && a.coeffs==b.coeffs'
+isdual(a::DiracVector{Ket}, b::DiracVector{Bra}) = isdual(a.basis, b.basis) && a.coeffs==vec(b.coeffs')
 isdual(a::DiracVector{Bra}, b::DiracVector{Ket}) = isdual(b,a)
 isdual{K}(a::DiracVector{K}, b::DiracVector{K}) = false #default to false
 eltype(d::DiracVector) = eltype(d.coeffs)
@@ -271,8 +271,8 @@ end
 -(s::AbstractState) = -1*s
 -(d::DiracVector) = DiracVector(-1*d.coeffs, d.basis)
 
-norm(v::Vector, p::Int=2) = sum([(abs(i))^p for i in v])^(1/p)  
-norm(d::DiracVector, p::Int=2) = norm(d.coeffs)
+norm(v::Vector, p::Int=2) = sum(map(i->abs(i)^p, v))^(1/p)  
+norm(d::DiracVector, p::Int=2) = norm(d.coeffs, p)
 
 normalize(v::Vector) = (1/norm(v))*v
 normalize(d::DiracVector) = DiracVector(normalize(d.coeffs), d.basis)
