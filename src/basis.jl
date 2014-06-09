@@ -6,16 +6,27 @@ immutable Basis{K<:BraKet} <: AbstractBasis{K}
 	label::String
 	states::Vector{State{K}}
 	statemap::Dict{(Any,String), Int}
+	function Basis(label, states, statemap, errcheck=true)
+		if errcheck
+			if length(unique(states))==length(states)
+				new(label, states, statemap)
+			else
+				error("Basis states must be uniquely labeled")
+			end
+		else
+			new(label, states, statemap)
+		end
+	end
 end
 
-function makebasis{K}(label::String, states::Vector{State{K}})
+function makebasis{K}(label::String, states::Array{State{K}})
 	states = unique(states)
-	return Basis(label, states, ((Any,String)=>Int)[(states[i].label,states[i].basislabel)=>i for i=1:length(states)])
+	return Basis{K}(label, states, ((Any,String)=>Int)[(states[i].label,states[i].basislabel)=>i for i=1:length(states)], false)
 end
 
-Basis{K<:BraKet}(labelvec::Vector, label::String, kind::Type{K}=Ket) = makebasis(label, statearr(labelvec, label, kind))
+Basis{K<:BraKet}(labelvec::Array, label::String, kind::Type{K}=Ket) = makebasis(label, statearr(labelvec, label, kind))
 Basis{K}(s::State{K}...) = Basis(vcat(s...))
-function Basis{K<:BraKet}(s::Vector{State{K}}) 
+function Basis{K<:BraKet}(s::Array{State{K}}) 
 	bases = unique(map(basislabel, s))
 	if length(bases)>1
 		makebasis("?", s)
@@ -50,7 +61,7 @@ end
 #Misc Functions######################
 #####################################
 
-copy(b::Basis) = Basis(copy(b.label), copy(b.states), copy(b.statemap))
+copy{K}(b::Basis{K}) = Basis{K}(copy(b.label), copy(b.states), copy(b.statemap))
 copy(b::TensorBasis) = TensorBasis(copy(b.bases), copy(b.states), copy(b.statemap))
 
 kind(b::AbstractBasis) = kind(b[1])
@@ -61,16 +72,15 @@ basislabel(b::AbstractBasis) = label(b)
 
 isequal(a::AbstractBasis, b::AbstractBasis) = isequal(a.states, b.states) && label(a)==label(b)
 ==(a::AbstractBasis, b::AbstractBasis) = a.states==b.states && label(a)==label(b)
+
+ctranspose(b::TensorBasis) = TensorBasis(map(ctranspose, b.bases), map(ctranspose, b.states), b.statemap)
+ctranspose{K}(b::Basis{K}) = Basis{!K}(b.label, map(ctranspose, b.states), b.statemap, false)
+
 isdual(a::Basis{Ket}, b::Basis{Bra}) = label(a)==label(b) && a.statemap==b.statemap
 isdual(a::Basis{Bra}, b::Basis{Ket}) = isdual(b,a)
 isdual(a::TensorBasis{Ket}, b::TensorBasis{Bra}) = label(a)==label(b) && a.statemap==b.statemap
 isdual(a::TensorBasis{Bra}, b::TensorBasis{Ket}) = isdual(b,a)
 isdual(a::AbstractBasis,b::AbstractBasis)=false #default to false
-
-in(s::AbstractState, b::AbstractBasis)=in(s, b.states)
-
-ctranspose(b::TensorBasis) = TensorBasis(map(ctranspose, b.bases), map(ctranspose, b.states), b.statemap)
-ctranspose(b::Basis) = Basis(b.label, map(ctranspose, b.states), b.statemap)
 
 size(b::TensorBasis) = (length(b.states), length(b.bases))
 length(b::AbstractBasis) = length(b.states)
@@ -84,6 +94,9 @@ get(b::Basis, s::AbstractState, notfound::String) = get(b.statemap, (label(s), b
 get(b::AbstractBasis, s::AbstractState) = b.statemap[(label(s), basislabel(s))]
 get(b::Basis, label, basislabel::String) = b.statemap[(label, basislabel)]
 get(b::TensorBasis, label::Vector, basislabel::Vector{String}) = b.statemap[(label, basislabel)]
+
+in(s::AbstractState, b::AbstractBasis)= get(b,s,"FALSE")=="FALSE" ? false : true
+
 
 #####################################
 #Show Functions######################
@@ -149,12 +162,16 @@ function tensor{K}(basis::AbstractBasis{K})
 end
 
 function basisjoin{K}(b::Basis{K}, s::State{K})
-	resmap = copy(b.statemap)
-	resmap[(label(s), basislabel(s))] = length(b)+1
-	if samebasis(b, s)
-		return Basis(b.label, vcat(b.states, s), resmap)
+	if in(s, b)
+		return b
 	else
-		return Basis("?", vcat(b.states, s), resmap)
+		resmap = copy(b.statemap)
+		resmap[(label(s), basislabel(s))] = length(b)+1
+		if samebasis(b, s)
+			return Basis{K}(b.label, vcat(b.states, s), resmap, false)
+		else
+			return Basis{K}("?", vcat(b.states, s), resmap, false)
+		end
 	end
 end
 
@@ -163,12 +180,14 @@ basisjoin{K}(s::State{K}, b::Basis{K}) = Basis(vcat(s, b.states))
 function basisjoin{K}(a::Basis{K}, b::Basis{K})
 	resmap = copy(a.statemap)
 	for i=1:length(b)
-		resmap[(label(b[i]), basislabel(b[i]))] = length(b)+i
+		if !in(b[i], a)
+			resmap[(label(b[i]), basislabel(b[i]))] = length(b)+i
+		end
 	end
 	if samebasis(a,b)
-		return Basis(a.label, vcat(a.states, b.states), resmap)
+		return Basis{K}(a.label, unique(vcat(a.states, b.states)), resmap, false)
 	else
-		return Basis("?", vcat(a.states, b.states), resmap)
+		return Basis{K}("?", unique(vcat(a.states, b.states)), resmap, false)
 	end
 end
 

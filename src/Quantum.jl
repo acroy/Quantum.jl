@@ -101,6 +101,7 @@ module Quantum
 		   qeval,
 		   tobasis,
 		   basislabel,
+		   basisjoin,
 		   kind,
 		   label,
 		   statearr,

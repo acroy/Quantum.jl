@@ -97,7 +97,7 @@ function *(a::State{Bra}, b::State{Ket})
 end
 
 function *(a::TensorState{Bra}, b::State{Ket}) 
-	ind = findfirst(s->samebasis(s,b), reverse(a.states))
+	ind = findfirst(s->samebasis(s,b), a.states)
 	ind==0 ? prod(a[1:end-1])*(last(a)*b) : inner(a,b,ind)
 end
 
@@ -135,9 +135,10 @@ tensor(s::AbstractState) = s
 tensor{K}(s::AbstractState{K}...) = prod(s) 
 tensor{S<:AbstractState}(arr::Array{S}) = tensor(arr...)
 
+tensorarr(arr::Array) = arr
 tensorarr(arrs::Array...) = crossjoin(arrs...)
 
-statearr{K<:BraKet}(arr::Array, basislabel::String="?", kind::Type{K}=Ket) = State{K}[State(i, basislabel, kind) for i in arr]
+statearr{K<:BraKet}(arr::Array, basislabel::String="?", kind::Type{K}=Ket) = map(i->State(i, basislabel, kind), arr)
 statearr{K<:BraKet}(arr::Array, kind::Type{K}) = statearr(arr, "?", kind)
 statejoin{S<:AbstractState}(state_arr::Array{S,2}) = [prod(state_arr[i, :]) for i=1:size(state_arr, 1)]
 
