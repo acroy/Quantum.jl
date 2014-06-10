@@ -29,7 +29,7 @@ for op in (:+, :-, :*, :.+, :.-, :.*, :./, :kron)
 	@eval ($op){T}(a::Array{T, 1}, d::DiracVector{Bra}) = ($op)(DiracVector(a, d.basis'), d)
 	@eval ($op){T}(d::DiracVector{Bra}, a::Array{T, 1}) = ($op)(d, DiracVector(a, d.basis'))
 	@eval begin
-			function ($op){T}(a::Array{T, 2}, d::DiracVector)
+			function ($op)(a::AbstractArray, d::DiracVector)
 				if size(a,1)>1
 					return ($op)(DiracMatrix(a, d.basis), d)
 				elseif size(a,1)==1
@@ -42,7 +42,7 @@ for op in (:+, :-, :*, :.+, :.-, :.*, :./, :kron)
 			end
 	end	
 	@eval begin
-			function ($op){T}(d::DiracVector, a::Array{T, 2})
+			function ($op)(d::DiracVector, a::AbstractArray)
 				if size(a,1)>1
 					return ($op)(d, DiracMatrix(a, d.basis))
 				elseif size(a,1)==1
@@ -57,7 +57,7 @@ for op in (:+, :-, :*, :.+, :.-, :.*, :./, :kron)
 	@eval ($op){T}(a::Array{T, 1}, m::DiracMatrix) = ($op)(DiracVector(a, m.rowbasis), m)
 	@eval ($op){T}(m::DiracMatrix, a::Array{T, 1}) = ($op)(m, DiracVector(a, m.rowbasis))
 	@eval begin
-			function ($op){T}(a::Array{T, 2}, m::DiracMatrix)
+			function ($op)(a::AbstractArray, m::DiracMatrix)
 				if size(a,1)==size(m,1) && size(a,2)==size(m,2)
 					return ($op)(DiracMatrix(a, m.rowbasis, m.colbasis), m)
 				elseif size(a,1)==1
@@ -70,7 +70,7 @@ for op in (:+, :-, :*, :.+, :.-, :.*, :./, :kron)
 			end
 	end	
 	@eval begin
-			function ($op){T}(m::DiracMatrix, a::Array{T, 2})
+			function ($op)(m::DiracMatrix, a::AbstractArray)
 				if size(a,1)==size(m,1) && size(a,2)==size(m,2)
 					return ($op)(m, DiracMatrix(a, m.rowbasis, m.colbasis))
 				elseif size(a,1)==1

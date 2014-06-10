@@ -3,25 +3,21 @@
 #####################################
 
 type DiracVector{K<:BraKet, T} <: Dirac
-	coeffs::Array{T} 
+	coeffs::SparseMatrixCSC{T} 
 	basis::AbstractBasis{K}
 	function DiracVector(coeffs, basis)
 		if samebasis("?", basis)
 			error("BasisMismatch: cannot represent mixed basis object as linear combination")
 		else
 			if K==Ket
-				if size(coeffs)==(length(basis),)
+				if size(coeffs)==(length(basis),1)
 					new(coeffs, basis)
-				elseif size(coeffs)==(length(basis),1)
-					new(vec(coeffs), basis)
 				else
 					error("Dimensions of coefficient array does not match basis")
 				end
 			else
 				if size(coeffs)==(1,length(basis))
 					new(coeffs, basis)
-				elseif length(coeffs)==1
-			 		new(coeffs.', basis)
 			 	else
 			 		error("Dimensions of coefficient array does not match basis")
 			 	end
@@ -30,7 +26,8 @@ type DiracVector{K<:BraKet, T} <: Dirac
 	end
 end
 
-DiracVector{K,T}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{K,T}(coeffs, basis)
+DiracVector{K,T}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{K,T}(sparse(coeffs), basis)
+DiracVector{K,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{K}) = DiracVector{K,T}(coeffs, basis)
 
 #####################################
 #Misc Functions######################
@@ -83,18 +80,18 @@ function show(io::IO, d::DiracVector)
 	else	
 		println("$(typeof(d)):")
 		table = cell(length(d), 2)	
-		if length(d.coeffs)>=52
+		if length(d)>=52
 			for i=1:25
 				table[i,1]= d.coeffs[i]
 				table[i,2]= d.basis[i]
 			end
-			table[26:(length(d.coeffs)-25),:] = 0 # prevents access to undefined reference
-			for i=(length(d.coeffs)-25):length(d.coeffs)
+			table[26:(length(d)-25),:] = 0 # prevents access to undefined reference
+			for i=(length(d)-25):length(d)
 				table[i,1]= d.coeffs[i]
 				table[i,2]= d.basis[i]
 			end
 		else
-			for i=1:length(d.coeffs)
+			for i=1:length(d)
 				table[i,1]= d.coeffs[i]
 				table[i,2]= d.basis[i]
 			end
@@ -182,14 +179,14 @@ function *(s::AbstractState{Bra}, d::DiracVector{Ket})
 	if samebasis(d,s)	
 		return get(d, s', 0)
 	else
-		return sum([d[i]*(s*d.basis[i]) for i=1:length(d)])
+		return reduce(+,[d[i]*(s*d.basis[i]) for i=1:length(d)])
 	end
 end
 function *(d::DiracVector{Bra}, s::AbstractState{Ket})
 	if samebasis(d,s)	
 		return get(d, s', 0)
 	else
-		return sum([d[i]*(d.basis[i]*s) for i=1:length(d)])
+		return reduce(+,[d[i]*(d.basis[i]*s) for i=1:length(d)])
 	end
 end
 
@@ -197,15 +194,15 @@ function *{N1<:Number, N2<:Number}(a::DiracVector{Bra, N1}, b::DiracVector{Ket, 
 	if a.basis==b.basis 
 		return (a.coeffs*b.coeffs)[1]
 	else
-		return sum([a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
+		return reduce(+,[a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
 	end
 end
 
 function *(a::DiracVector{Bra}, b::DiracVector{Ket})
 	if a.basis==b.basis 
-		return sum([a[i]*b[i]*(a.basis[i]*b.basis[i]) for i=1:length(a)]) 
+		return reduce(+,[a[i]*b[i]*(a.basis[i]*b.basis[i]) for i=1:length(a)]) 
 	else
-		return sum([a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
+		return reduce(+,[a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
 	end
 end	
 
@@ -266,13 +263,10 @@ end
 -{K}(s::AbstractState{K}, d::DiracVector{K}) = s+(-d)
 -{K}(a::DiracVector{K}, b::DiracVector{K}) = a+(-b)
 
-+{K}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1, 1], Basis([a,b])) 
--{K}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1,-1], Basis([a,b])) 
++{K}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1, 1], tobasis([a,b])) 
+-{K}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1,-1], tobasis([a,b])) 
 -(s::AbstractState) = -1*s
 -(d::DiracVector) = DiracVector(-1*d.coeffs, d.basis)
 
-norm(v::Vector, p::Int=2) = sum(map(i->abs(i)^p, v))^(1/p)  
-norm(d::DiracVector, p::Int=2) = norm(d.coeffs, p)
-
-normalize(v::Vector) = (1/norm(v))*v
-normalize(d::DiracVector) = DiracVector(normalize(d.coeffs), d.basis)
+norm(d::DiracVector, p::Int=2) = reduce(+,map(i->abs(i)^p, d.coeffs))^(1/p) 
+normalize(d::DiracVector) = DiracVector((1/norm(d.coeffs))*d.coeffs, d.basis)

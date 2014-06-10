@@ -3,7 +3,7 @@
 #####################################
 
 type DiracMatrix{T} <: Dirac
-	coeffs::Matrix{T}
+	coeffs::SparseMatrixCSC{T}
 	rowbasis::AbstractBasis{Ket}
 	colbasis::AbstractBasis{Bra}
 	function DiracMatrix(coeffs, rowbasis, colbasis)
@@ -18,20 +18,21 @@ type DiracMatrix{T} <: Dirac
 		end
 	end
 end
+DiracMatrix{T}(coeffs::SparseMatrixCSC{T}, rowbasis::AbstractBasis{Ket}, colbasis::AbstractBasis{Bra}) = DiracMatrix{T}(coeffs, rowbasis, colbasis) 
+DiracMatrix{T}(coeffs::Matrix{T}, rowbasis::AbstractBasis{Ket}, colbasis::AbstractBasis{Bra}) = DiracMatrix{T}(sparse(coeffs), rowbasis, colbasis) 
+DiracMatrix(coeffs::AbstractArray, b::AbstractBasis{Ket}) = DiracMatrix(coeffs, b, b') 
+DiracMatrix(coeffs::AbstractArray, b::AbstractBasis{Bra}) = DiracMatrix(coeffs, b', b) 
 
-DiracMatrix{T}(coeffs::Matrix{T}, rowbasis::AbstractBasis{Ket}, colbasis::AbstractBasis{Bra}) = DiracMatrix{T}(coeffs, rowbasis, colbasis) 
-DiracMatrix(coeffs::Matrix, b::AbstractBasis{Ket}) = DiracMatrix(coeffs, b, b') 
-DiracMatrix(coeffs::Matrix, b::AbstractBasis{Bra}) = DiracMatrix(coeffs, b', b) 
-
-function DiracMatrix(fcoeff::Function, fstate::Function, b::AbstractBasis{Ket})
-	coeffs = convert(Array{Any}, zeros(length(b), length(b)))
+function DiracMatrix(fcoeff::Function, fstate::Function, b::AbstractBasis{Ket}, t::DataType=Any)
+	coeffs = convert(SparseMatrixCSC{t}, spzeros(length(b), length(b)))
 	for i=1:length(b)
 		for j=1:length(b)
 			coeffs[i,j] = fcoeff(b[j])*(b[i]'*fstate(b[j]))
 		end
 	end
-	return DiracMatrix(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), b) #use vcat()/hcat() trick to convert to most primitive common type
+	return DiracMatrix(coeffs, b)
 end
+
 
 #####################################
 #Misc Functions######################
@@ -162,21 +163,21 @@ function *(op::DiracMatrix, s::AbstractState{Ket})
 	if in(s', op.colbasis) 
 		return get(op, s') 
 	else
-		return sum([op.rowbasis[i]*sum([op[i,j]*(op.colbasis[j]*d) for j=1:length(op.colbasis)]) for i=1:length(op.rowbasis)])
+		return reduce(+,[op.rowbasis[i]*reduce(+,[op[i,j]*(op.colbasis[j]*d) for j=1:length(op.colbasis)]) for i=1:length(op.rowbasis)])
 	end
 end
 function *(s::AbstractState{Bra}, op::DiracMatrix)
 	if in(s', op.rowbasis) 
 		return get(op, s')
 	else
-		return sum([op.colbasis[j]*sum([op[i,j]*(d*op.rowbasis[i]) for j=1:length(op.rowbasis)]) for i=1:length(op.colbasis)])
+		return reduce(+,[op.colbasis[j]*reduce(+,[op[i,j]*(d*op.rowbasis[i]) for j=1:length(op.rowbasis)]) for i=1:length(op.colbasis)])
 	end
 end
 function *(op::DiracMatrix, d::DiracVector{Ket})
 	if isdual(op.colbasis, d.basis)
 		return DiracVector(op.coeffs*d.coeffs, op.rowbasis)
 	else
-		return sum([op.rowbasis[i]*sum([op[i,j]*(op.colbasis[j]*d) for j=1:length(op.colbasis)]) for i=1:length(op.rowbasis)])
+		return reduce(+,[op.rowbasis[i]*reduce(+,[op[i,j]*(op.colbasis[j]*d) for j=1:length(op.colbasis)]) for i=1:length(op.rowbasis)])
 	end
 end
 
@@ -184,7 +185,7 @@ function *(d::DiracVector{Bra}, op::DiracMatrix)
 	if isdual(op.rowbasis, d.basis)
 		return DiracVector(d.coeffs*op.coeffs, op.colbasis)
 	else
-		return sum([op.colbasis[j]*sum([op[i,j]*(d*op.rowbasis[i]) for j=1:length(op.rowbasis)]) for i=1:length(op.colbasis)])
+		return reduce(+,[op.colbasis[j]*reduce(+,[op[i,j]*(d*op.rowbasis[i]) for j=1:length(op.rowbasis)]) for i=1:length(op.colbasis)])
 	end
 end
 
@@ -192,7 +193,7 @@ function *(a::DiracMatrix, b::DiracMatrix)
 	if isdual(a.colbasis, b.rowbasis)
 		return DiracMatrix(a.coeffs*b.coeffs, a.rowbasis, b.colbasis)
 	else
-		return sum([(a[i,j]*b[m,n]*(a.colbasis[j]*b.rowbasis[m]))*(a.rowbasis[i]*b.colbasis[n]) 
+		return reduce(+,[(a[i,j]*b[m,n]*(a.colbasis[j]*b.rowbasis[m]))*(a.rowbasis[i]*b.colbasis[n]) 
 						 for n=1:size(b,2), m=1:size(b,1), j=1:size(a,2), i=1:size(a,1)])
 	end
 end
@@ -256,7 +257,6 @@ end
 -(a::DiracMatrix, b::DiracMatrix) = a+(-b)
 
 exp(op::DiracMatrix) = DiracMatrix(exp(op.coeffs), op.rowbasis, op.colbasis)
-expm(op::DiracMatrix) = DiracMatrix(expm(op.coeffs), op.rowbasis, op.colbasis)
 ^(op::DiracMatrix, i::Integer) = DiracMatrix(^(op.coeffs, i), op.rowbasis, op.colbasis)
 ^(op::DiracMatrix, n::Number) = DiracMatrix(^(op.coeffs, n), op.rowbasis, op.colbasis)
 trace(op::DiracMatrix) = trace(op.coeffs)
@@ -267,7 +267,7 @@ function ptrace(op::DiracMatrix, ind::Int)
 		trrow = tensor(vcat(separate(op.rowbasis)[1:ind-1], separate(op.rowbasis)[ind+1:end])...)
 		trcol = trrow'
 		len = length(trcol)
-		coeffs = [sum([op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.rowbasis)[ind])]) for j=1:length(trrow), k=1:length(trcol)] 
+		coeffs = [reduce(+,[op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.rowbasis)[ind])]) for j=1:length(trrow), k=1:length(trcol)] 
 	else
 		error("BasisMismatch")
 	end
