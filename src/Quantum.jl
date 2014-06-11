@@ -47,12 +47,13 @@ module Quantum
 		   ==,
 		   endof,
 		   find,
+		   findn,
+		   findnz,
 		   trace,
 		   hash,
 		   kron,
-		   eltype,
-		   promote_rule
-
+		   eltype
+		   
 	#####################################
 	#abstract types######################
 	#####################################

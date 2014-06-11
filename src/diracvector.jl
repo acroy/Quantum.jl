@@ -29,28 +29,40 @@ end
 DiracVector{K,T}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{K,T}(sparse(coeffs), basis)
 DiracVector{K,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{K}) = DiracVector{K,T}(coeffs, basis)
 
-#####################################
-#Misc Functions######################
-#####################################
 
-copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
+#####################################
+#Getter-style Functions##############
+#####################################
+basislabel(d::DiracVector) = label(d.basis)
+kind(d::DiracVector) = kind(d.basis)
+
+#####################################
+#Boolean Functions###################
+#####################################
 isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis==b.basis
 ==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
-basislabel(d::DiracVector) = label(d.basis)
 isdual(a::DiracVector{Ket}, b::DiracVector{Bra}) = isdual(a.basis, b.basis) && a.coeffs==vec(b.coeffs')
 isdual(a::DiracVector{Bra}, b::DiracVector{Ket}) = isdual(b,a)
-isdual{K}(a::DiracVector{K}, b::DiracVector{K}) = false #default to false
-eltype(d::DiracVector) = eltype(d.coeffs)
+isdual{K}(a::DiracVector{K}, b::DiracVector{K}) = false
+
+#####################################
+#Array-like Functions################
+#####################################
+copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
+
 ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
-getindex(d::DiracVector, x) = d.coeffs[x]
-length(d::DiracVector) = length(d.coeffs)
 size(d::DiracVector, args...) = size(d.coeffs, args...)
-kind(d::DiracVector) = kind(d.basis)
+
+getindex(d::DiracVector, x) = d.coeffs[x]
 setindex!(d::DiracVector, y, x) = setindex!(d.coeffs, y, x)
-endof(d::DiracVector) = length(d)
-find(d::DiracVector) = find(d.coeffs)
-find(f::Function, d::DiracVector) = find(f, d.coeffs)
-findstates(f::Function, d::DiracVector) = find(f, d.basis)
+
+for op=(:endof, :eltype, :length, :find, :findn, :findnz)
+	@eval ($op)(d::DiracVector) = ($op)(d.coeffs)
+end
+
+#####################################
+#Dict-like Functions#################
+#####################################
 getpos(d::DiracVector, s::AbstractState) = get(d.basis, s)
 function get(d::DiracVector, s::AbstractState, notfound)
 	try
@@ -67,6 +79,9 @@ get(d::DiracVector, label) = get(d, typeof(d.basis)<:Basis ? State(label) : Tens
 #Show Functions######################
 #####################################
 
+summary(d::DiracVector{Ket}) = "$(size(d,1))x1 $(typeof(d))"
+summary(d::DiracVector{Bra}) = "1x$(size(d,2)) $(typeof(d))"
+
 function showcompact(io::IO, d::DiracVector)
 	if length(d)==0
 		print(io, "$(typeof(d))[]")
@@ -78,7 +93,7 @@ function show(io::IO, d::DiracVector)
 	if length(d)==0
 		print(io, "$(typeof(d))[]")
 	else	
-		println("$(typeof(d)):")
+		println(io, summary(d))
 		table = cell(length(d), 2)	
 		if length(d)>=52
 			for i=1:25
@@ -111,6 +126,9 @@ end
 #####################################
 #Function-passing Functions##########
 #####################################
+
+find(f::Function, d::DiracVector) = find(f, d.coeffs)
+findstates(f::Function, d::DiracVector) = find(f, d.basis)
 
 map(f::Function, d::DiracVector)=DiracVector(map(f, d.coeffs), d.basis)
 

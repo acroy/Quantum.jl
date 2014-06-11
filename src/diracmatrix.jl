@@ -37,30 +37,32 @@ function DiracMatrix(fcoeff::Function, fstate::Function, b::AbstractBasis{Ket}, 
 	return DiracMatrix(coeffs, b)
 end
 
-
 #####################################
-#Misc Functions######################
+#Getter-style Functions##############
 #####################################
-
 basislabel(op::DiracMatrix) = [label(op.rowbasis), label(op.colbasis)]
 
+#####################################
+#Boolean Functions###################
+#####################################
 isequal(a::DiracMatrix, b::DiracMatrix) = isequal(a.coeffs,b.coeffs) && a.rowbasis==b.rowbasis && a.colbasis==b.colbasis 
 ==(a::DiracMatrix, b::DiracMatrix) = a.coeffs==b.coeffs && a.rowbasis==b.rowbasis && a.colbasis==b.colbasis 
-
 isdual(a::DiracMatrix, b::DiracMatrix) = a'==b
 
-ndims(op::DiracMatrix) = ndims(op.coeffs)
+#####################################
+#Array-like Functions################
+#####################################
 size(op::DiracMatrix, args...) = size(op.coeffs, args...)
-length(op::DiracMatrix) = length(op.coeffs)
-
-endof(op::DiracMatrix) = length(op)
-find(op::DiracMatrix) = find(op.coeffs)
-eltype(op::DiracMatrix) = eltype(op.coeffs)
-
+for op=(:endof, :eltype, :length, :find, :findn, :findnz)
+	@eval ($op)(d::DiracVector) = ($op)(d.coeffs)
+end
 ctranspose(op::DiracMatrix) = DiracMatrix(op.coeffs', op.colbasis', op.rowbasis')
 getindex(op::DiracMatrix, x...) = op.coeffs[x...]
 setindex!(op::DiracMatrix, y, x...) = setindex!(op.coeffs,y,x...)
 
+#####################################
+#Dict-like Functions#################
+#####################################
 getpos(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}) = (get(op.rowbasis, k), get(op.colbasis, b))
 getpos(op::DiracMatrix, o::OuterProduct) = getpos(op, o.ket, o.bra)
 
@@ -84,9 +86,11 @@ function get(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}, notf
 		return notfound
 	end
 end
+
 #####################################
 #Show Functions######################
 #####################################
+summary(op::DiracMatrix) = "$(size(op,1))x$(size(op,2)) $(typeof(op))"
 
 function showcompact(io::IO, op::DiracMatrix)
 	if length(op.coeffs)==0
@@ -97,8 +101,9 @@ function showcompact(io::IO, op::DiracMatrix)
 		print(io, takebuf_string(tempio)[3:end])
 	end
 end
+
 function show(io::IO, op::DiracMatrix)
-	println("$(typeof(op)):")
+	println(io, summary(op))
 	table = cell(length(op.rowbasis)+1, length(op.colbasis)+1)	
 	for i = 1:length(op.rowbasis)
 		table[i+1,1] = op.rowbasis[i]
@@ -117,8 +122,6 @@ end
 #####################################
 #Function-passing Functions##########
 #####################################
-
-find(op::DiracMatrix) = find(op.coeffs)
 find(f::Function, op::DiracMatrix) = find(f, op.coeffs)
 findstates(f::Function, op::DiracMatrix) = find(f, [op.rowbasis[i]*op.colbasis[j] for i=1:length(op.rowbasis), j=1:length(op.colbasis)]) #f takes OuterProduct as argument
 
