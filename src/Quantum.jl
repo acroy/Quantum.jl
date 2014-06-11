@@ -6,6 +6,8 @@ module Quantum
 	const rang = "\u27E9"
 	const otimes = "\u2297"
 	const vdots ="\u205E"
+	const bmm = "BasisMismatch"
+
 
 	#####################################
 	#imports#############################

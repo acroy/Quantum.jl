@@ -7,15 +7,8 @@ type DiracMatrix{T} <: Dirac
 	rowbasis::AbstractBasis{Ket}
 	colbasis::AbstractBasis{Bra}
 	function DiracMatrix(coeffs, rowbasis, colbasis)
-		if samebasis("?", rowbasis) || samebasis("?", colbasis)
-			error("BasisMismatch: cannot represent mixed basis object as linear combination")
-		else
-			if size(coeffs)==(length(rowbasis), length(colbasis))
-				new(coeffs, rowbasis, colbasis)
-			else
-				throw(DimensionMismatch("Bases do not match coefficient matrix"))
-			end
-		end
+		@assert size(coeffs)==(length(rowbasis), length(colbasis)) "Dimensions of coefficient array do not match bases"
+			new(coeffs, rowbasis, colbasis)
 	end
 end
 DiracMatrix{T}(coeffs::SparseMatrixCSC{T}, rowbasis::AbstractBasis{Ket}, colbasis::AbstractBasis{Bra}) = DiracMatrix{T}(coeffs, rowbasis, colbasis) 
@@ -211,16 +204,14 @@ function +(op::DiracMatrix, o::OuterProduct)
 		res = 1*op
 		res[getpos(op, o)...] = 1+get(op, o)
 		return res
-	elseif samebasis(op, o)
-		#unecessary rehashing occurs here...
+	else
+		@assert samebasis(op, o) bmm
 		rowb = basisjoin(op.rowbasis, o.ket)
 		colb = basisjoin(op.colbasis, o.bra)
 		res = DiracMatrix(convert(typeof(op.coeffs), zeros(length(rowb),length(colb))), rowb, colb)
 		res[1:size(op,1), 1:size(op,2)] = op.coeffs
 		res[getpos(res, o)...] = 1+get(res, o)
 		return res
-	else
-		error("BasisMismatch")
 	end
 end
 
@@ -229,16 +220,14 @@ function +(o::OuterProduct, op::DiracMatrix)
 		res = 1*op
 		res[getpos(op, o)...] = 1+get(op, o)
 		return res
-	elseif samebasis(o,op)
-		#unecessary rehashing occurs here...
+	else
+		@assert samebasis(o,op) bmm
 		rowb = basisjoin(o.ket, op.rowbasis)
 		colb = basisjoin(o.bra, op.colbasis)
 		res = DiracMatrix(convert(typeof(op.coeffs), zeros(length(rowb),length(colb))), rowb, colb)
 		res[(size(res,1)-size(op,1)+1):size(op,1), (size(res,2)-size(op,2)+1):size(op,2)] = op.coeffs
 		res[getpos(res, o)...] = 1+get(res, o)
 		return res
-	else
-		error("BasisMismatch")
 	end
 end
 
@@ -246,7 +235,8 @@ end
 function +(a::DiracMatrix, b::DiracMatrix)
 	if a.rowbasis==b.rowbasis && a.colbasis==b.colbasis 
 		return DiracMatrix(a.coeffs+b.coeffs, a.rowbasis, a.colbasis) 
-	elseif samebasis(a, b)
+	else
+		@assert samebasis(a, b) bmm
 		for i=1:size(b, 1)
 			for j=1:size(b, 2)
 				if b[i,j]!=0
@@ -256,8 +246,6 @@ function +(a::DiracMatrix, b::DiracMatrix)
 			end
 		end
 		return a
-	else
-		error("BasisMismatch")
 	end
 end
 
@@ -271,13 +259,10 @@ trace(op::DiracMatrix) = trace(op.coeffs)
 commutator(a::DiracMatrix, b::DiracMatrix) = (a*b) - (b*a)
 
 function ptrace(op::DiracMatrix, ind::Int)
-	if isdual(op.colbasis, op.rowbasis)
-		trrow = tensor(vcat(separate(op.rowbasis)[1:ind-1], separate(op.rowbasis)[ind+1:end])...)
-		trcol = trrow'
-		len = length(trcol)
-		coeffs = [reduce(+,[op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.rowbasis)[ind])]) for j=1:length(trrow), k=1:length(trcol)] 
-	else
-		error("BasisMismatch")
-	end
+	@assert isdual(op.colbasis, op.rowbasis) bmm
+	trrow = tensor(vcat(separate(op.rowbasis)[1:ind-1], separate(op.rowbasis)[ind+1:end])...)
+	trcol = trrow'
+	len = length(trcol)
+	coeffs = [reduce(+,[op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.rowbasis)[ind])]) for j=1:length(trrow), k=1:length(trcol)] 
 	return DiracMatrix(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), trrow, trcol) #use vcat()/hcat() trick to convert to most primitive common type
 end

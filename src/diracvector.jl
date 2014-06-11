@@ -6,22 +6,12 @@ type DiracVector{K<:BraKet, T} <: Dirac
 	coeffs::SparseMatrixCSC{T} 
 	basis::AbstractBasis{K}
 	function DiracVector(coeffs, basis)
-		if samebasis("?", basis)
-			error("BasisMismatch: cannot represent mixed basis object as linear combination")
+		if K==Ket
+			@assert size(coeffs)==(length(basis),1) "Dimensions of coefficient array do not match basis"
+				new(coeffs, basis)
 		else
-			if K==Ket
-				if size(coeffs)==(length(basis),1)
-					new(coeffs, basis)
-				else
-					error("Dimensions of coefficient array does not match basis")
-				end
-			else
-				if size(coeffs)==(1,length(basis))
-					new(coeffs, basis)
-			 	else
-			 		error("Dimensions of coefficient array does not match basis")
-			 	end
-			end
+			@assert size(coeffs)==(1,length(basis)) "Dimensions of coefficient array do not match basis"
+				new(coeffs, basis)
 		end
 	end
 end
@@ -233,14 +223,13 @@ function +{K}(d::DiracVector{K}, s::AbstractState{K})
 		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
 		res[getpos(d,s)] = 1+get(res, s)
 		return res
-	elseif samebasis(d,s)
+	else
+		@assert samebasis(d,s) bmm
 		if K==Ket
 			return DiracVector(vcat(d.coeffs, 1), basisjoin(d.basis,s))
 		else
 			return DiracVector(hcat(d.coeffs, 1), basisjoin(d.basis,s))
 		end
-	else
-		error("BasisMismatch")
 	end
 end
 
@@ -249,30 +238,27 @@ function +{K}(s::AbstractState{K}, d::DiracVector{K})
 		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
 		res[getpos(d,s)] = 1+get(res, s)
 		return res
-	elseif samebasis(d,s)
+	else
+		@assert samebasis(d,s) bmm
 		if K==Ket
 			return DiracVector(vcat(1, d.coeffs), basisjoin(s, d.basis))
 		else
 			return DiracVector(hcat(1, d.coeffs), basisjoin(s, d.basis))
 		end
-	else
-		error("BasisMismatch")
 	end
 end
 
 function +{K}(a::DiracVector{K}, b::DiracVector{K})
 	if a.basis==b.basis
 		return DiracVector(a.coeffs+b.coeffs, a.basis)
-	elseif samebasis(a,b)
+	else
+		@assert samebasis(a,b) bmm
 		res = 1*a
 		for i=1:length(b)
 			res = res+b.basis[i]
 			res[getpos(res, b.basis[i])] = get(res, b.basis[i]) + b[i] - 1
 		end
 		return res
-	else
-		error("BasisMismatch")
-
 	end
 end
 

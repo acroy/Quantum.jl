@@ -1,7 +1,6 @@
 #####################################
 #Basis###############################
 #####################################
-const bmm = "BasisMismatch"
 immutable Basis{K<:BraKet} <: AbstractBasis{K}
 	label::String
 	states::Vector{State{K}}
