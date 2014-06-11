@@ -1,18 +1,15 @@
 #####################################
 #Basis###############################
 #####################################
-
+const bmm = "BasisMismatch"
 immutable Basis{K<:BraKet} <: AbstractBasis{K}
 	label::String
 	states::Vector{State{K}}
 	statemap::Dict{(Any,String), Int}
 	function Basis(label, states, statemap, errcheck=true)
 		if errcheck
-			if length(unique(states))==length(states)
+			@assert length(unique(states))==length(states) "Basis states must be uniquely labeled"
 				new(label, states, statemap)
-			else
-				error("Basis states must be uniquely labeled")
-			end
 		else
 			new(label, states, statemap)
 		end
@@ -27,10 +24,8 @@ end
 Basis{K<:BraKet}(labelvec::Array, label::String, kind::Type{K}=Ket) = makebasis(label, statearr(labelvec, label, kind))
 Basis{K}(s::State{K}...) = Basis(vcat(s...))
 function Basis{K<:BraKet}(s::Array{State{K}}) 
-	bases = unique(map(basislabel, s))
-	if length(bases)>1
-		makebasis("?", s)
-	else
+	bases = unique(map(basislabel, s)) 
+	@assert length(bases)>1 bmm
 		makebasis(bases[1], s)
 	end
 end
@@ -165,58 +160,53 @@ function basisjoin{K}(b::Basis{K}, s::State{K})
 	if in(s, b)
 		return b
 	else
+		@assert samebasis(b, s) bmm
 		resmap = copy(b.statemap)
 		resmap[(label(s), basislabel(s))] = length(b)+1
-		if samebasis(b, s)
-			return Basis{K}(b.label, vcat(b.states, s), resmap, false)
-		else
-			return Basis{K}("?", vcat(b.states, s), resmap, false)
-		end
+		return Basis{K}(b.label, vcat(b.states, s), resmap, false)
 	end
 end
 
 basisjoin{K}(s::State{K}, b::Basis{K}) = Basis(vcat(s, b.states))
 
 function basisjoin{K}(a::Basis{K}, b::Basis{K})
+	@assert samebasis(a,b) bmm
 	resmap = copy(a.statemap)
 	for i=1:length(b)
 		if !in(b[i], a)
 			resmap[(label(b[i]), basislabel(b[i]))] = length(b)+i
 		end
 	end
-	if samebasis(a,b)
-		return Basis{K}(a.label, unique(vcat(a.states, b.states)), resmap, false)
-	else
-		return Basis{K}("?", unique(vcat(a.states, b.states)), resmap, false)
-	end
+	return Basis{K}(a.label, unique(vcat(a.states, b.states)), resmap, false)
 end
 
 function basisjoin{K}(b::TensorBasis{K}, s::TensorState{K})
-	if samebasis(b, s)
-		resmap = copy(b.statemap)
-		resmap[(label(s), basislabel(s))] = length(b)+1
-		return TensorBasis(b.bases, vcat(b.states, s), resmap)
-	else
-		return TensorBasis(vcat(b.states, s))
-	end
+	@assert samebasis(b, s) bmm
+	resmap = copy(b.statemap)
+	resmap[(label(s), basislabel(s))] = length(b)+1
+	return TensorBasis(b.bases, vcat(b.states, s), resmap)
 end
 
 basisjoin{K}(s::TensorState{K}, b::TensorBasis{K}) = TensorBasis(vcat(s, b.states))
 
 function basisjoin{K}(a::TensorBasis{K}, b::TensorBasis{K})
-	if samebasis(a, b)
-		resmap = copy(b.statemap)
-		for i=1:length(b)
-			resmap[(label(b[i]), basislabel(b[i]))] = length(b)+i
-		end
-		return TensorBasis(a.bases, vcat(a.states, b.states), resmap)
-	else
-		return TensorBasis(vcat(a.states, b.states))
+	@assert samebasis(a, b) bmm
+	resmap = copy(b.statemap)
+	for i=1:length(b)
+		resmap[(label(b[i]), basislabel(b[i]))] = length(b)+i
 	end
+	return TensorBasis(a.bases, vcat(a.states, b.states), resmap)
 end
 
+tensor{K}(a::AbstractBasis{K}, b::AbstractState{K}) = map(s->s*b, d.basis)
+tensor{K}(a::AbstractState{K}, b::AbstractBasis{K}) = map(s->b*s, d.basis)
+
 *{K}(a::AbstractBasis{K}, b::AbstractBasis{K}) = tensor(a,b)
+*{K}(a::AbstractBasis{K}, b::AbstractState{K}) = tensor(a,b)
+*{K}(a::AbstractState{K}, b::AbstractBasis{K}) = tensor(a,b)
 +{K}(a::AbstractBasis{K}, b::AbstractBasis{K}) = basisjoin(a,b)
++{K}(a::AbstractBasis{K}, b::AbstractState{K}) = basisjoin(a,b)
++{K}(a::AbstractState{K}, b::AbstractBasis{K}) = basisjoin(a,b)
 
 setdiff{B<:AbstractBasis}(a::B,b::B) = setdiff(a.states, b.states)
 

@@ -29,7 +29,6 @@ end
 DiracVector{K,T}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{K,T}(sparse(coeffs), basis)
 DiracVector{K,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{K}) = DiracVector{K,T}(coeffs, basis)
 
-
 #####################################
 #Getter-style Functions##############
 #####################################
@@ -226,8 +225,8 @@ end
 
 *(a::DiracVector{Ket}, b::DiracVector{Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
 *{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(kron(a.coeffs,b.coeffs), a.basis*b.basis)
-*{K}(s::AbstractState{K}, d::DiracVector{K}) = DiracVector(d.coeffs, map(x->s*x, d.basis))
-*{K}(d::DiracVector{K}, s::AbstractState{K}) = DiracVector(d.coeffs, map(x->x*s, d.basis))
+*{K}(s::AbstractState{K}, d::DiracVector{K}) = DiracVector(d.coeffs, s*d.basis)
+*{K}(d::DiracVector{K}, s::AbstractState{K}) = DiracVector(d.coeffs, d.basis*s)
 
 function +{K}(d::DiracVector{K}, s::AbstractState{K})
 	if in(s, d.basis)
