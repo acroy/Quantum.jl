@@ -12,6 +12,7 @@ module Quantum
 	#####################################
 	import Base:
 		   show,
+		   summary,
 		   showcompact,
 		   norm,
 		   getindex,

@@ -23,13 +23,17 @@ DiracMatrix{T}(coeffs::Matrix{T}, rowbasis::AbstractBasis{Ket}, colbasis::Abstra
 DiracMatrix(coeffs::AbstractArray, b::AbstractBasis{Ket}) = DiracMatrix(coeffs, b, b') 
 DiracMatrix(coeffs::AbstractArray, b::AbstractBasis{Bra}) = DiracMatrix(coeffs, b', b) 
 
-function DiracMatrix(fcoeff::Function, fstate::Function, b::AbstractBasis{Ket}, t::DataType=Any)
-	coeffs = convert(SparseMatrixCSC{t}, spzeros(length(b), length(b)))
+function constructop!(coeffs::SparseMatrixCSC, fcoeff::Function, fstate::Function, b::AbstractBasis{Ket})
 	for i=1:length(b)
 		for j=1:length(b)
 			coeffs[i,j] = fcoeff(b[j])*(b[i]'*fstate(b[j]))
 		end
 	end
+end
+
+function DiracMatrix(fcoeff::Function, fstate::Function, b::AbstractBasis{Ket}, t::DataType=Any)
+	coeffs = convert(SparseMatrixCSC{t}, spzeros(length(b), length(b)))
+	constructop!(coeffs, fcoeff, fstate, b)
 	return DiracMatrix(coeffs, b)
 end
 
@@ -83,6 +87,7 @@ end
 #####################################
 #Show Functions######################
 #####################################
+
 function showcompact(io::IO, op::DiracMatrix)
 	if length(op.coeffs)==0
 		print(io, "$(typeof(op))[]")
