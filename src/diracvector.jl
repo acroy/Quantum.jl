@@ -224,7 +224,7 @@ function +{K}(d::DiracVector{K}, s::AbstractState{K})
 		res[getpos(d,s)] = 1+get(res, s)
 		return res
 	else
-		@assert samebasis(d,s) bmm
+		@assert samebasis(d,s) "BasisMismatch"
 		if K==Ket
 			return DiracVector(vcat(d.coeffs, 1), basisjoin(d.basis,s))
 		else
@@ -239,7 +239,7 @@ function +{K}(s::AbstractState{K}, d::DiracVector{K})
 		res[getpos(d,s)] = 1+get(res, s)
 		return res
 	else
-		@assert samebasis(d,s) bmm
+		@assert samebasis(d,s) "BasisMismatch"
 		if K==Ket
 			return DiracVector(vcat(1, d.coeffs), basisjoin(s, d.basis))
 		else
@@ -252,7 +252,7 @@ function +{K}(a::DiracVector{K}, b::DiracVector{K})
 	if a.basis==b.basis
 		return DiracVector(a.coeffs+b.coeffs, a.basis)
 	else
-		@assert samebasis(a,b) bmm
+		@assert samebasis(a,b) "BasisMismatch"
 		res = 1*a
 		for i=1:length(b)
 			res = res+b.basis[i]

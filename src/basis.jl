@@ -24,9 +24,8 @@ Basis{K<:BraKet}(labelvec::Array, label::String, kind::Type{K}=Ket) = makebasis(
 Basis{K}(s::State{K}...) = Basis(vcat(s...))
 function Basis{K<:BraKet}(s::Array{State{K}}) 
 	bases = unique(map(basislabel, s)) 
-	@assert length(bases)>1 bmm
-		makebasis(bases[1], s)
-	end
+	@assert length(bases)==1 "BasisMismatch"
+	makebasis(bases[1], s)
 end
 
 #####################################
@@ -159,7 +158,7 @@ function basisjoin{K}(b::Basis{K}, s::State{K})
 	if in(s, b)
 		return b
 	else
-		@assert samebasis(b, s) bmm
+		@assert samebasis(b, s) "BasisMismatch"
 		resmap = copy(b.statemap)
 		resmap[(label(s), basislabel(s))] = length(b)+1
 		return Basis{K}(b.label, vcat(b.states, s), resmap, false)
@@ -169,7 +168,7 @@ end
 basisjoin{K}(s::State{K}, b::Basis{K}) = Basis(vcat(s, b.states))
 
 function basisjoin{K}(a::Basis{K}, b::Basis{K})
-	@assert samebasis(a,b) bmm
+	@assert samebasis(a,b) "BasisMismatch"
 	resmap = copy(a.statemap)
 	for i=1:length(b)
 		if !in(b[i], a)
@@ -180,7 +179,7 @@ function basisjoin{K}(a::Basis{K}, b::Basis{K})
 end
 
 function basisjoin{K}(b::TensorBasis{K}, s::TensorState{K})
-	@assert samebasis(b, s) bmm
+	@assert samebasis(b, s) "BasisMismatch"
 	resmap = copy(b.statemap)
 	resmap[(label(s), basislabel(s))] = length(b)+1
 	return TensorBasis(b.bases, vcat(b.states, s), resmap)
@@ -189,7 +188,7 @@ end
 basisjoin{K}(s::TensorState{K}, b::TensorBasis{K}) = TensorBasis(vcat(s, b.states))
 
 function basisjoin{K}(a::TensorBasis{K}, b::TensorBasis{K})
-	@assert samebasis(a, b) bmm
+	@assert samebasis(a, b) "BasisMismatch"
 	resmap = copy(b.statemap)
 	for i=1:length(b)
 		resmap[(label(b[i]), basislabel(b[i]))] = length(b)+i

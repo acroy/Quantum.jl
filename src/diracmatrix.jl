@@ -205,7 +205,7 @@ function +(op::DiracMatrix, o::OuterProduct)
 		res[getpos(op, o)...] = 1+get(op, o)
 		return res
 	else
-		@assert samebasis(op, o) bmm
+		@assert samebasis(op, o) "BasisMismatch"
 		rowb = basisjoin(op.rowbasis, o.ket)
 		colb = basisjoin(op.colbasis, o.bra)
 		res = DiracMatrix(convert(typeof(op.coeffs), zeros(length(rowb),length(colb))), rowb, colb)
@@ -221,7 +221,7 @@ function +(o::OuterProduct, op::DiracMatrix)
 		res[getpos(op, o)...] = 1+get(op, o)
 		return res
 	else
-		@assert samebasis(o,op) bmm
+		@assert samebasis(o,op) "BasisMismatch"
 		rowb = basisjoin(o.ket, op.rowbasis)
 		colb = basisjoin(o.bra, op.colbasis)
 		res = DiracMatrix(convert(typeof(op.coeffs), zeros(length(rowb),length(colb))), rowb, colb)
@@ -236,7 +236,7 @@ function +(a::DiracMatrix, b::DiracMatrix)
 	if a.rowbasis==b.rowbasis && a.colbasis==b.colbasis 
 		return DiracMatrix(a.coeffs+b.coeffs, a.rowbasis, a.colbasis) 
 	else
-		@assert samebasis(a, b) bmm
+		@assert samebasis(a, b) "BasisMismatch"
 		for i=1:size(b, 1)
 			for j=1:size(b, 2)
 				if b[i,j]!=0
@@ -259,7 +259,7 @@ trace(op::DiracMatrix) = trace(op.coeffs)
 commutator(a::DiracMatrix, b::DiracMatrix) = (a*b) - (b*a)
 
 function ptrace(op::DiracMatrix, ind::Int)
-	@assert isdual(op.colbasis, op.rowbasis) bmm
+	@assert isdual(op.colbasis, op.rowbasis) "BasisMismatch"
 	trrow = tensor(vcat(separate(op.rowbasis)[1:ind-1], separate(op.rowbasis)[ind+1:end])...)
 	trcol = trrow'
 	len = length(trcol)
