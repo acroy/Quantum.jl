@@ -52,8 +52,9 @@ module Quantum
 		   trace,
 		   hash,
 		   kron,
-		   eltype
-		   
+		   eltype,
+		   zero
+
 	#####################################
 	#abstract types######################
 	#####################################

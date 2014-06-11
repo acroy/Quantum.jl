@@ -41,11 +41,10 @@ copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
 
 ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
 size(d::DiracVector, args...) = size(d.coeffs, args...)
+getindex(d::DiracVector, x...) = d.coeffs[x...]
+setindex!(d::DiracVector, y, x...) = setindex!(d.coeffs, y, x...)
 
-getindex(d::DiracVector, x) = d.coeffs[x]
-setindex!(d::DiracVector, y, x) = setindex!(d.coeffs, y, x)
-
-for op=(:endof, :eltype, :length, :find, :findn, :findnz)
+for op=(:endof, :ndims, :eltype, :length, :find, :findn, :findnz, :nnz)
 	@eval ($op)(d::DiracVector) = ($op)(d.coeffs)
 end
 
@@ -75,7 +74,9 @@ function showcompact(io::IO, d::DiracVector)
 	if length(d)==0
 		print(io, "$(typeof(d))[]")
 	else
-		print(io, "($(d.coeffs[1])$(d.basis[1]))",[" + ($(d.coeffs[i])$(d.basis[i]))" for i=2:length(d)]...)
+		tempio = IOBuffer()
+		print(tempio, [" + $(d.coeffs[i])$(d.basis[i])" for i in find(d)]...)
+		print(io, takebuf_string(tempio)[3:end])
 	end
 end
 function show(io::IO, d::DiracVector)

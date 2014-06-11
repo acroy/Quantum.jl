@@ -1,3 +1,5 @@
+#necessary for SparseMatrixCSC{Any} to function properly
+zero(::Any) = 0
 
 samebasis(a::Dirac, b::Dirac)= basislabel(a)==basislabel(b)
 samebasis(a::String, b::Dirac)= a==basislabel(b)

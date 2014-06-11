@@ -46,8 +46,8 @@ isdual(a::DiracMatrix, b::DiracMatrix) = a'==b
 #Array-like Functions################
 #####################################
 size(op::DiracMatrix, args...) = size(op.coeffs, args...)
-for op=(:endof, :eltype, :length, :find, :findn, :findnz)
-	@eval ($op)(d::DiracVector) = ($op)(d.coeffs)
+for op=(:endof, :eltype, :length, :find, :findn, :findnz, :nnz)
+	@eval ($op)(d::DiracMatrix) = ($op)(d.coeffs)
 end
 ctranspose(op::DiracMatrix) = DiracMatrix(op.coeffs', op.colbasis', op.rowbasis')
 getindex(op::DiracMatrix, x...) = op.coeffs[x...]
@@ -90,7 +90,8 @@ function showcompact(io::IO, op::DiracMatrix)
 		print(io, "$(typeof(op))[]")
 	else
 		tempio = IOBuffer()
-		print(tempio, [" + ($(op.coeffs[i,j])$(op.rowbasis[i])$(op.colbasis[j]))" for i=1:length(op.rowbasis), j=1:length(op.colbasis)]...)
+		nz = hcat(findn(op)...)
+		print(tempio, [" + $(op.coeffs[nz[i,1],nz[i,2]])$(op.rowbasis[nz[i,1]])$(op.colbasis[nz[i,2]])" for i=1:size(nz,1)]...)
 		print(io, takebuf_string(tempio)[3:end])
 	end
 end
@@ -105,7 +106,7 @@ function show(io::IO, op::DiracMatrix)
 		table[1,j+1] = op.colbasis[j]
 	end
 	table[1,1] = 0
-	table[2:end, 2:end] = op.coeffs	
+	table[2:end, 2:end] = full(op.coeffs)
 	temp_io = IOBuffer()
 	show(temp_io, table)
 	io_str = takebuf_string(temp_io)
