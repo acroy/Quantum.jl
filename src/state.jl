@@ -8,8 +8,7 @@ immutable State{K<:BraKet} <: AbstractState{K}
   kind::Type{K}
 end
 
-State{K<:BraKet}(label, basislabel::String = "?", kind::Type{K}=Ket) = State{kind}(label, basislabel, kind)
-State{K<:BraKet}(label, kind::Type{K}) = State{K}(label, "?", kind)
+State{K<:BraKet}(label, basislabel::String, kind::Type{K}=Ket) = State{kind}(label, basislabel, kind)
 
 immutable TensorState{K<:BraKet} <: AbstractState{K}
   states::Vector{State{K}}
@@ -17,8 +16,7 @@ immutable TensorState{K<:BraKet} <: AbstractState{K}
 end
 
 TensorState{K<:BraKet}(states::Vector{State{K}}, kind::Type{K}=Ket) = TensorState{kind}(states, kind)
-TensorState{K<:BraKet}(labels::Vector, basislabel::String="?", kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind), kind)
-TensorState{K<:BraKet}(labels::Vector, kind::Type{K}=Ket) = TensorState(labels, "?", kind)
+TensorState{K<:BraKet}(labels::Vector, basislabel::String, kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind), kind)
 
 #####################################
 #Misc Functions######################
@@ -138,8 +136,7 @@ tensor{S<:AbstractState}(arr::Array{S}) = tensor(arr...)
 tensorarr(arr::Array) = arr
 tensorarr(arrs::Array...) = crossjoin(arrs...)
 
-statearr{K<:BraKet}(arr::Array, basislabel::String="?", kind::Type{K}=Ket) = map(i->State(i, basislabel, kind), arr)
-statearr{K<:BraKet}(arr::Array, kind::Type{K}) = statearr(arr, "?", kind)
+statearr{K<:BraKet}(arr::Array, basislabel::String, kind::Type{K}=Ket) = map(i->State(i, basislabel, kind), arr)
 statejoin{S<:AbstractState}(state_arr::Array{S,2}) = [reduce(*,state_arr[i, :]) for i=1:size(state_arr, 1)]
 
 separate(s::TensorState) = s.states

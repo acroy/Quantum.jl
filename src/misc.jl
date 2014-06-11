@@ -1,6 +1,6 @@
 
-samebasis(a::Dirac, b::Dirac)= basislabel(a)=="?" || basislabel(b)=="?" ? false : basislabel(a)==basislabel(b)
-samebasis(a::String, b::Dirac)= a=="?" ? false : a==basislabel(b)
+samebasis(a::Dirac, b::Dirac)= basislabel(a)==basislabel(b)
+samebasis(a::String, b::Dirac)= a==basislabel(b)
 samebasis(a::Dirac, b::String)= samebasis(b, a)
 
 #additive identities
