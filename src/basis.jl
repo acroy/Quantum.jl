@@ -1,32 +1,19 @@
 #####################################
 #Basis###############################
 #####################################
-immutable Basis{K<:BraKet} <: AbstractBasis{K}
+immutable Basis{K,T} <: AbstractBasis{K}
 	label::String
-	states::Vector{State{K}}
-	statemap::Dict{(Any,String), Int}
-	function Basis(label, states, statemap, errcheck=true)
-		if errcheck
-			@assert length(unique(states))==length(states) "Basis states must be uniquely labeled"
-				new(label, states, statemap)
-		else
-			new(label, states, statemap)
-		end
+	states::Vector{State{K,T}}
+	statemap::Dict{(T,String), Int}
+	function Basis{K,T}(sv::Vector{State{K,T}})
+		@assert length(unique(map(basislabel, sv)))==1 "BasisMismatch"
+		new(basislabel(sv[1]), sv, ((T,String)=>Int64)[(sv[i].label,sv[i].basislabel)=>i for i=1:length(sv)])
 	end
 end
 
-function makebasis{K}(label::String, states::Array{State{K}})
-	states = unique(states)
-	return Basis{K}(label, states, ((Any,String)=>Int)[(states[i].label,states[i].basislabel)=>i for i=1:length(states)], false)
-end
-
-Basis{K<:BraKet}(labelvec::Array, label::String, kind::Type{K}=Ket) = makebasis(label, statearr(labelvec, label, kind))
-Basis{K}(s::State{K}...) = Basis(vcat(s...))
-function Basis{K<:BraKet}(s::Array{State{K}}) 
-	bases = unique(map(basislabel, s)) 
-	@assert length(bases)==1 "BasisMismatch"
-	makebasis(bases[1], s)
-end
+Basis{K,T}(states::Vector{State{K,T}}) = Basis{K,T}(unique(states))
+Basis{K<:BraKet,T}(labelvec::Array{T}, label::String, kind::Type{K}=Ket) = Basis{K,T}(statearr(labelvec, label, kind))
+Basis{K,T}(s::State{K,T}...) = Basis(convert(Array{State{K,T}}, collect(s)))
 
 #####################################
 #TensorBasis#########################
