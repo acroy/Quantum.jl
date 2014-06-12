@@ -19,7 +19,7 @@ DiracMatrix(coeffs::AbstractArray, b::AbstractBasis{Bra}) = DiracMatrix(coeffs, 
 function constructop!(coeffs::SparseMatrixCSC, fcoeff::Function, fstate::Function, b::AbstractBasis{Ket})
 	for i=1:length(b)
 		for j=1:length(b)
-			coeffs[i,j] = fcoeff(b[j])*(b[i]'*fstate(b[j]))
+			coeffs[i,j] = fcoeff(b[j])*inner(b[i]',fstate(b[j]))
 		end
 	end
 end

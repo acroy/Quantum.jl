@@ -70,6 +70,10 @@ module Quantum
 	!(K::Type{Ket}) = Bra
 	!(B::Type{Bra}) = Ket
 
+	kind{T<:AbstractBasis{Ket}}(t::Type{T}) = Ket
+	kind{T<:AbstractBasis{Bra}}(t::Type{T}) = Bra
+	kind{T<:AbstractState{Ket}}(t::Type{T}) = Ket
+	kind{T<:AbstractState{Bra}}(t::Type{T}) = Bra
 	#####################################
 	#includes############################
 	#####################################
@@ -85,7 +89,7 @@ module Quantum
 	#####################################
 	#exports#############################
 	#####################################
-	export Quantum,
+	export Dirac,
 		   BraKet,
 		   Bra,
 		   Ket,

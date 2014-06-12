@@ -59,7 +59,7 @@ function crossjoin(A::Array, B::Array)
     end
     return result
 end
-
+crossjoin(arr::Array) = arr
 function crossjoin(arr::Array...)
     if length(arr) == 2
         return crossjoin(arr[1], arr[2])

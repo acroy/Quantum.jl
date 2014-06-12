@@ -4,19 +4,20 @@
 
 immutable State{K<:BraKet, T} <: AbstractState{K}
   label::T
-  basislabel::String
+  basislabel::Symbol
   kind::Type{K}
 end
 
-State{K<:BraKet,T}(label::T, basislabel::String, kind::Type{K}=Ket) = State{kind, T}(label, basislabel, kind)
+State{K<:BraKet,T}(label::T, basislabel::Symbol, kind::Type{K}=Ket) = State{kind, T}(label, basislabel, kind)
 
 immutable TensorState{K<:BraKet} <: AbstractState{K}
   states::Vector
+  TensorState{S<:State}(v::Vector{S}) = new(v)
 end
 
 TensorState{S<:State{Ket}}(states::Vector{S}) = TensorState{Ket}(states)
 TensorState{S<:State{Bra}}(states::Vector{S}) = TensorState{Bra}(states)
-TensorState{K<:BraKet}(labels::Vector, basislabel::String, kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind))
+TensorState{K<:BraKet}(labels::Vector, basislabel::Symbol, kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind))
 
 #####################################
 #Misc Functions######################
@@ -65,7 +66,7 @@ end
 #Show Functions######################
 #####################################
 
-reprlabel(s::State) = "$(repr(s.label))_$(s.basislabel)"
+reprlabel(s::State) = "$(repr(s.label)):$(s.basislabel)"
 function reprlabel(s::TensorState)
 	str = "$(reprlabel(s.states[1]))"
 	for i=2:length(s.states)
@@ -123,13 +124,10 @@ end
 *(a::AbstractState{Ket}, b::AbstractState{Bra}) = OuterProduct(a,b)
 
 #####################################
-#Functions###################
+#Functions###########################
 #####################################
 
-# tensorarr(arr::Array) = arr
-# tensorarr(arrs::Array...) = crossjoin(arrs...)
-
-function statearr{K<:BraKet, T}(arr::Array{T}, basislabel::String, kind::Type{K}=Ket) 
+function statearr{K<:BraKet, T}(arr::Array{T}, basislabel::Symbol, kind::Type{K}=Ket) 
 	if is(T,Any)
 		return convert(Array{State{kind}}, map(i->State(i, basislabel, kind), arr))
 	else
@@ -137,5 +135,5 @@ function statearr{K<:BraKet, T}(arr::Array{T}, basislabel::String, kind::Type{K}
 	end
 end
 
-statejoin{S<:AbstractState}(state_arr::Array{S,2}) = [reduce(tensor,state_arr[i, :]) for i=1:size(state_arr, 1)]
+statejoin{S<:AbstractState}(state_arr::Array{S,2}) = TensorState{kind(S)}[reduce(tensor,state_arr[i, :]) for i=1:size(state_arr, 1)]
 
