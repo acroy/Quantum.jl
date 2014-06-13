@@ -5,10 +5,9 @@
 immutable State{K<:BraKet, T} <: AbstractState{K}
   label::T
   basislabel::Symbol
-  kind::Type{K}
 end
 
-State{K<:BraKet,T}(label::T, basislabel::Symbol, kind::Type{K}=Ket) = State{kind, T}(label, basislabel, kind)
+State{K<:BraKet,T}(label::T, basislabel::Symbol, kind::Type{K}=Ket) = State{kind, T}(label, basislabel)
 
 immutable TensorState{K<:BraKet} <: AbstractState{K}
   states::Vector
@@ -23,7 +22,7 @@ TensorState{K<:BraKet}(labels::Vector, basislabel::Symbol, kind::Type{K}=Ket) = 
 #Misc Functions######################
 #####################################
 
-copy(s::State) = State(copy(s.label), copy(s.basislabel), copy(s.kind))
+copy(s::State) = State(copy(s.label), copy(s.basislabel))
 copy(s::TensorState) = TensorState(copy(s.states))
 
 #hashing isn't working right now :(
@@ -39,7 +38,7 @@ isequal{K}(a::TensorState{K}, b::TensorState{K}) = isequal(a.states, b.states)
 isequal(a::AbstractState, b::AbstractState) = false #default to false
 ==(a::AbstractState, b::AbstractState) = false #default to false
 
-ctranspose(s::State) = State(s.label, s.basislabel, !s.kind)
+ctranspose{K,T}(s::State{K,T}) = State{!K,T}(s.label, s.basislabel)
 ctranspose{K}(s::TensorState{K}) = TensorState(State{!K}[ctranspose(i) for i in s.states])
 
 getindex(s::TensorState, x) = s.states[x]

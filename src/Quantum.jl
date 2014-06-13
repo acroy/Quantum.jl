@@ -107,6 +107,7 @@ module Quantum
 		   ScalarExpr,
 		   qeval,
 		   tobasis,
+		   btensor,
 		   basislabel,
 		   basisjoin,
 		   kind,
