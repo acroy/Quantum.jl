@@ -44,7 +44,10 @@ size(d::DiracVector, args...) = size(d.coeffs, args...)
 getindex(d::DiracVector{Ket}, x) = d.coeffs[x,1]
 getindex(d::DiracVector{Bra}, x) = d.coeffs[1,x]
 getindex(d::DiracVector, x, y...) = error("can't use 2D indexing on DiracVectors")
-setindex!(d::DiracVector, y, x...) = setindex!(d.coeffs, y, x...)
+setindex!(d::DiracVector{Ket}, y, x) = setindex!(d.coeffs, y, x, 1)
+setindex!(d::DiracVector{Bra}, y, x) = setindex!(d.coeffs, y, 1, x)
+setindex!(d::DiracVector, y, x...) = error("can't use 2D indexing on DiracVectors")
+
 
 for op=(:endof, :ndims, :eltype, :length, :find, :findn, :findnz, :nnz)
 	@eval ($op)(d::DiracVector) = ($op)(d.coeffs)
