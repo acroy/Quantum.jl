@@ -6,6 +6,9 @@ immutable ScalarExpr <: AbstractScalar
 	ex::Expr
 end
 
+isequal(a::ScalarExpr, b::ScalarExpr) = isequal(a.ex, b.ex)
+==(a::ScalarExpr, b::ScalarExpr) = ==(a.ex, b.ex)
+
 #####################################
 #Misc Functions######################
 #####################################

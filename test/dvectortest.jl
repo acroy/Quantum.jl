@@ -1,5 +1,4 @@
 module DVectorTest
-include("/Users/jarrettrevels/data/repos/quantum/src/Quantum.jl")
 using Base.Test 
 using Quantum
 
