@@ -1,4 +1,3 @@
-include("/Users/jarrettrevels/data/repos/quantum/src/Quantum.jl")
 module BasisTest
 using Base.Test 
 using Quantum
@@ -16,5 +15,8 @@ xb2 = xb*xb
 @test map(s->State(label(s)+1, :X), xb) == Basis([2:6], :X)
 @test map(s->State(label(s[1])+1, :X)*s[2], xb2) == xbplus*xb
 @test setdiff(xbplus, xb) == State{Ket}[xbplus[5]]
+@test xb+xb == xb
+@test xbplus[5]+xb == Basis([6, 1:5],:X) 
+@test xb+xbplus[5] == Basis([1:6],:X) 
 
 end

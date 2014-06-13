@@ -175,7 +175,7 @@ function basisjoin{K,T}(s::State{K,T}, b::Basis{K,T})
 	if in(s, b)
 		return b
 	else
-		return makebasis(vcat(b.states, s))
+		return makebasis(vcat(s,b.states))
 	end
 end
 
