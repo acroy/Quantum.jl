@@ -1,8 +1,9 @@
 module DVectorTest
+include("/Users/jarrettrevels/data/repos/quantum/src/Quantum.jl")
 using Base.Test 
 using Quantum
 
-xb = Basis([1:5], "X")
+xb = Basis([1:5], :X)
 d = DiracVector([1:5], xb)
 @test d==d''
 @test d[:]==d.coeffs
@@ -16,5 +17,6 @@ d = DiracVector([1:5], xb)
 @test xb[1]'*d == 1
 @test d'*xb[1] == 1
 @test norm(normalize(d)) < 1+1e-8 && norm(normalize(d)) > 1-1e-8
+@test reduce(+,[i*xb[i]' for i=1:length(xb)]) == d'
 
 end

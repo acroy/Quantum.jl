@@ -30,7 +30,7 @@ kind(d::DiracVector) = kind(d.basis)
 #####################################
 isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis==b.basis
 ==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
-isdual(a::DiracVector{Ket}, b::DiracVector{Bra}) = isdual(a.basis, b.basis) && a.coeffs==vec(b.coeffs')
+isdual(a::DiracVector{Ket}, b::DiracVector{Bra}) = isdual(a.basis, b.basis) && a.coeffs==b.coeffs'
 isdual(a::DiracVector{Bra}, b::DiracVector{Ket}) = isdual(b,a)
 isdual{K}(a::DiracVector{K}, b::DiracVector{K}) = false
 
@@ -41,7 +41,9 @@ copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
 
 ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
 size(d::DiracVector, args...) = size(d.coeffs, args...)
-getindex(d::DiracVector, x...) = d.coeffs[x...]
+getindex(d::DiracVector{Ket}, x) = d.coeffs[x,1]
+getindex(d::DiracVector{Bra}, x) = d.coeffs[1,x]
+getindex(d::DiracVector, x, y...) = error("can't use 2D indexing on DiracVectors")
 setindex!(d::DiracVector, y, x...) = setindex!(d.coeffs, y, x...)
 
 for op=(:endof, :ndims, :eltype, :length, :find, :findn, :findnz, :nnz)
@@ -129,7 +131,7 @@ end
 
 function mapmatch(fstates::Function, fcoeffs::Function, d::DiracVector)
 	matched = findstates(fstates, d)	
-	coeffs = convert(Array{Any}, d.coeffs)
+	coeffs = convert(SparseMatrixCSC{Any}, d.coeffs)
 	for i in matched
 		coeffs[i] = fcoeffs(coeffs[i])
 	end
@@ -267,8 +269,11 @@ end
 -{K}(s::AbstractState{K}, d::DiracVector{K}) = s+(-d)
 -{K}(a::DiracVector{K}, b::DiracVector{K}) = a+(-b)
 
-+{K}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1, 1], tobasis([a,b])) 
--{K}(a::AbstractState{K}, b::AbstractState{K}) = DiracVector([1,-1], tobasis([a,b])) 
++(a::AbstractState{Ket}, b::AbstractState{Ket}) = a==b ? 2*a : DiracVector([1, 1], tobasis([a,b])) 
++(a::AbstractState{Bra}, b::AbstractState{Bra}) = a==b ? 2*a : DiracVector([1 1], tobasis([a,b])) 
+-(a::AbstractState{Ket}, b::AbstractState{Ket}) = a==b ? 0 : DiracVector([1, -1], tobasis([a,b])) 
+-(a::AbstractState{Bra}, b::AbstractState{Bra}) =  a==b ? 0 : DiracVector([1 -1], tobasis([a,b])) 
+
 -(s::AbstractState) = -1*s
 -(d::DiracVector) = DiracVector(-1*d.coeffs, d.basis)
 
