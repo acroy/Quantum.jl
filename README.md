@@ -1,5 +1,5 @@
 # Quantum.jl
-*A framework for performing operations on user-defined quantum states*
+*A framework for performing common quantum mechanical operations*
 
 Julia is an up-and-coming language for scientific computing that promises a
 high level of abstraction without the performance sacrifice such abstraction
@@ -15,9 +15,7 @@ mechanics operations using Dirac notation in a manner that is idiomatic to the
 language.
 
 If Julia is to properly compete with these other languages, it should have
-such a library available.
-
-Enter Quantum.jl.
+such a library available; enter Quantum.jl.
 
 In addition to providing the basic functionality that many quantum mechanical
 implementations provide, this project provides a system for storing,
@@ -26,9 +24,14 @@ users can define their own bases, operators/states in terms of those bases,
 and perform complex combinatorial filtering and mapping on the labels of 
 basis states. 
 
-All calculations with states and operators resort to using linear algebraic 
-formulations whenever possible, and linear transformations act in accordance 
-with user-defined bases. 
+All calculations with states and operators resolve themselves using linear 
+algebraic formulations whenever possible, and linear transformations act 
+in accordance with user-defined bases. 
+
+Quantum.jl does NOT yet feature or plan to feature operations on 
+continuous spaces. It is primarily for operations on discrete bases,
+which makes it a natural choice as a toolset for quantum information 
+research.
 
 All of this will become more clear once I get a chance to write up the docs;
 stay tuned for updates in the next few weeks!
@@ -37,7 +40,7 @@ Features
 ==========
 
 ###Current:
-	- Basis, State, Scalar, DiracVector, and DiracMatrix type implementations
+	- Basis, State, ScalarExpr, DiracVector, and DiracMatrix type implementations
 	- Tensor product structure for Dirac objects
 	- Application of arbitrary selection rules to extract subspaces from most types of 
 	  Quantum.jl collection objects. Related methods:
@@ -46,6 +49,7 @@ Features
 	  	- mapmatch/mapmatch!
 	  	- filtercoeffs
 	 	- filterstates
+	 	- find/findstates
 	- The ability to index into Dirac objects using States, e.g. to find the coefficient
 	  of a state in a DiracVector, one can simply call get(d::DiracVector, s::State) 
 	- Arithmetic/Linear algebra operations that are logically consistent w.r.t. to user
@@ -55,13 +59,12 @@ Features
 		- idiomatic computation of expectation values/transition matrices
 		- commutator of DiracMatrices
 		- trace/partial trace, normalization, kron, and more
+		- arithmetic operations between Dirac types and generic arrays
 	- ScalarExpr objects for delayed calculation of mixed basis inner products. ScalarExpr
 	  objects support all basic arithmetic operations. 
 	- The ability to perform mixed basis calculation via the use of ScalarExprs and InnerProducts
 
-###Planned (i.e. Coming Soon):
-	- Test modules
-	- Arithmetic operations between Dirac types and generic arrays
+###In The Works:
 	- Documentation
 	- register Quantum.jl as julia package
 
