@@ -201,10 +201,18 @@ function *(a::DiracMatrix, b::DiracMatrix)
 end
 
 function +(op::DiracMatrix, o::OuterProduct)
-	if in(o.bra, op.colbasis) && in(o.ket, op.rowbasis)
+	if in(o.ket, op.rowbasis) && in(o.bra, op.colbasis)
 		res = 1*op
 		res[getpos(op, o)...] = 1+get(op, o)
 		return res
+	elseif in(o.ket, op.rowbasis) && samebasis(o.bra, op.colbasis)
+		newcol = zeros(size(op,1))
+		newcol[get(op.rowbasis, o.ket)] = 1 
+		return DiracMatrix(hcat(op.coeffs,newcol), op.rowbasis, basisjoin(op.colbasis, o.bra))
+	elseif samebasis(o.ket, op.rowbasis) && in(o.bra, op.colbasis)
+		newrow = zeros(1,size(op,2))
+		newrow[get(op.colbasis, o.bra)] = 1 
+		return DiracMatrix(vcat(op.coeffs,newrow), basisjoin(op.rowbasis, o.ket), op.colbasis)
 	else
 		@assert samebasis(op, o) "BasisMismatch"
 		rowb = basisjoin(op.rowbasis, o.ket)
@@ -217,10 +225,18 @@ function +(op::DiracMatrix, o::OuterProduct)
 end
 
 function +(o::OuterProduct, op::DiracMatrix)
-	if in(o.bra, op.colbasis) && in(o.ket, op.rowbasis)
+	if in(o.ket, op.rowbasis) && in(o.bra, op.colbasis)
 		res = 1*op
 		res[getpos(op, o)...] = 1+get(op, o)
 		return res
+	elseif in(o.ket, op.rowbasis) && samebasis(o.bra, op.colbasis)
+		newcol = zeros(size(op,1))
+		newcol[get(op.rowbasis, o.ket)] = 1 
+		return DiracMatrix(hcat(newcol, op.coeffs), op.rowbasis, basisjoin(o.bra,op.colbasis))
+	elseif samebasis(o.ket, op.rowbasis) && in(o.bra, op.colbasis)
+		newrow = zeros(1,size(op,2))
+		newrow[get(op.colbasis, o.bra)] = 1 
+		return DiracMatrix(vcat(newrow,op.coeffs), basisjoin(o.ket,op.rowbasis), op.colbasis)
 	else
 		@assert samebasis(o,op) "BasisMismatch"
 		rowb = basisjoin(o.ket, op.rowbasis)
@@ -252,6 +268,7 @@ end
 
 -(op::DiracMatrix) = -1*op
 -(a::DiracMatrix, b::DiracMatrix) = a+(-b)
+-(a::DiracMatrix, b::OuterProduct) = a+(-b)
 
 exp(op::DiracMatrix) = DiracMatrix(exp(op.coeffs), op.rowbasis, op.colbasis)
 ^(op::DiracMatrix, i::Integer) = DiracMatrix(^(op.coeffs, i), op.rowbasis, op.colbasis)

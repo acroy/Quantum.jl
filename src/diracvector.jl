@@ -214,10 +214,10 @@ end
 *(a::AbstractState{Bra}, b::DiracVector{Ket}) = inner(a,b)
 #see kron in misc.jl
 *{K}(a::DiracVector{K}, b::DiracVector{K}) = kron(a,b)
-*{K}(s::AbstractState{K}, d::DiracVector{K}) = kron(a,b)
-*{K}(d::DiracVector{K}, s::AbstractState{K}) = kron(a,b)
+*{K}(a::AbstractState{K}, b::DiracVector{K}) = kron(a,b)
+*{K}(a::DiracVector{K}, b::AbstractState{K}) = kron(a,b)
 *(a::DiracVector{Ket}, b::AbstractState{Bra}) = kron(a,b)
-*(b::AbstractState{Ket}, a::DiracVector{Bra}) = kron(a,b)
+*(a::AbstractState{Ket}, b::DiracVector{Bra}) = kron(a,b)
 *(a::DiracVector{Ket}, b::DiracVector{Bra}) = kron(a,b)
 
 
