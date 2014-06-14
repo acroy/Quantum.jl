@@ -178,14 +178,14 @@ end
 *(c::DiracCoeff, d::DiracVector) = c.*d
 *(d::DiracVector, c::DiracCoeff) = c*d
 
-function *(s::AbstractState{Bra}, d::DiracVector{Ket})
+function inner(s::AbstractState{Bra}, d::DiracVector{Ket})
 	if samebasis(d,s)	
 		return get(d, s', 0)
 	else
 		return reduce(+,[d[i]*(s*d.basis[i]) for i=1:length(d)])
 	end
 end
-function *(d::DiracVector{Bra}, s::AbstractState{Ket})
+function inner(d::DiracVector{Bra}, s::AbstractState{Ket})
 	if samebasis(d,s)	
 		return get(d, s', 0)
 	else
@@ -193,7 +193,7 @@ function *(d::DiracVector{Bra}, s::AbstractState{Ket})
 	end
 end
 
-function *{N1<:Number, N2<:Number}(a::DiracVector{Bra, N1}, b::DiracVector{Ket, N2})
+function inner{N1<:Number, N2<:Number}(a::DiracVector{Bra, N1}, b::DiracVector{Ket, N2})
 	if a.basis==b.basis 
 		return (a.coeffs*b.coeffs)[1]
 	else
@@ -201,7 +201,7 @@ function *{N1<:Number, N2<:Number}(a::DiracVector{Bra, N1}, b::DiracVector{Ket, 
 	end
 end
 
-function *(a::DiracVector{Bra}, b::DiracVector{Ket})
+function inner(a::DiracVector{Bra}, b::DiracVector{Ket})
 	if a.basis==b.basis 
 		return reduce(+,[a[i]*b[i]*(a.basis[i]*b.basis[i]) for i=1:length(a)]) 
 	else
@@ -209,10 +209,17 @@ function *(a::DiracVector{Bra}, b::DiracVector{Ket})
 	end
 end	
 
-*(a::DiracVector{Ket}, b::DiracVector{Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
-*{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(kron(a.coeffs,b.coeffs), a.basis*b.basis)
-*{K}(s::AbstractState{K}, d::DiracVector{K}) = DiracVector(d.coeffs, s*d.basis)
-*{K}(d::DiracVector{K}, s::AbstractState{K}) = DiracVector(d.coeffs, d.basis*s)
+*(a::DiracVector{Bra}, b::DiracVector{Ket}) = inner(a,b)
+*(a::DiracVector{Bra}, b::AbstractState{Ket}) = inner(a,b)
+*(a::AbstractState{Bra}, b::DiracVector{Ket}) = inner(a,b)
+#see kron in misc.jl
+*{K}(a::DiracVector{K}, b::DiracVector{K}) = kron(a,b)
+*{K}(s::AbstractState{K}, d::DiracVector{K}) = kron(a,b)
+*{K}(d::DiracVector{K}, s::AbstractState{K}) = kron(a,b)
+*(a::DiracVector{Ket}, b::AbstractState{Bra}) = kron(a,b)
+*(b::AbstractState{Ket}, a::DiracVector{Bra}) = kron(a,b)
+*(a::DiracVector{Ket}, b::DiracVector{Bra}) = kron(a,b)
+
 
 function +{K}(d::DiracVector{K}, s::AbstractState{K})
 	if in(s, d.basis)

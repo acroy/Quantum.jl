@@ -261,7 +261,7 @@ commutator(a::DiracMatrix, b::DiracMatrix) = (a*b) - (b*a)
 
 function ptrace(op::DiracMatrix, ind::Int)
 	@assert isdual(op.colbasis, op.rowbasis) "BasisMismatch"
-	trrow = tensor(vcat(separate(op.rowbasis)[1:ind-1], separate(op.rowbasis)[ind+1:end])...)
+	trrow = btensor(vcat(separate(op.rowbasis)[1:ind-1], separate(op.rowbasis)[ind+1:end])...)
 	trcol = trrow'
 	len = length(trcol)
 	coeffs = [reduce(+,[op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.rowbasis)[ind])]) for j=1:length(trrow), k=1:length(trcol)] 

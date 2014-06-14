@@ -13,18 +13,25 @@ for t=(:DiracMatrix, :DiracVector, :AbstractState, :OuterProduct)
 	@eval -(d::($t), n::Number) = +(n,d)
 end
 
-kron(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(kron(a.coeffs, b.coeffs), tensor(a.rowbasis, b.rowbasis), tensor(a.colbasis, b.colbasis)) 
-kron(op::DiracMatrix, d::DiracVector{Ket}) = DiracMatrix(kron(op.coeffs, d.coeffs), tensor(op.rowbasis, d.basis), op.colbasis)
-kron(op::DiracMatrix, d::DiracVector{Bra}) = DiracMatrix(kron(op.coeffs, d.coeffs), op.rowbasis, tensor(op.colbasis, d.basis))
-kron(d::DiracVector{Ket}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), tensor(d.basis, op.rowbasis), op.colbasis)
-kron(d::DiracVector{Bra}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), op.rowbasis, tensor(d.basis, op.colbasis))
-kron{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(kron(a.coeffs, b.coeffs), tensor(a.basis, b.basis))
+kron{K}(a::AbstractState{K}, b::AbstractState{K}) = tensor(a,b)
+kron{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(kron(a.coeffs, b.coeffs), btensor(a.basis, b.basis))
+kron{K}(s::AbstractState{K}, d::DiracVector{K}) = DiracVector(d.coeffs, btensor(s,d.basis))
+kron{K}(d::DiracVector{K}, s::AbstractState{K}) = DiracVector(d.coeffs, btensor(d.basis,s))
+kron(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(kron(a.coeffs, b.coeffs), btensor(a.rowbasis, b.rowbasis), btensor(a.colbasis, b.colbasis)) 
+kron(op::DiracMatrix, d::DiracVector{Ket}) = DiracMatrix(kron(op.coeffs, d.coeffs), btensor(op.rowbasis, d.basis), op.colbasis)
+kron(op::DiracMatrix, d::DiracVector{Bra}) = DiracMatrix(kron(op.coeffs, d.coeffs), op.rowbasis, btensor(op.colbasis, d.basis))
+kron(d::DiracVector{Ket}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), btensor(d.basis, op.rowbasis), op.colbasis)
+kron(d::DiracVector{Bra}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), op.rowbasis, btensor(d.basis, op.colbasis))
 kron(a::DiracVector{Ket}, b::DiracVector{Bra}) = DiracMatrix(kron(a.coeffs, b.coeffs), a.basis, b.basis)
 kron(a::DiracVector{Bra}, b::DiracVector{Ket}) = kron(b,a)
+kron(a::DiracVector{Ket}, b::AbstractState{Bra}) = DiracMatrix(a.coeffs, a.basis, tobasis(b))
+kron(b::AbstractState{Ket}, a::DiracVector{Bra}) = DiracMatrix(b.coeffs, tobasis(a), b.basis)
+kron(a::DiracVector{Ket}, b::DiracVector{Bra}) = DiracMatrix(a.coeffs*b.coeffs, a.basis, b.basis)
 kron(a::AbstractScalar, b::AbstractScalar) = a*b
 kron(a::Dirac, b::DiracCoeff) = a*b
 kron(a::DiracCoeff, b::Dirac) = b*a
 
+#arithmetic functrions for generic arrays
 for op in (:+, :-, :*, :.+, :.-, :.*, :./, :kron)
 	@eval ($op){T}(a::Array{T, 1}, d::DiracVector{Ket}) = ($op)(DiracVector(a, d.basis), d)
 	@eval ($op){T}(d::DiracVector{Ket}, a::Array{T, 1}) = ($op)(d, DiracVector(a, d.basis))
