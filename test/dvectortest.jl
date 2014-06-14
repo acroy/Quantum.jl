@@ -4,6 +4,7 @@ using Quantum
 
 xb = Basis([1:5], :X)
 d = DiracVector([1:5], xb)
+@test filterstates(s->label(s)%2==0, dv) == filtercoeffs(x->x%2==0, dv)
 @test d==d''
 @test d[:]==d.coeffs
 @test d'*d == 55

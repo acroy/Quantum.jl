@@ -43,11 +43,10 @@ ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
 size(d::DiracVector, args...) = size(d.coeffs, args...)
 getindex(d::DiracVector{Ket}, x) = d.coeffs[x,1]
 getindex(d::DiracVector{Bra}, x) = d.coeffs[1,x]
-getindex(d::DiracVector, x, y...) = error("can't use 2D indexing on DiracVectors")
+getindex(d::DiracVector, x, y) = d.coeffs[x,y]
 setindex!(d::DiracVector{Ket}, y, x) = setindex!(d.coeffs, y, x, 1)
 setindex!(d::DiracVector{Bra}, y, x) = setindex!(d.coeffs, y, 1, x)
-setindex!(d::DiracVector, y, x...) = error("can't use 2D indexing on DiracVectors")
-
+setindex!(d::DiracVector, y, x...) = setindex!(d.coeffs, y, x...)
 
 for op=(:endof, :ndims, :eltype, :length, :find, :findn, :findnz, :nnz)
 	@eval ($op)(d::DiracVector) = ($op)(d.coeffs)
@@ -66,8 +65,7 @@ function get(d::DiracVector, s::AbstractState, notfound)
 end
 
 get(d::DiracVector, s::AbstractState) = d[getpos(d, s)]
-get(d::DiracVector, label) = get(d, typeof(d.basis)<:Basis ? State(label) : TensorState(label))
-
+in(s::AbstractState, d::DiracVector) = in(s, d.basis)
 #####################################
 #Show Functions######################
 #####################################
@@ -154,24 +152,16 @@ function mapmatch!(fstates::Function, fcoeffs::Function, d::DiracVector)
 	return d
 end
 
-function filterstates(f::Function, d::DiracVector)
-	newbasis = filter(f, d.basis)
-	if kind(d)==Ket
-		return DiracVector(vcat([get(d, newbasis[i]) for i=1:length(newbasis)]...), newbasis)
-	else 
-		return DiracVector(hcat([get(d, newbasis[i]) for i=1:length(newbasis)]...), newbasis)
-	end
+function filtercons{K,T}(newbasis::AbstractBasis, d::DiracVector{K,T})
+	coeffs = K==Ket ? Array(T, length(newbasis)) : Array(T, 1, length(newbasis))
+	for i=1:length(newbasis)
+		coeffs[i] = get(d, newbasis[i])
+	end	
+	return DiracVector(coeffs, newbasis)
 end
 
-function filtercoeffs(f::Function, d::DiracVector)
-	matched = find(map(f, d.coeffs))
-	newbasis = filter(x->in(get(d.basis,x), matched), d.basis)
-	if kind(d)==Ket
-		return DiracVector(vcat(getindex(d, matched)...), newbasis)
-	else
-		return DiracVector(hcat(getindex(d, matched)...), newbasis)
-	end
-end
+filterstates{K,T}(f::Function, d::DiracVector{K,T}) = filtercons(filter(f, d.basis), d)
+filtercoeffs(f::Function, d::DiracVector) = filtercons(Basis(d.basis[find(map(f, d.coeffs))]), d)
 
 qeval(f::Function, d::DiracVector) = map(x->qeval(f, x), d)
 
