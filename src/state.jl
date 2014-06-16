@@ -116,10 +116,14 @@ function inner{K<:BraKet}(a::TensorState{Bra}, b::TensorState{Ket}, i::Int, targ
 end
 
 function inner(a::TensorState{Bra}, b::TensorState{Ket})
-	for s in a.states
-		b = *(s,b)
+	if samebasis(a,b)
+		return labeldelta(a,b)
+	else
+		for s in a.states
+			b = *(s,b)
+		end
+		return b
 	end
-	return b
 end
 
 *(a::AbstractState{Bra}, b::AbstractState{Ket}) = inner(a,b)
