@@ -97,7 +97,7 @@ tensor{K}(s::AbstractState{K}...) = reduce(tensor,s)
 
 function inner(a::State{Bra}, b::State{Ket})
 	if samebasis(a,b)
-		label(a)==label(b) ? 1 : 0
+		return labeldelta(a,b)
 	else
 		return InnerProduct(a, b)
 	end
