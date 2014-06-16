@@ -2,18 +2,22 @@ The documentation is now out of date due to the recent redesign of the project. 
 new design has been more or less fully implemented, I'll come back and fix up the documentation.
 <!-- Quantum.jl Documentation
 ===
-1. AbstractTypes
+1. Abstract Types
 ---
-The following list contains the abstract types referenced in this documentation:
+The following list contains the abstract types and type aliases referenced in this documentation:
 
-	abstract Quantum
-	abstract BraKet <: Quantum
+	abstract Dirac
+	abstract BraKet <: Dirac
 	abstract Bra <: BraKet
 	abstract Ket <: BraKet
-	abstract AbstractBasis{K<:BraKet} <: Quantum
+	abstract AbstractBasis{K<:BraKet} <: Dirac
+	abstract AbstractState{K<:BraKet} <: Dirac
+	abstract AbstractScalar <: Dirac
+	typealias DiracCoeff Union(Number, AbstractScalar)
+
 
 The not operator `!` can be applied to `Bra` and `Ket` types to alternate between 
-the two (since they are duals of each other):
+the two:
 
 	!(K::Type{Ket}) = Bra
 	!(B::Type{Bra}) = Ket
@@ -22,120 +26,216 @@ the two (since they are duals of each other):
 --- 
 __Description__
 
-A `State` is a type of an object that has only a
-label (stored as a `Vector`) and a specification of whether it belongs to `Ket`-
-space or `Bra`-space (this property is referred to as “kind”). A `State` is
-parameterized by its kind; thus, states are either of type `State{Bra}` or
-`State{Ket}`.
+A `State` is an object that stores two labels. The first label is a unique identifier
+for the state, while the second label specifies the basis for which the state is an
+eigenstate. All instances of type `State` are explicit eigenstates of a basis (the 
+representation of non-eigenstates is covered in the `DiracVector` section).
+States are parameterized by their `kind`, which identifies whether the state
+belongs to `Ket`-space or `Bra`-space.
+
+The first label, as seen in the definition below, can be an instance of any type.
 
 __Definition__
 
-	immutable State{K<:BraKet} <: Quantum
-	  label::Vector
-	  kind::Type{K}
+	immutable State{K<:BraKet, T} <: AbstractState{K}
+	  label::T
+	  basislabel::Symbol
 	end
 
 __Constructors__
 
-	State(label::Vector) #defaults to kind=Ket
-	State{K<:BraKet}(label, kind::Type{K}=Ket)
-	State{K<:BraKet}(label...; kind::Type{K}=Ket)
+	State{K<:BraKet,T}(label::T, basislabel::Symbol, kind::Type{K}=Ket) = State{kind, T}(label, basislabel)
 
 __Methods and Examples__
 
-For the sake of this example, we'll instantiate a few states thusly:
+Let's instantiate an array of eigenstates belonging to basis `:X`:
 
-	julia> using QuantumJL
+	julia> using Quantum
 
-	julia> a = State(:a)
-	| :a ⟩
+	julia> sv = [State(i,:X) for i=1:5]
+	5-element Array{State{Ket,Int64},1}:
+	 | 1:X ⟩
+	 | 2:X ⟩
+	 | 3:X ⟩
+	 | 4:X ⟩
+	 | 5:X ⟩
 
-	julia> b = State("b")
-	| "b" ⟩
+Taking the `ctranspose` of a state returns its dual:
 
-	julia> c = State(3)
-	| 3 ⟩
+	julia> sv[1]
+	| 1:X ⟩
 
-	julia> abc = a*b*c
-	| :a,"b",3 ⟩
+	julia> sv[1]'
+	⟨ 1:X |
 
-You can index into a state's label just as you would index into an 
-array, performing both retrieval and assignment of the label elements 
-idiomatically:
+	julia> sv[1]'==State(1,:X,Bra)
+	true
 
-	julia> abc[2]
-	"b"
+The inner product of a `Bra` state and a `Ket` state
+of the same basis is a Kronecker delta function based 
+on the states' labels:
 
-	julia> abc[2]=:n
-	:n
+	julia> sv[1]'*sv[1]
+	1
 
-	julia> abc
-	| :a,:n,3 ⟩
-
-Composite states can be separated into their component states:
-
-	julia> separate(abc)
-	3-element Array{State{Ket},1}:
-	 | :a ⟩
-	 | :n ⟩
-	 | 3 ⟩
-
-Several convenience functions are provided which aid in the 
-contruction of states. One such function is `statevec`, which
-takes in an array and produces a `Vector{State{Ket}}` based on
-the array's contents. Another is `statejoin`, which takes the
-tensor product of all the states in a `Vector{State}`:
-
-	julia> arr = [1:5 6:10 11:15]
-	5x3 Array{Int64,2}:
-	 1   6  11
-	 2   7  12
-	 3   8  13
-	 4   9  14
-	 5  10  15
-
-	julia> statevec(arr)
-	5-element Array{State{Ket},1}:
-	 | 1,6,11 ⟩
-	 | 2,7,12 ⟩
-	 | 3,8,13 ⟩
-	 | 4,9,14 ⟩
-	 | 5,10,15 ⟩
-
-	julia> statejoin(ans)
-	| 1,6,11,2,7,12,3,8,13,4,9,14,5,10,15 ⟩
-
-Finally, one can take the complex conjugate transpose and products of abstract states:
-
-	julia> a'
-	⟨ :a |
-
-	julia> a'*a'
-	⟨ :a,:a  |
-
-	julia> a'*a
-	:(⟨ :a  | * | :a  ⟩)
-
-	julia> a*a'
-	:(| :a  ⟩ * ⟨ :a  |)
-
-From the above, you can see that orthonormality is not assumed, even between
-states that have the same label. In the future, a function will be implemented
-to evaluate inner products based on pattern matching and basis conversion. 
-
-For now, the `labeldelta` function can be used to compute the Kronecker delta 
-function on the *labels* (not the states):
-
-	julia> labeldelta(a,b)
+	julia> sv[2]'*sv[1]
 	0
 
-	julia> labeldelta(a,a)
+The inner product of a `Bra` state and a `Ket` state
+of different bases returns an `InnerProduct` object, 
+which has its own section later on in this tutorial:
+
+	julia> sv[1]'*State(1,:Y)
+	⟨ 1:X |  1:Y ⟩
+
+Similarly, the outer product of a `Ket` state and a `Bra`
+state returns an `OuterProduct` object, whose behavior is
+discussed in the `DiracMatrix` section:
+
+	julia> sv[1]*State(1,:Y)'
+	| 1:X ⟩⟨ 1:Y |
+
+Finally, the product of two states with the same `kind` 
+returns a `TensorState` of that `kind`:
+
+	julia> sv[1]*State(1,:Y)
+	| 1:X, 1:Y ⟩
+
+	julia> sv[1]'*State(1,:Y)'
+	⟨ 1:X, 1:Y |
+
+For convenience, Quantum.jl provides a function called `statearr` which
+takes in the following arguments and maps a `State` constructor to each 
+of the elements of the Array accordingly:
+
+	statearr{K<:BraKet, T}(arr::Array{T}, basislabel::Symbol, kind::Type{K}=Ket)
+
+	julia> statearr([i+j for i=1:10,j=1:10], :X, Bra)
+	10x10 Array{State{Bra,Int64},2}:
+	 ⟨ 2:X |   ⟨ 3:X |   ⟨ 4:X |   ⟨ 5:X |   …  ⟨ 9:X |   ⟨ 10:X |  ⟨ 11:X |
+	 ⟨ 3:X |   ⟨ 4:X |   ⟨ 5:X |   ⟨ 6:X |      ⟨ 10:X |  ⟨ 11:X |  ⟨ 12:X |
+	 ⟨ 4:X |   ⟨ 5:X |   ⟨ 6:X |   ⟨ 7:X |      ⟨ 11:X |  ⟨ 12:X |  ⟨ 13:X |
+	 ⟨ 5:X |   ⟨ 6:X |   ⟨ 7:X |   ⟨ 8:X |      ⟨ 12:X |  ⟨ 13:X |  ⟨ 14:X |
+	 ⟨ 6:X |   ⟨ 7:X |   ⟨ 8:X |   ⟨ 9:X |      ⟨ 13:X |  ⟨ 14:X |  ⟨ 15:X |
+	 ⟨ 7:X |   ⟨ 8:X |   ⟨ 9:X |   ⟨ 10:X |  …  ⟨ 14:X |  ⟨ 15:X |  ⟨ 16:X |
+	 ⟨ 8:X |   ⟨ 9:X |   ⟨ 10:X |  ⟨ 11:X |     ⟨ 15:X |  ⟨ 16:X |  ⟨ 17:X |
+	 ⟨ 9:X |   ⟨ 10:X |  ⟨ 11:X |  ⟨ 12:X |     ⟨ 16:X |  ⟨ 17:X |  ⟨ 18:X |
+	 ⟨ 10:X |  ⟨ 11:X |  ⟨ 12:X |  ⟨ 13:X |     ⟨ 17:X |  ⟨ 18:X |  ⟨ 19:X |
+	 ⟨ 11:X |  ⟨ 12:X |  ⟨ 13:X |  ⟨ 14:X |     ⟨ 18:X |  ⟨ 19:X |  ⟨ 20:X |
+
+3. TensorState 
+--- 
+__Description__
+
+A `TensorState` object is the result of a tensor products between `State`s.
+__Definition__
+
+	immutable TensorState{K<:BraKet} <: AbstractState{K}
+	  states::Vector
+	  TensorState{S<:State{K}}(v::Vector{S}) = new(v)
+	  TensorState(v::Vector) = new(convert(Vector{State{K}},v))  
+	end
+
+__Constructors__
+
+	TensorState{K<:BraKet}(labels::Vector, basislabel::Symbol, kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind))
+
+__Methods and Examples__
+
+The constructor above is provided for convenience and for it's similarity to 
+the `State` constructor. Most of the time, however, one would construct `TensorState`s
+using multiplication (`sv` refers to the `Vector{State{Ket,Int64}}` constructed in the 
+previous section):
+
+	julia> ts=sv[1]*State("Bob", :B)*sv[3]
+	 | 1:X, "Bob":B, 3:X ⟩
+	
+One can take the `ctranspose` of `TensorState`s as well:
+
+	julia> ts'
+	⟨ 1:X, "Bob":B, 3:X |
+
+The `separate` command returns the a vector of the components of a `TensorState`:
+
+	julia> separate(ts)
+	3-element Array{State{Ket,T},1}:
+	 | 1:X ⟩
+	 | "Bob":B ⟩
+	 | 3:X ⟩
+
+To get specific components, you can index into a `TensorState` as you would a
+`Vector`:
+
+	julia> ts[1]
+	| 1:X ⟩
+
+	julia> ts[2]
+	| "Bob":B ⟩
+
+	julia> ts[1:2]
+	2-element Array{State{Ket,T},1}:
+	 | 1:X ⟩
+	 | "Bob":B ⟩
+
+	julia> ts[:]
+	3-element Array{State{Ket,T},1}:
+	 | 1:X ⟩
+	 | "Bob":B ⟩
+	 | 3:X ⟩
+
+Taking the inner product of `TensorState`s and `State`s can be ambiguous 
+without specifying which component states are acting on each other. 
+For example, the operation ⟨ a | a, b ⟩ is ambiguous; calculating it
+as ⟨ a | a ⟩| b ⟩ or ⟨ a | b ⟩ | a ⟩ yields two different results. 
+
+By default, Quantum.jl will always match component states to each other
+by position, applying left to right. Thus, ⟨ a | a, b ⟩ is interpreted as 
+⟨ a | a ⟩| b ⟩, and something like ⟨ a, c | a, b ⟩ is interpreted as 
+⟨ c |(⟨ a | a, b ⟩) ->  ⟨ c | b ⟩:
+
+	julia> ts'*ts
 	1
 
-	julia> labeldelta(a,a')
-	1
+	#sv[2]' -> ⟨ 2:X |
+	julia> sv[2]'*ts
+	0
 
-3. Basis 
+	#ts' -> ⟨ 1:X, "Bob":B, 3:X |, prod(ts[1:2]) -> | 1:X, "Bob":B ⟩
+	julia> ts'*prod(ts[1:2])
+	⟨ 3:X |
+
+	#prod(ts[[1,3,2]]) -> | 1:X, 3:X, "Bob":B ⟩
+	julia> ts'*prod(ts[[1,3,2]])
+	ScalarExpr(:(⟨ "Bob":B |  3:X ⟩ * ⟨ 3:X |  "Bob":B ⟩))
+
+A `ScalarExpr` is an object that allows the user to transform `InnerProduct`s 
+like numbers; thus they can be multiplied together, as ⟨ "Bob":B |  3:X ⟩ and 
+⟨ 3:X |  "Bob":B ⟩ are above. `ScalarExpr`s are described (along with `InnerProduct`s) 
+in their own section later on. 
+
+To take inner products in a more explicit manner, one can use the `inner` function. 
+The `inner` function takes a `Bra` state, `Ket` state, and an `Int` argument that
+specifies index of the components on which the states act:
+
+	#Default behavior
+	julia> sv[3]'*ts #⟨ 3:X | 1:X, "Bob":B, 3:X ⟩ -> ⟨ 3:X | 1:X ⟩*| "Bob":B, 3:X ⟩ -> 0*| "Bob":B, 3:X ⟩ 
+	0
+
+	#using inner to specify which `Ket` state the `Bra` is acting on 
+	julia> inner(sv[3]', ts, 3) #| 1:X, "Bob":B ⟩*⟨ 3:X | 3:X ⟩ -> | 1:X, "Bob":B ⟩*1
+	| 1:X, "Bob":B ⟩ 
+	
+	#the integer argument always refers to an index of the TensorState being acted upon 
+	julia> inner(ts', sv[3], 3) #⟨ 1:X, "Bob":B |*⟨ 3:X | 3:X ⟩ -> ⟨ 1:X, "Bob":B |*1
+	⟨ 1:X, "Bob":B |
+
+If one is taking an inner product between two `TensorState`s, the target of the indexing 
+argument can be specified, and defaults to `Ket`:
+
+	inner{K<:BraKet}(a::TensorState{Bra}, b::TensorState{Ket}, i::Int, target::Type{K}=Ket)
+
+
+3. Basis
 --- 
 __Description__ 
 

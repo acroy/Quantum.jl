@@ -14,8 +14,13 @@ function makebasis{K,T}(sv::Vector{State{K,T}})
 	@assert length(unique(map(basislabel, sv)))==1 "BasisMismatch"
 	Basis{K,T}(basislabel(sv[1]), sv, ((T,Symbol)=>Int64)[(sv[i].label,sv[i].basislabel)=>i for i=1:length(sv)])
 end
+function makebasis{K,T}(sv::Vector{State{K,T}})
+	@assert length(unique(map(basislabel, sv)))==1 "BasisMismatch"
+	Basis{K,T}(basislabel(sv[1]), sv, ((T,Symbol)=>Int64)[(sv[i].label,sv[i].basislabel)=>i for i=1:length(sv)])
+end
 
 Basis{K,T}(states::Vector{State{K,T}}) = makebasis(unique(states))
+Basis{K,T}(states::Array{State{K,T}}) = makebasis(unique(vec(states)))
 Basis{K<:BraKet,T}(labelvec::Array{T}, label::Symbol, kind::Type{K}=Ket) = Basis(statearr(labelvec, label, kind))
 Basis{K,T}(s::State{K,T}...) = Basis(convert(Array{State{K,T}}, collect(s)))
 
@@ -43,10 +48,10 @@ TensorBasis{K}(bases::AbstractBasis{K}...) = btensor(bases...)
 
 #makebasis but for TensorBasis
 function maketensorbasis{K}(sv::Vector{TensorState{K}})
-	sepstates = hcat(map(separate, sv)...).'
-	bases = Array(Basis{K}, size(sepstates, 2))
-	for i=1:size(sepstates, 2)
-		bases[i] = Basis(sepstates[:, i])
+	sepstates = hcat(map(separate, sv)...)
+	bases = Array(Basis{K}, size(sepstates,1))
+	for i=1:size(sepstates, 1)
+	 	bases[i] = Basis([sepstates[i, :]...]) #vcat trick to force correct typing of subarray
 	end
 	return TensorBasis{K}(bases, sv, statemapper(sv))
 end

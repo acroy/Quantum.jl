@@ -11,11 +11,10 @@ State{K<:BraKet,T}(label::T, basislabel::Symbol, kind::Type{K}=Ket) = State{kind
 
 immutable TensorState{K<:BraKet} <: AbstractState{K}
   states::Vector
-  TensorState{S<:State}(v::Vector{S}) = new(v)
+  TensorState{S<:State{K}}(v::Vector{S}) = new(v)
+  TensorState(v::Vector) = new(convert(Vector{State{K}},v))  
 end
 
-TensorState{S<:State{Ket}}(states::Vector{S}) = TensorState{Ket}(states)
-TensorState{S<:State{Bra}}(states::Vector{S}) = TensorState{Bra}(states)
 TensorState{K<:BraKet}(labels::Vector, basislabel::Symbol, kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind))
 
 #####################################
@@ -39,7 +38,7 @@ isequal(a::AbstractState, b::AbstractState) = false #default to false
 ==(a::AbstractState, b::AbstractState) = false #default to false
 
 ctranspose{K,T}(s::State{K,T}) = State{!K,T}(s.label, s.basislabel)
-ctranspose{K}(s::TensorState{K}) = TensorState(State{!K}[ctranspose(i) for i in s.states])
+ctranspose{K}(s::TensorState{K}) = TensorState{!K}([ctranspose(i) for i in s.states])
 
 getindex(s::TensorState, x) = s.states[x]
 separate(s::TensorState) = s.states
@@ -49,7 +48,11 @@ kind{K}(s::AbstractState{K}) = K
 basislabel(s::State) = s.basislabel
 label(s::State) = s.label
 basislabel(s::TensorState) = map(basislabel, s.states)
-label(s::TensorState) = map(label, s.states)
+label(s::TensorState) = [label(i) for i in s.states]
+
+labeldelta(a::State, b::State) = label(a)==label(b) ? 1 : 0
+labeldelta(a::TensorState, b::TensorState) = label(a)==label(b) ? 1 : 0
+labeldelta(a::AbstractState, b::AbstractState) = 0 #default to 0
 
 isdual{T}(a::State{Bra, T}, b::State{Ket, T}) = label(a)==label(b) && samebasis(a,b)
 isdual{T}(a::State{Ket, T}, b::State{Bra, T}) = isdual(b,a)
@@ -81,10 +84,10 @@ show(io::IO, s::AbstractState{Bra}) = print(io, "$lang $(reprlabel(s)) |")
 #Arithmetic Operations###############
 #####################################
 tensor() = error("tensor takes arguments of states")
-tensor{K}(a::State{K}, b::State{K}) = TensorState(vcat(a,b))
-tensor{K}(a::TensorState{K}, b::State{K}) = TensorState(vcat(a.states, b))
-tensor{K}(a::State{K}, b::TensorState{K}) = TensorState(vcat(a, b.states))
-tensor{K}(a::TensorState{K}, b::TensorState{K}) = TensorState(vcat(a.states, b.states))
+tensor{K}(a::State{K}, b::State{K}) = TensorState{K}(vcat(a,b))
+tensor{K}(a::TensorState{K}, b::State{K}) = TensorState{K}(vcat(a.states, b))
+tensor{K}(a::State{K}, b::TensorState{K}) = TensorState{K}(vcat(a, b.states))
+tensor{K}(a::TensorState{K}, b::TensorState{K}) = TensorState{K}(vcat(a.states, b.states))
 tensor{K}(s::AbstractState{K}...) = reduce(tensor,s) 
 
 *{K}(a::AbstractState{K}, b::AbstractState{K}) = tensor(a,b)
@@ -114,7 +117,7 @@ end
 
 function inner(a::TensorState{Bra}, b::TensorState{Ket})
 	for s in a.states
-		b = inner(s,b)
+		b = *(s,b)
 	end
 	return b
 end

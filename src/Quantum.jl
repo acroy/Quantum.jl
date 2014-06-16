@@ -125,5 +125,6 @@ module Quantum
 		   getpos,
 		   ptrace,
 		   isdual,
+		   labeldelta,
 		   samebasis
 end

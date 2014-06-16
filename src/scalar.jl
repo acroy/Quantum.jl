@@ -99,7 +99,7 @@ function /(a::DiracCoeff, b::DiracCoeff)
 	if a==0
 		return b
 	elseif b==0
-		error("Zero in denominator")
+		error("Zero in denominator of ScalarExpr")
 	elseif a==b
 		return 1
 	else
