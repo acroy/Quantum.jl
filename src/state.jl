@@ -1,74 +1,85 @@
 #####################################
 #State/TensorState###################
 #####################################
+abstract Single 
+abstract Tensor 
+abstract State{T<:Union(Single,Tensor)} <: Dirac
+abstract AbstractKet{T<:Union(Single,Tensor)} <: State{T}
+abstract AbstractBra{T<:Union(Single,Tensor)} <: State{T}
 
-immutable State{K<:BraKet, T} <: AbstractState{K}
-  label::T
-  basislabel::Symbol
+immutable Ket{T} <: AbstractKet{Single}
+	label::T
+	bsym::Symbol
 end
 
-State{K<:BraKet,T}(label::T, basislabel::Symbol, kind::Type{K}=Ket) = State{kind, T}(label, basislabel)
-
-immutable TensorState{K<:BraKet, S<:State{K}} <: AbstractState{K}
-  states::Vector{S} 
+immutable Bra{T} <: AbstractBra{Single}
+	label::T
+	bsym::Symbol
 end
 
-TensorState{S<:State{Ket}}(sv::Vector{S}) = TensorState{Ket, S}(sv) 
-TensorState{S<:State{Bra}}(sv::Vector{S}) = TensorState{Bra, S}(sv) 
+immutable TensorKet{K<:Ket} <: AbstractKet{Tensor}
+	states::Vector{K}
+end
+
+immutable TensorBra{B<:Bra} <: AbstractBra{Tensor}
+	states::Vector{B}
+end
 
 #####################################
 #Misc Functions######################
 #####################################
 
-copy(s::State) = State(copy(s.label), copy(s.basislabel))
-copy(s::TensorState) = TensorState(copy(s.states))
+copy{S<:State{Single}}(s::S) = S(copy(s.label), copy(s.bsym))
+copy{S<:State{Tensor}}(s::S) = S(copy(s.states))
 
-#hashing isn't working right now :(
-# hash(s::State) = ?
-# hash(s::TensorState) = ?
+dual(t::Type{Ket}) = Bra
+dual(t::Type{Bra}) = Ket
+dual(t::Type{TensorKet}) = TensorBra
+dual(t::Type{TensorBra}) = TensorKet
+dual{T}(t::Type{Ket{T}}) = Bra{T}
+dual{T}(t::Type{Bra{T}}) = Ket{T}
+dual{T}(t::Type{TensorKet{T}}) = TensorBra{dual(T)}
+dual{T}(t::Type{TensorBra{T}}) = TensorKet{dual(T)}
 
-isequal{K,T}(a::State{K,T},b::State{K,T}) = isequal(a.label, b.label) && a.basislabel==b.basislabel
-=={K,T}(a::State{K,T},b::State{K,T}) = a.label==b.label && a.basislabel==b.basislabel
+isequal{S<:State{Single}}(a::S,b::S) = isequal(a.label, b.label) && a.bsym==b.bsym
+=={S<:State{Single}}(a::S,b::S) = a.label==b.label && a.bsym==b.bsym
 
-isequal{K}(a::TensorState{K}, b::TensorState{K}) = isequal(a.states, b.states)
-=={K}(a::TensorState{K}, b::TensorState{K}) = a.states==b.states
+isequal{S<:State{Tensor}}(a::S, b::S) = isequal(a.states, b.states)
+=={S<:State{Tensor}}(a::S, b::S) = a.states==b.states
 
-isequal(a::AbstractState, b::AbstractState) = false #default to false
-==(a::AbstractState, b::AbstractState) = false #default to false
+ctranspose{S<:State{Single}}(s::S) = dual(S)(s.label, s.bsym)
+ctranspose{S<:State{Tensor}}(s::S) = dual(S)([ctranspose(i) for i in s.states])
 
-ctranspose{K,T}(s::State{K,T}) = State{!K,T}(s.label, s.basislabel)
-ctranspose{K<:BraKet,T}(s::TensorState{K, State{K,T}}) = TensorState{!K, State{!K, T}}([ctranspose(i) for i in s.states])
+getindex(s::State{Tensor}, x) = s.states[x]
+separate(s::State{Tensor}) = s.states
 
-getindex(s::TensorState, x) = s.states[x]
-separate(s::TensorState) = s.states
+bsym(s::State{Single}) = s.bsym
+label(s::State{Single}) = s.label
+bsym(s::State{Tensor}) = map(bsym, s.states)
+label(s::State{Tensor}) = [label(i) for i in s.states]
 
-kind{K}(s::AbstractState{K}) = K
+labeldelta{S<:State{Single}}(a::S, b::S) = label(a)==label(b) ? 1 : 0
+labeldelta{S<:State{Tensor}}(a::S, b::S) = label(a)==label(b) ? 1 : 0
+labeldelta(a::State, b::State) = 0 #default to 0
 
-basislabel(s::State) = s.basislabel
-label(s::State) = s.label
-basislabel(s::TensorState) = map(basislabel, s.states)
-label(s::TensorState) = [label(i) for i in s.states]
-
-labeldelta(a::State, b::State) = label(a)==label(b) ? 1 : 0
-labeldelta(a::TensorState, b::TensorState) = label(a)==label(b) ? 1 : 0
-labeldelta(a::AbstractState, b::AbstractState) = 0 #default to 0
-
-isdual{T}(a::State{Bra, T}, b::State{Ket, T}) = label(a)==label(b) && samebasis(a,b)
-isdual{T}(a::State{Ket, T}, b::State{Bra, T}) = isdual(b,a)
-isdual(a::TensorState{Ket}, b::TensorState{Bra}) = label(a)==label(b) && samebasis(a,b)
-isdual(a::TensorState{Bra}, b::TensorState{Ket}) = isdual(b,a)
-isdual(a::AbstractState, b::AbstractState) = false #default to false
+isdual{T}(a::Bra{T}, b::Ket{T}) = label(a)==label(b) && samebasis(a,b)
+isdual{T}(a::Ket{T}, b::Bra{T}) = label(a)==label(b) && samebasis(a,b)
+isdual{T}(a::TensorKet{Ket{T}}, b::TensorBra{Bra{T}}) = label(a)==label(b) && samebasis(a,b)
+isdual{T}(a::TensorBra{Bra{T}}, b::TensorKet{Ket{T}}) = label(a)==label(b) && samebasis(a,b)
+isdual(a::TensorKet{Ket}, b::TensorBra{Bra}) = label(a)==label(b) && samebasis(a,b)
+isdual(a::TensorBra{Bra}, b::TensorKet{Ket}) = label(a)==label(b) && samebasis(a,b)
+isdual(a::State, b::State) = false #default to false
 
 for op=(:length, :endof)
-	@eval ($op)(s::TensorState) = $(op)(s.states)
+	@eval ($op)(s::State{Tensor}) = $(op)(s.states)
 end
 
 #####################################
 #Show Functions######################
 #####################################
 
-reprlabel(s::State) = "$(repr(s.label)):$(s.basislabel)"
-function reprlabel(s::TensorState)
+reprlabel(s::State{Single}) = "$(repr(s.label)):$(s.bsym)"
+function reprlabel(s::State{Tensor})
 	str = "$(reprlabel(s.states[1]))"
 	for i=2:length(s.states)
 		str = "$(str), $(reprlabel(s.states[i]))"
@@ -76,78 +87,76 @@ function reprlabel(s::TensorState)
 	return str
 end
 
-show(io::IO, s::AbstractState{Ket}) = print(io, "| $(reprlabel(s)) $rang")
-show(io::IO, s::AbstractState{Bra}) = print(io, "$lang $(reprlabel(s)) |")
+show(io::IO, s::AbstractKet) = print(io, "| $(reprlabel(s)) $rang")
+show(io::IO, s::AbstractBra) = print(io, "$lang $(reprlabel(s)) |")
 
 #####################################
 #Arithmetic Operations###############
 #####################################
-tensor() = error("tensor takes arguments of states")
 
-#optimization for when states share the same label types
-tensor{K,T}(a::State{K,T}, b::State{K,T}) = TensorState([a,b])
-tensor{K,S<:State}(a::TensorState{K,S}, b::S) = TensorState([a.states, b])
-tensor{K,S<:State}(a::S, b::TensorState{K,S}) = TensorState([a, b.states])
-tensor{K,S<:State}(a::TensorState{K,S}, b::TensorState{K,S}) = TensorState([a.states, b.states])
+tensor(a::Ket, b::Ket) = TensorKet([a,b]) 
+tensor(a::Ket, b::TensorKet) = TensorKet([a,b.states]) 
+tensor(a::TensorKet, b::Ket) = TensorKet([a.states,b]) 
+tensor(a::TensorKet, b::TensorKet) = TensorKet([a.states,b.states]) 
+tensor(a::Bra, b::Bra) = TensorBra([a,b]) 
+tensor(a::Bra, b::TensorBra) = TensorBra([a,b.states]) 
+tensor(a::TensorBra, b::Bra) = TensorBra([a.states,b]) 
+tensor(a::TensorBra, b::TensorBra) = TensorBra([a.states,b.states]) 
 
-#inference for when states don't share label types
-tensor{K}(a::State{K}, b::State{K}) = TensorState(State{K}[a,b])
-tensor{K}(a::TensorState{K}, b::State{K}) = TensorState{K,State{K}}([a.states, b])
-tensor{K}(a::State{K}, b::TensorState{K}) = TensorState{K,State{K}}([a, b.states])
-tensor{K}(a::TensorState{K}, b::TensorState{K}) = TensorState{K,State{K}}([a.states, b.states])
+tensor(s...) = reduce(tensor,s) 
 
-tensor{K}(s::AbstractState{K}...) = reduce(tensor,s) 
+*(a::AbstractKet, b::AbstractKet) = tensor(a,b)
+*(a::AbstractBra, b::AbstractBra) = tensor(a,b)
 
-*{K}(a::AbstractState{K}, b::AbstractState{K}) = tensor(a,b)
+# *(c::DiracCoeff, s::AbstractState) = c==0 ? 0 : (c==1 ? s : DiracVector([c], tobasis(s)))
+# *(s::AbstractState, c::DiracCoeff) = *(c,s)
 
-*(c::DiracCoeff, s::AbstractState) = c==0 ? 0 : (c==1 ? s : DiracVector([c], tobasis(s)))
-*(s::AbstractState, c::DiracCoeff) = *(c,s)
+# function inner(a::State{Bra}, b::State{Ket})
+# 	if samebasis(a,b)
+# 		return labeldelta(a,b)
+# 	else
+# 		return InnerProduct(a, b)
+# 	end
+# end
+# inner(a::State{Bra}, b::TensorState{Ket}, i::Int) = inner(a, b[i])*reduce(tensor,vcat(b[1:i-1], b[i+1:end]))
+# inner(a::TensorState{Bra}, b::State{Ket}, i::Int) = reduce(tensor,vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
+# inner(a::TensorState{Bra}, b::State{Ket}) = inner(a[1],b)*reduce(tensor,a[2:end])
+# inner(a::State{Bra}, b::TensorState{Ket}) = inner(a,b[1])*reduce(tensor,b[2:end])
 
-function inner(a::State{Bra}, b::State{Ket})
-	if samebasis(a,b)
-		return labeldelta(a,b)
-	else
-		return InnerProduct(a, b)
-	end
-end
-inner(a::State{Bra}, b::TensorState{Ket}, i::Int) = inner(a, b[i])*reduce(tensor,vcat(b[1:i-1], b[i+1:end]))
-inner(a::TensorState{Bra}, b::State{Ket}, i::Int) = reduce(tensor,vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
-inner(a::TensorState{Bra}, b::State{Ket}) = inner(a[1],b)*reduce(tensor,a[2:end])
-inner(a::State{Bra}, b::TensorState{Ket}) = inner(a,b[1])*reduce(tensor,b[2:end])
+# function inner{K<:BraKet}(a::TensorState{Bra}, b::TensorState{Ket}, i::Int, target::Type{K}=Ket)
+# 	if target==Ket
+# 		return inner(a, b[i])*reduce(tensor,vcat(b[1:i-1], b[i+1:end]))
+# 	else 
+# 		return reduce(tensor,vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
+# 	end
+# end
 
-function inner{K<:BraKet}(a::TensorState{Bra}, b::TensorState{Ket}, i::Int, target::Type{K}=Ket)
-	if target==Ket
-		return inner(a, b[i])*reduce(tensor,vcat(b[1:i-1], b[i+1:end]))
-	else 
-		return reduce(tensor,vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
-	end
-end
+# function inner(a::TensorState{Bra}, b::TensorState{Ket})
+# 	if samebasis(a,b)
+# 		return labeldelta(a,b)
+# 	else
+# 		for s in a.states
+# 			b = *(s,b)
+# 		end
+# 		return b
+# 	end
+# end
 
-function inner(a::TensorState{Bra}, b::TensorState{Ket})
-	if samebasis(a,b)
-		return labeldelta(a,b)
-	else
-		for s in a.states
-			b = *(s,b)
-		end
-		return b
-	end
-end
+# *(a::AbstractState{Bra}, b::AbstractState{Ket}) = inner(a,b)
+# *(a::AbstractState{Ket}, b::AbstractState{Bra}) = OuterProduct(a,b)
 
-*(a::AbstractState{Bra}, b::AbstractState{Ket}) = inner(a,b)
-*(a::AbstractState{Ket}, b::AbstractState{Bra}) = OuterProduct(a,b)
+# #####################################
+# #Functions###########################
+# #####################################
 
-#####################################
-#Functions###########################
-#####################################
+# function statearr{K<:BraKet, T}(arr::Array{T}, bsym::Symbol, kind::Type{K}=Ket) 
+# 	if is(T,Any)
+# 		return convert(Array{State{kind}}, map(i->State(i, bsym, kind), arr))
+# 	else
+# 		return map(i->State(i, bsym, kind), arr)
+# 	end
+# end
 
-function statearr{K<:BraKet, T}(arr::Array{T}, basislabel::Symbol, kind::Type{K}=Ket) 
-	if is(T,Any)
-		return convert(Array{State{kind}}, map(i->State(i, basislabel, kind), arr))
-	else
-		return map(i->State(i, basislabel, kind), arr)
-	end
-end
-
-statejoin{S<:AbstractState}(state_arr::Array{S,2}) = TensorState{kind(S)}[reduce(tensor,state_arr[i, :]) for i=1:size(state_arr, 1)]
-
+# statejoin{K<:BraKet,T}(state_arr::Array{State{K,T},2}) = TensorState{K, State{K,T}}[reduce(tensor,state_arr[i, :]) for i=1:size(state_arr, 1)]
+# statejoin{K<:BraKet}(state_arr::Array{State{K},2}) = TensorState{K, State{K}}[reduce(tensor,state_arr[i, :]) for i=1:size(state_arr, 1)]
+# statejoin(state_arr::Array{State,2}) = TensorState{kind(state_arr[1]), State{kind(state_arr[1])}}[reduce(tensor,state_arr[i, :]) for i=1:size(state_arr, 1)]
