@@ -9,13 +9,12 @@ end
 
 State{K<:BraKet,T}(label::T, basislabel::Symbol, kind::Type{K}=Ket) = State{kind, T}(label, basislabel)
 
-immutable TensorState{K<:BraKet} <: AbstractState{K}
-  states::Vector
-  TensorState{S<:State{K}}(v::Vector{S}) = new(v)
-  TensorState(v::Vector) = new(convert(Vector{State{K}},v))  
+immutable TensorState{K<:BraKet, S<:State{K}} <: AbstractState{K}
+  states::Vector{S} 
 end
 
-TensorState{K<:BraKet}(labels::Vector, basislabel::Symbol, kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind))
+TensorState{S<:State{Ket}}(sv::Vector{S}) = TensorState{Ket, S}(sv) 
+TensorState{S<:State{Bra}}(sv::Vector{S}) = TensorState{Bra, S}(sv) 
 
 #####################################
 #Misc Functions######################
@@ -38,7 +37,7 @@ isequal(a::AbstractState, b::AbstractState) = false #default to false
 ==(a::AbstractState, b::AbstractState) = false #default to false
 
 ctranspose{K,T}(s::State{K,T}) = State{!K,T}(s.label, s.basislabel)
-ctranspose{K}(s::TensorState{K}) = TensorState{!K}([ctranspose(i) for i in s.states])
+ctranspose{K<:BraKet,T}(s::TensorState{K, State{K,T}}) = TensorState{!K, State{!K, T}}([ctranspose(i) for i in s.states])
 
 getindex(s::TensorState, x) = s.states[x]
 separate(s::TensorState) = s.states
@@ -84,10 +83,19 @@ show(io::IO, s::AbstractState{Bra}) = print(io, "$lang $(reprlabel(s)) |")
 #Arithmetic Operations###############
 #####################################
 tensor() = error("tensor takes arguments of states")
-tensor{K}(a::State{K}, b::State{K}) = TensorState{K}(vcat(a,b))
-tensor{K}(a::TensorState{K}, b::State{K}) = TensorState{K}(vcat(a.states, b))
-tensor{K}(a::State{K}, b::TensorState{K}) = TensorState{K}(vcat(a, b.states))
-tensor{K}(a::TensorState{K}, b::TensorState{K}) = TensorState{K}(vcat(a.states, b.states))
+
+#optimization for when states share the same label types
+tensor{K,T}(a::State{K,T}, b::State{K,T}) = TensorState([a,b])
+tensor{K,S<:State}(a::TensorState{K,S}, b::S) = TensorState([a.states, b])
+tensor{K,S<:State}(a::S, b::TensorState{K,S}) = TensorState([a, b.states])
+tensor{K,S<:State}(a::TensorState{K,S}, b::TensorState{K,S}) = TensorState([a.states, b.states])
+
+#inference for when states don't share label types
+tensor{K}(a::State{K}, b::State{K}) = TensorState(State{K}[a,b])
+tensor{K}(a::TensorState{K}, b::State{K}) = TensorState{K,State{K}}([a.states, b])
+tensor{K}(a::State{K}, b::TensorState{K}) = TensorState{K,State{K}}([a, b.states])
+tensor{K}(a::TensorState{K}, b::TensorState{K}) = TensorState{K,State{K}}([a.states, b.states])
+
 tensor{K}(s::AbstractState{K}...) = reduce(tensor,s) 
 
 *{K}(a::AbstractState{K}, b::AbstractState{K}) = tensor(a,b)
