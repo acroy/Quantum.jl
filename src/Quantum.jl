@@ -18,7 +18,10 @@ module Quantum
 			copy,
 			getindex,
 			ctranspose,
-			show
+			show,
+			*,
+			zero,
+			conj
 		   # show,
 		   # summary,
 		   # showcompact,
@@ -74,8 +77,8 @@ module Quantum
 	#####################################
 	include("crossjoin.jl")
 	include("state.jl")
+	include("products.jl")
 	# include("basis.jl")
-	# include("products.jl")
 	# include("scalar.jl")
 	# include("diracvector.jl")
 	# include("diracmatrix.jl")
@@ -92,12 +95,18 @@ module Quantum
 		   Ket,
 		   TensorBra,
 		   TensorKet,
+		   InnerProduct,
+		   OuterProduct,
 		   label,
 		   bsym,
 		   separate,
 		   isdual,
 		   labeldelta,
-		   tensor
+		   tensor,
+		   inner,
+		   statearr,
+		   samebasis,
+		   statejoin
 		   # State,
 		   # TensorState,
 		   # Basis,

@@ -1,5 +1,5 @@
 #####################################
-#State/TensorState###################
+#State###############################
 #####################################
 abstract Single 
 abstract Tensor 
@@ -60,6 +60,10 @@ label(s::State{Tensor}) = [label(i) for i in s.states]
 
 labeldelta{S<:State{Single}}(a::S, b::S) = label(a)==label(b) ? 1 : 0
 labeldelta{S<:State{Tensor}}(a::S, b::S) = label(a)==label(b) ? 1 : 0
+labeldelta{T}(a::Ket{T}, b::Bra{T}) = label(a)==label(b) ? 1 : 0
+labeldelta{T}(a::Bra{T}, b::Ket{T}) = label(a)==label(b) ? 1 : 0
+labeldelta{T}(a::TensorKet{Ket{T}}, b::TensorBra{Bra{T}}) = label(a)==label(b) ? 1 : 0
+labeldelta{T}(a::TensorBra{Bra{T}}, b::TensorKet{Ket{T}}) = label(a)==label(b) ? 1 : 0
 labeldelta(a::State, b::State) = 0 #default to 0
 
 isdual{T}(a::Bra{T}, b::Ket{T}) = label(a)==label(b) && samebasis(a,b)
@@ -94,6 +98,9 @@ show(io::IO, s::AbstractBra) = print(io, "$lang $(reprlabel(s)) |")
 #Arithmetic Operations###############
 #####################################
 
+# *(c::DiracCoeff, s::AbstractState) = c==0 ? 0 : (c==1 ? s : DiracVector([c], tobasis(s)))
+# *(s::AbstractState, c::DiracCoeff) = *(c,s)
+
 tensor(a::Ket, b::Ket) = TensorKet([a,b]) 
 tensor(a::Ket, b::TensorKet) = TensorKet([a,b.states]) 
 tensor(a::TensorKet, b::Ket) = TensorKet([a.states,b]) 
@@ -108,55 +115,53 @@ tensor(s...) = reduce(tensor,s)
 *(a::AbstractKet, b::AbstractKet) = tensor(a,b)
 *(a::AbstractBra, b::AbstractBra) = tensor(a,b)
 
-# *(c::DiracCoeff, s::AbstractState) = c==0 ? 0 : (c==1 ? s : DiracVector([c], tobasis(s)))
-# *(s::AbstractState, c::DiracCoeff) = *(c,s)
+function inner(a::Bra, b::Ket)
+	if samebasis(a,b)
+		return labeldelta(a,b)
+	else
+		return InnerProduct(a, b)
+	end
+end
+inner(a::Bra, b::TensorKet, i::Int) = inner(a, b[i])*reduce(tensor,vcat(b[1:i-1], b[i+1:end]))
+inner(a::TensorBra, b::Ket, i::Int) = reduce(tensor,vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
+inner(a::TensorBra, b::Ket) = inner(a[1],b)*reduce(tensor,a[2:end])
+inner(a::Bra, b::TensorKet) = inner(a,b[1])*reduce(tensor,b[2:end])
 
-# function inner(a::State{Bra}, b::State{Ket})
-# 	if samebasis(a,b)
-# 		return labeldelta(a,b)
-# 	else
-# 		return InnerProduct(a, b)
-# 	end
-# end
-# inner(a::State{Bra}, b::TensorState{Ket}, i::Int) = inner(a, b[i])*reduce(tensor,vcat(b[1:i-1], b[i+1:end]))
-# inner(a::TensorState{Bra}, b::State{Ket}, i::Int) = reduce(tensor,vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
-# inner(a::TensorState{Bra}, b::State{Ket}) = inner(a[1],b)*reduce(tensor,a[2:end])
-# inner(a::State{Bra}, b::TensorState{Ket}) = inner(a,b[1])*reduce(tensor,b[2:end])
+function inner{S<:State{Single}}(a::TensorBra, b::TensorKet, i::Int; target::Type{S}=Ket)
+	if target=="ket"
+		return inner(a, b[i])*reduce(tensor,vcat(b[1:i-1], b[i+1:end]))
+	elseif target=="bra" 
+		return reduce(tensor,vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
+	end
+end
 
-# function inner{K<:BraKet}(a::TensorState{Bra}, b::TensorState{Ket}, i::Int, target::Type{K}=Ket)
-# 	if target==Ket
-# 		return inner(a, b[i])*reduce(tensor,vcat(b[1:i-1], b[i+1:end]))
-# 	else 
-# 		return reduce(tensor,vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
-# 	end
-# end
+function inner(a::TensorBra, b::TensorKet)
+	if samebasis(a,b)
+		return labeldelta(a,b)
+	else
+		for s in a.states
+			b = *(s,b)
+		end
+		return b
+	end
+end
 
-# function inner(a::TensorState{Bra}, b::TensorState{Ket})
-# 	if samebasis(a,b)
-# 		return labeldelta(a,b)
-# 	else
-# 		for s in a.states
-# 			b = *(s,b)
-# 		end
-# 		return b
-# 	end
-# end
+*(a::AbstractBra, b::AbstractKet) = inner(a,b)
+*(a::AbstractKet, b::AbstractBra) = OuterProduct(a,b)
 
-# *(a::AbstractState{Bra}, b::AbstractState{Ket}) = inner(a,b)
-# *(a::AbstractState{Ket}, b::AbstractState{Bra}) = OuterProduct(a,b)
+#####################################
+#Functions###########################
+#####################################
 
-# #####################################
-# #Functions###########################
-# #####################################
+function statearr{T,S<:State{Single}}(arr::Array{T}, bsym::Symbol, K::Type{S}=Ket) 
+	if is(T,Any)
+	 	return convert(Array{K}, map(i->K(i, bsym), arr))
+	else
+		return map(i->K(i, bsym), arr)
+	end
+end
 
-# function statearr{K<:BraKet, T}(arr::Array{T}, bsym::Symbol, kind::Type{K}=Ket) 
-# 	if is(T,Any)
-# 		return convert(Array{State{kind}}, map(i->State(i, bsym, kind), arr))
-# 	else
-# 		return map(i->State(i, bsym, kind), arr)
-# 	end
-# end
-
-# statejoin{K<:BraKet,T}(state_arr::Array{State{K,T},2}) = TensorState{K, State{K,T}}[reduce(tensor,state_arr[i, :]) for i=1:size(state_arr, 1)]
-# statejoin{K<:BraKet}(state_arr::Array{State{K},2}) = TensorState{K, State{K}}[reduce(tensor,state_arr[i, :]) for i=1:size(state_arr, 1)]
-# statejoin(state_arr::Array{State,2}) = TensorState{kind(state_arr[1]), State{kind(state_arr[1])}}[reduce(tensor,state_arr[i, :]) for i=1:size(state_arr, 1)]
+statejoin{K<:Ket}(sarr::Array{K,2}) = TensorKet{K}[reduce(tensor,sarr[i, :]) for i=1:size(sarr, 1)]
+statejoin{B<:Bra}(sarr::Array{B,2}) = TensorBra{B}[reduce(tensor,sarr[i, :]) for i=1:size(sarr, 1)]
+statejoin{K<:AbstractKet}(sarr::Array{K,2}) = TensorKet{Ket}[reduce(tensor,sarr[i, :]) for i=1:size(sarr, 1)]
+statejoin{B<:AbstractBra}(sarr::Array{B,2}) = TensorBra{Bra}[reduce(tensor,sarr[i, :]) for i=1:size(sarr, 1)]
