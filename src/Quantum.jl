@@ -21,7 +21,8 @@ module Quantum
 			show,
 			*,
 			zero,
-			conj
+			conj,
+			eltype
 		   # show,
 		   # summary,
 		   # showcompact,
@@ -78,7 +79,7 @@ module Quantum
 	include("crossjoin.jl")
 	include("state.jl")
 	include("products.jl")
-	# include("basis.jl")
+	include("basis.jl")
 	# include("scalar.jl")
 	# include("diracvector.jl")
 	# include("diracmatrix.jl")
@@ -88,7 +89,9 @@ module Quantum
 	#exports#############################
 	#####################################
 	export Dirac,
-		   AbstractState,
+		   State,
+		   Single,
+		   Tensor,
 		   AbstractBra,
 		   AbstractKet,
 		   Bra,
@@ -97,12 +100,18 @@ module Quantum
 		   TensorKet,
 		   InnerProduct,
 		   OuterProduct,
+		   KetBasis,
+		   BraBasis,
+		   TensorKetBasis,
+		   TensorBraBasis,
+		   tensor,
+		   basis,
+		   dual,
 		   label,
 		   bsym,
 		   separate,
 		   isdual,
 		   labeldelta,
-		   tensor,
 		   inner,
 		   statearr,
 		   samebasis,

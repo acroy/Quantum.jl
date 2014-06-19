@@ -1,40 +1,104 @@
 #####################################
 #Basis###############################
 #####################################
-immutable Basis{K<:BraKet,T} <: AbstractBasis{K}
+
+abstract Basis{S<:Union(Single, Tensor)} <: Dirac
+abstract AbstractKetBasis{S<:Union(Single, Tensor)} <: Basis{S}
+abstract AbstractBraBasis{S<:Union(Single, Tensor)} <: Basis{S}
+
+immutable KetBasis{K<:Ket} <: AbstractKetBasis{Single}
 	label::Symbol
-	states::Vector{State{K,T}}
-	statemap::Dict{(T,Symbol), Int}
+	states::Vector{K}
+	statemap::Dict{K,Int}
+end
+
+immutable BraBasis{B<:Bra} <: AbstractBraBasis{Single}
+	label::Symbol
+	states::Vector{B}
+	statemap::Dict{B,Int}
 end
 
 #makebasis is for internal use only; 
 #useful for when we KNOW that the input vector of
 #states contains only unique elements
-function makebasis{K,T}(sv::Vector{State{K,T}})
-	@assert length(unique(map(basislabel, sv)))==1 "BasisMismatch"
-	Basis{K,T}(basislabel(sv[1]), sv, ((T,Symbol)=>Int)[(sv[i].label,sv[i].basislabel)=>i for i=1:length(sv)])
-end
-function makebasis{K,T}(sv::Vector{State{K,T}})
-	@assert length(unique(map(basislabel, sv)))==1 "BasisMismatch"
-	Basis{K,T}(basislabel(sv[1]), sv, ((T,Symbol)=>Int)[(sv[i].label,sv[i].basislabel)=>i for i=1:length(sv)])
+
+statemapper{S<:State}(sv::Vector{S}) = (S=>Int)[sv[i]=>i for i=1:length(sv)]
+
+function makebasis{K<:Ket}(sv::Vector{K})
+	@assert length(unique(map(bsym, sv)))==1 "BasisMismatch"
+	KetBasis(bsym(sv[1]), sv, statemapper(sv))
 end
 
-Basis{K,T}(states::Vector{State{K,T}}) = makebasis(unique(states))
-Basis{K,T}(states::Array{State{K,T}}) = makebasis(unique(vec(states)))
-Basis{K<:BraKet,T}(labelvec::Array{T}, label::Symbol, kind::Type{K}=Ket) = Basis(statearr(labelvec, label, kind))
-Basis{K,T}(s::State{K,T}...) = Basis(convert(Array{State{K,T}}, collect(s)))
+function makebasis{B<:Bra}(sv::Vector{B})
+	@assert length(unique(map(bsym, sv)))==1 "BasisMismatch"
+	BraBasis(bsym(sv[1]), sv, statemapper(sv))
+end
+
+basis{S<:State{Single}}(states::Vector{S}) = makebasis(unique(states))
+basis{S<:State{Single}}(states::Array{S}) = basis(vec(states))
+basis(s::State...) = basis(collect(s))
 
 #####################################
 #TensorBasis#########################
 #####################################
 
-# immutable TensorBasis{K<:BraKet, B<:Basis{K}, } <: AbstractBasis{K}
-# 	bases::Vector{B}
-# 	# states::Vector{TensorState{K,State{}}
-# 	# statemap::Dict{(Vector{T},Vector{Symbol}), Int}
-# end
+immutable TensorKetBasis{K<:Ket, KB<:KetBasis} <: AbstractKetBasis{Tensor}
+	bases::Vector{KB}
+	states::Vector{TensorKet{K}}
+	statemap::Dict{TensorKet{K}, Int}
+end
+
+immutable TensorBraBasis{B<:Bra, BB<:BraBasis} <: AbstractBraBasis{Tensor}
+	bases::Vector{BB}
+	states::Vector{TensorBra{B}}
+	statemap::Dict{TensorBra{B}, Int}
+end
+
+separate(b::Basis{Single}) = [b]
+separate(b::Basis{Tensor}) = b.bases
+
+sepstates(sv) = hcat(map(separate, sv)...)
+
+function consbvec!(bases, seps::Array)
+	for i=1:size(seps, 1)
+	 	bases[i] = basis(seps[i, :])
+	end
+	bases
+end
+
+function consbvec!(bases, seps::Vector)
+	for i=1:length(seps)
+	 	bases[i] = seps[i]
+	end
+	bases
+end
+
+prepbvec{K<:TensorKet}(sv::Vector{K}) = Array(KetBasis{eltype(eltype(sv))}, length(sv[1]))
+prepbvec{B<:TensorBra}(sv::Vector{B}) = Array(BraBasis{eltype(eltype(sv))}, length(sv[1]))
+
+maketensorbasis{K<:TensorKet}(sv::Vector{K}) = TensorKetBasis(consbvec!(prepbvec(sv),sepstates(sv)), sv, statemapper(sv))
+maketensorbasis{B<:TensorBra}(sv::Vector{B}) = TensorBraBasis(consbvec!(prepbvec(sv),sepstates(sv)), sv, statemapper(sv))
+
+basis{S<:State{Tensor}}(states::Vector{S}) = maketensorbasis(unique(states))
+basis{S<:State{Tensor}}(states::Array{S}) = basis(vec(states))
+
+statecross(v::Vector) = statejoin(reduce(crossjoin, v))
+
+tensor() = error("tensor needs arguments of type T<:Basis or T<:State")
+tensor(b::Basis) = error("cannot perform tensor operation on one basis")
+
+function tensor(b::AbstractKetBasis...)
+	sv = statecross([i.states for i in b])
+	TensorKetBasis([[separate(i) for i in b]...], sv, statemapper(sv))
+end
+
+function tensor(b::AbstractBraBasis...)
+	sv = statecross([i.states for i in b])
+	TensorBraBasis([[separate(i) for i in b]...], sv, statemapper(sv))
+end
 
 # statecross{K<:BraKet,T}(bases::Vector{Basis{K,T}}) = statejoin(crossjoin([i.states for i in bases]...))
+
 # statecross{K<:BraKet}(bases::Vector{Basis{K}}) = statejoin(crossjoin([i.states for i in bases]...))
 # statecross(bases::Vector{Basis}) = statecross(Basis{kind(bases[1])}[bases])
 
