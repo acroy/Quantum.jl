@@ -32,6 +32,8 @@ end
 copy{S<:State{Single}}(s::S) = S(copy(s.label), copy(s.bsym))
 copy{S<:State{Tensor}}(s::S) = S(copy(s.states))
 
+eltype{S<:State{Single}}(t::Type{S}) = S
+eltype{S<:State{Single}}(t::S) = S
 eltype{K}(t::Type{TensorKet{K}}) = K
 eltype{B}(t::Type{TensorBra{B}}) = B
 dual(t::Type{Ket}) = Bra
@@ -69,11 +71,11 @@ labeldelta{T}(a::TensorBra{Bra{T}}, b::TensorKet{Ket{T}}) = label(a)==label(b) ?
 labeldelta(a::State, b::State) = 0 #default to 0
 
 isdual{T}(a::Bra{T}, b::Ket{T}) = label(a)==label(b) && samebasis(a,b)
-isdual{T}(a::Ket{T}, b::Bra{T}) = label(a)==label(b) && samebasis(a,b)
+isdual{T}(a::Ket{T}, b::Bra{T}) = isdual(b,a)
 isdual{T}(a::TensorKet{Ket{T}}, b::TensorBra{Bra{T}}) = label(a)==label(b) && samebasis(a,b)
-isdual{T}(a::TensorBra{Bra{T}}, b::TensorKet{Ket{T}}) = label(a)==label(b) && samebasis(a,b)
+isdual{T}(a::TensorBra{Bra{T}}, b::TensorKet{Ket{T}}) = lisdual(b,a)
 isdual(a::TensorKet{Ket}, b::TensorBra{Bra}) = label(a)==label(b) && samebasis(a,b)
-isdual(a::TensorBra{Bra}, b::TensorKet{Ket}) = label(a)==label(b) && samebasis(a,b)
+isdual(a::TensorBra{Bra}, b::TensorKet{Ket}) = isdual(b,a)
 isdual(a::State, b::State) = false #default to false
 
 for op=(:length, :endof, :eltype)
@@ -166,7 +168,3 @@ function statearr{T,S<:State{Single}}(arr::Array{T}, bsym::Symbol, K::Type{S}=Ke
 	end
 end
 
-statejoin{K<:Ket}(sarr::Array{K,2}) = TensorKet{K}[tensor(sarr[i, :]) for i=1:size(sarr, 1)]
-statejoin{B<:Bra}(sarr::Array{B,2}) = TensorBra{B}[tensor(sarr[i, :]) for i=1:size(sarr, 1)]
-statejoin{K<:AbstractKet}(sarr::Array{K,2}) = TensorKet{Ket}[reduce(tensor,sarr[i, :]) for i=1:size(sarr, 1)]
-statejoin{B<:AbstractBra}(sarr::Array{B,2}) = TensorBra{Bra}[reduce(tensor,sarr[i, :]) for i=1:size(sarr, 1)]
