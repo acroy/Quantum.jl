@@ -38,6 +38,10 @@ stay tuned for updates in the next few weeks!
 
 Features
 ==========
+Note: The whole package is currently undergoing a breaking refactor that
+will hopefully make things even faster than before! In the meantime, 
+all of the following are features that were implemented, but are in the
+process of being reimplemented with the new design in mind.
 
 ###Current:
 	- Basis, State, ScalarExpr, DiracVector, and DiracMatrix type implementations
