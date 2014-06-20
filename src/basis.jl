@@ -118,7 +118,7 @@ copy{B<:Basis{Single}}(b::B) = B(copy(b.bsym), copy(b.states), copy(b.statemap))
 copy{B<:Basis{Tensor}}(b::B)= B(copy(b.bases), copy(b.states), copy(b.statemap))
 
 bsym(b::Basis{Single}) = b.bsym
-bsym(b::Basis{Tensor}) = map(label, b.bases)
+bsym(b::Basis{Tensor}) = map(bsym, b.bases)
 
 isequal{B<:Basis}(a::B, b::B) = isequal(a.states, b.states) && bsym(a)==bsym(b)
 =={B<:Basis}(a::B, b::B) = a.states==b.states && bsym(a)==bsym(b)
@@ -164,40 +164,40 @@ isdual(a::Basis,b::Basis)=false
 
 # in(s::AbstractState, b::AbstractBasis)= get(b,s,"FALSE")=="FALSE" ? false : true
 
-# ######################################
-# ##Show Functions######################
-# ######################################
+######################################
+##Show Functions######################
+######################################
 
-# reprlabel(b::Basis) = label(b)
-# function reprlabel(b::TensorBasis)
-# 	labels = label(b)
-# 	#terrible way to grow a string
-# 	str = "$(labels[1])"
-# 	for i=2:length(labels)
-# 		str = "$str$otimes$(labels[i])"
-# 	end
-# 	return str
-# end
+reprlabel(b::Basis{Single}) = bsym(b)
+function reprlabel(b::Basis{Tensor})
+	labels = bsym(b)
+	#terrible way to grow a string
+	str = "$(labels[1])"
+	for i=2:length(labels)
+		str = "$str$otimes$(labels[i])"
+	end
+	return str
+end
 
-# showcompact(io::IO, b::AbstractBasis) = print(io, "$(typeof(b)) $(reprlabel(b))")
+showcompact(io::IO, b::Basis) = print(io, "$(typeof(b)) $(reprlabel(b))")
 
-# function show(io::IO, b::AbstractBasis)
-# 	showcompact(io, b)
-# 	println(", $(length(b)) states:")
-# 	if length(b)>20
-# 		for i=1:10
-# 			println(io, b.states[i])
-# 		end
-# 		println(vdots)
-# 		for i=length(b)-10:length(b)
-# 			println(io, b.states[i])
-# 		end
-# 	else
-# 		for i in b.states
-# 			println(io, i)
-# 		end	
-# 	end
-# end
+function show(io::IO, b::Basis)
+	showcompact(io, b)
+	println(", $(length(b)) states:")
+	if length(b)>20
+		for i=1:10
+			println(io, b.states[i])
+		end
+		println(vdots)
+		for i=length(b)-10:length(b)
+			println(io, b.states[i])
+		end
+	else
+		for i in b.states
+			println(io, i)
+		end	
+	end
+end
 # ######################################
 # ##Function-Passing Functions##########
 # ######################################

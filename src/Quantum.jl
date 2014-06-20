@@ -22,14 +22,11 @@ module Quantum
 			*,
 			zero,
 			conj,
-			eltype
-		   # show,
-		   # summary,
-		   # showcompact,
+			eltype,
+			hash,
+		    showcompact
 		   # norm,
-		   # getindex,
 		   # setindex!,
-		   # conj,
 		   # copy,
 		   # ndims,
 		   # size,
@@ -79,11 +76,11 @@ module Quantum
 	include("crossjoin.jl")
 	include("state.jl")
 	include("products.jl")
-	include("basis.jl")
+	# include("basis.jl")
 	# include("scalar.jl")
 	# include("diracvector.jl")
 	# include("diracmatrix.jl")
-	include("misc.jl")
+	# include("misc.jl")
 
 	#####################################
 	#exports#############################
@@ -91,19 +88,15 @@ module Quantum
 	export Dirac,
 		   State,
 		   Single,
-		   Tensor,
-		   AbstractBra,
-		   AbstractKet,
 		   Bra,
 		   Ket,
-		   TensorBra,
-		   TensorKet,
-		   InnerProduct,
-		   OuterProduct,
-		   KetBasis,
-		   BraBasis,
-		   TensorKetBasis,
-		   TensorBraBasis,
+		   Tensor,
+		   # InnerProduct,
+		   # OuterProduct,
+		   # KetBasis,
+		   # BraBasis,
+		   # TensorKetBasis,
+		   # TensorBraBasis,
 		   tensor,
 		   basis,
 		   dual,
@@ -114,8 +107,7 @@ module Quantum
 		   labeldelta,
 		   inner,
 		   statearr,
-		   samebasis,
-		   statejoin
+		   samebasis
 		   # State,
 		   # TensorState,
 		   # Basis,

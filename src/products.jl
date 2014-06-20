@@ -2,12 +2,12 @@
 #InnerProduct/OuterProduct###########
 #####################################
 
-immutable OuterProduct{K<:AbstractKet,B<:AbstractBra} <: Dirac
+immutable OuterProduct{K<:State{Ket},B<:State{Bra}} <: Dirac
 	ket::K
 	bra::B
 end
 
-immutable InnerProduct{B<:AbstractBra, K<:AbstractKet} <: AbstractScalar
+immutable InnerProduct{B<:State{Bra}, K<:State{Ket}} <: AbstractScalar
 	bra::B
 	ket::K
 end
@@ -26,10 +26,10 @@ bsym(o::OuterProduct) = [bsym(o.ket), bsym(o.bra)]
 label(o::OuterProduct) = [label(o.ket), label(o.bra)]
 bsym(i::InnerProduct) = [bsym(i.bra), bsym(i.ket)]
 label(i::InnerProduct) = [label(i.bra), label(o.ket)]
-isdual(a::InnerProduct, b::InnerProduct) = isdual(a.ket, b.bra) && isdual(b.ket, a.bra)
 conj(i::InnerProduct) = InnerProduct(i.ket', i.bra')
 ctranspose(o::OuterProduct) = OuterProduct(o.bra', o.ket')
 isdual(a::OuterProduct, b::OuterProduct) = isdual(a.ket, b.bra) && isdual(b.ket, a.bra)
+isdual(a::InnerProduct, b::InnerProduct) = isdual(a.ket, b.bra) && isdual(b.ket, a.bra)
 
 #####################################
 #Show Functions######################
