@@ -24,7 +24,8 @@ module Quantum
 			conj,
 			eltype,
 			hash,
-		    showcompact
+		    showcompact,
+		    eltype
 		   # norm,
 		   # setindex!,
 		   # copy,
@@ -75,8 +76,8 @@ module Quantum
 	#####################################
 	include("crossjoin.jl")
 	include("state.jl")
-	include("products.jl")
-	# include("basis.jl")
+	# include("products.jl")
+	include("basis.jl")
 	# include("scalar.jl")
 	# include("diracvector.jl")
 	# include("diracmatrix.jl")
@@ -93,10 +94,8 @@ module Quantum
 		   Tensor,
 		   # InnerProduct,
 		   # OuterProduct,
-		   # KetBasis,
-		   # BraBasis,
-		   # TensorKetBasis,
-		   # TensorBraBasis,
+		   Basis,
+		   TensorBasis,
 		   tensor,
 		   basis,
 		   dual,
@@ -106,8 +105,9 @@ module Quantum
 		   isdual,
 		   labeldelta,
 		   inner,
-		   statearr,
-		   samebasis
+		   statevec,
+		   samebasis,
+		   consbasis
 		   # State,
 		   # TensorState,
 		   # Basis,
