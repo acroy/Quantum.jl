@@ -25,45 +25,15 @@ module Quantum
 			eltype,
 			hash,
 		    showcompact,
-		    eltype
-		   # norm,
-		   # setindex!,
-		   # copy,
-		   # ndims,
-		   # size,
-		   # length,
-		   # norm,
-		   # (.+),
-		   # (.^),
-		   # (.-),
-		   # (.*),
-		   # (./),
-		   # ^,
-		   # *,
-		   # +,
-		   # -,
-		   # /,
-		   # abs,
-		   # in,
-		   # setdiff,
-		   # get,
-		   # exp,
-		   # expm,
-		   # map,
-		   # map!,
-		   # filter,
-		   # isequal,
-		   # ==,
-		   # endof,
-		   # find,
-		   # findn,
-		   # findnz,
-		   # trace,
-		   # hash,
-		   # kron,
-		   # eltype,
-		   # zero
-
+		    eltype,
+		    get,
+		    in,
+		    setdiff,
+		    +,
+		    map,
+		    filter,
+		    find
+		    
 	#####################################
 	#abstract types######################
 	#####################################
@@ -76,12 +46,12 @@ module Quantum
 	#####################################
 	include("crossjoin.jl")
 	include("state.jl")
-	# include("products.jl")
+	include("products.jl")
 	include("basis.jl")
 	# include("scalar.jl")
 	# include("diracvector.jl")
 	# include("diracmatrix.jl")
-	# include("misc.jl")
+	include("misc.jl")
 
 	#####################################
 	#exports#############################
@@ -92,8 +62,9 @@ module Quantum
 		   Bra,
 		   Ket,
 		   Tensor,
-		   # InnerProduct,
-		   # OuterProduct,
+		   InnerProduct,
+		   OuterProduct,
+		   AbstractBasis,
 		   Basis,
 		   TensorBasis,
 		   tensor,
@@ -105,43 +76,7 @@ module Quantum
 		   isdual,
 		   labeldelta,
 		   inner,
-		   statevec,
 		   samebasis,
-		   consbasis
-		   # State,
-		   # TensorState,
-		   # Basis,
-		   # TensorBasis,
-		   # InnerProduct,
-		   # OuterProduct,
-		   # DiracVector,
-		   # DiracMatrix,
-		   # ScalarExpr,
-		   # qeval,
-		   # tobasis,
-		   # btensor,
-		   # basislabel,
-		   # basisjoin,
-		   # kind,
-		   # label,
-		   # statearr,
-		   # tensor,
-		   # inner,
-		   # separate,
-		   # normalize,
-		   # mapmatch,
-		   # mapmatch!,
-		   # filtercoeffs,
-		   # filterstates,
-		   # findstates,
-		   # getpos,
-		   # ptrace,
-		   # isdual,
-		   # labeldelta,
-		   # samebasis,
-		   # statecross,
-		   # crossjoin,
-		   # statemapper,
-		   # statejoin,
-		   # statecat
+		   kind,
+		   bjoin
 end

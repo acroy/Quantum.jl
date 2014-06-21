@@ -2,14 +2,14 @@
 #InnerProduct/OuterProduct###########
 #####################################
 
-immutable OuterProduct{K<:State{Ket},B<:State{Bra}} <: Dirac
-	ket::K
-	bra::B
+immutable OuterProduct{K<:Ket,B<:Bra} <: Dirac
+	ket::State{K}
+	bra::State{B}
 end
 
-immutable InnerProduct{B<:State{Bra}, K<:State{Ket}} <: AbstractScalar
-	bra::B
-	ket::K
+immutable InnerProduct{B<:Bra, K<:Ket} <: AbstractScalar
+	bra::State{B}
+	ket::State{K}
 end
 
 #####################################

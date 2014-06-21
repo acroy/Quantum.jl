@@ -1,7 +1,7 @@
 #####################################
 #State###############################
 #####################################
-abstract State{S} #S<:Single
+abstract State{S} <: Dirac#S<:Single
 
 immutable Ket{T} <: State{Ket{T}}
 	label::T
@@ -26,19 +26,25 @@ end
 copy{S<:Single}(s::S) = S(copy(s.label), copy(s.bsym))
 copy{S<:Tensor}(s::S) = S(copy(s.states))
 
-labeltype{T}(t::Type{Ket{T}}) = T
-labeltype{T}(t::Type{Bra{T}}) = T
-labeltype(t::Type{Ket}) = Any
-labeltype(t::Type{Bra}) = Any
-labeltype{T}(t::Type{Tensor{Ket{T}}}) = T
-labeltype{T}(t::Type{Tensor{Bra{T}}}) = T
-labeltype(t::Type{Tensor{Ket}}) = Vector{Any}
-labeltype(t::Type{Tensor{Bra}}) = Vectr{Any}
+for s=(:Ket,:Bra)
+	@eval begin
+	labeltype{T}(t::Type{($s){T}}) = T
+	labeltype(t::Type{($s)}) = Any
+	labeltype{T}(t::Type{Tensor{($s){T}}}) = Vector{T}
+	labeltype(t::Type{Tensor{($s)}}) = Vector{Any}
+	in{S1<:($s),S2<:($s)}(s::S1, t::Tensor{S2}) = in(s, t.states)
+	end
+end
+
 labeltype(s::State) = labeltype(typeof(s))
+in(s::Single, t::Tensor) = false
 
 eltype{S<:Single}(t::Type{S}) = S
 eltype{K}(t::Type{Tensor{K}}) = K
 eltype(s::State) = eltype(typeof(s))
+
+kind{K<:Ket}(b::State{K}) = Ket
+kind{B<:Bra}(b::State{B}) = Bra
 
 dual(t::Type{Ket}) = Bra
 dual(t::Type{Bra}) = Ket
@@ -102,20 +108,12 @@ show{B<:Bra}(io::IO, s::State{B}) = print(io, "$lang $(reprlabel(s)) |")
 
 # *(c::DiracCoeff, s::AbstractState) = c==0 ? 0 : (c==1 ? s : DiracVector([c], tobasis(s)))
 # *(s::AbstractState, c::DiracCoeff) = *(c,s)
-tensor(s::State) = error("cannot perform tensor operation on one state")
-for t=(:Ket, :Bra)
-	@eval begin
-	tensor(a::($t), b::($t)) = Tensor([a,b]) 
-	tensor{S<:($t)}(a::($t), b::Tensor{S}) = Tensor([a,b.states]) 
-	tensor{S<:($t)}(a::Tensor{S}, b::($t)) = Tensor([a.states,b]) 
-	tensor{S1<:($t), S2<:($t)}(a::Tensor{S1}, b::Tensor{S2}) = Tensor([a.states,b.states]) 
-	*{S1<:($t), S2<:($t)}(a::State{S1}, b::State{S2}) = tensor(a,b)
-	end
-end
 tensor{S<:Single}(s::Vector{S}) = Tensor(s)
-tensor{S<:State}(s::Vector{S}) = Tensor([[separate(i) for i in s]...])
-tensor(s::State...) = tensor(collect(s)) 
+tensor{S<:State}(s::Vector{S}) = tensor([[separate(i) for i in s]...])
 tensor{S<:State}(s::Array{S}) = tensor(vec(s))
+tensor(s::Vector) = tensor([[separate(i) for i in s]...])
+tensor(s::State...) = tensor(collect(s)) 
+tensor(s::State) = error("cannot perform tensor operation on one state")
 
 function inner(a::Bra, b::Ket)
 	if samebasis(a,b)
