@@ -33,7 +33,7 @@ module Quantum
 		    map,
 		    filter,
 		    find
-		    
+
 	#####################################
 	#abstract types######################
 	#####################################
@@ -58,7 +58,6 @@ module Quantum
 	#####################################
 	export Dirac,
 		   State,
-		   Single,
 		   Bra,
 		   Ket,
 		   Tensor,

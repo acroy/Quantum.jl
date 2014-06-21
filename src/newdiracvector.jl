@@ -1,124 +1,129 @@
 #####################################
 #DiracVector#########################
 #####################################
+abstract DiracVector{T} <: Dirac 
 
-type DiracVector{S<:Single, T} <: Dirac
+type KetVector{T} <: DiracVector{T}
 	coeffs::SparseMatrixCSC{T} 
-	basis::AbstractBasis{S}
-	function DiracVector(coeffs, basis)
-		if S<:Ket
-			@assert size(coeffs)==(length(basis),1) "Dimensions of coefficient array do not match basis"
-			return new(coeffs, basis)
-		else
-			@assert size(coeffs)==(1,length(basis)) "Dimensions of coefficient array do not match basis"
-			return new(coeffs, basis)
-		end
+	basis::AbstractBasis
+	function KetVector{K<:Ket}(coeffs, basis::AbstractBasis{K})
+		@assert size(coeffs)==(length(basis),1) "Dimensions of coefficient array do not match basis"
+		new(coeffs, basis)
 	end
 end
 
-DiracVector{S,T}(coeffs::Array{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(sparse(coeffs), basis)
-DiracVector{S,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(coeffs, basis)
-
-#####################################
-#Getter-style Functions##############
-#####################################
-bsym(d::DiracVector) = bsym(d.basis)
-
-#####################################
-#Boolean Functions###################
-#####################################
-isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis==b.basis
-==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
-isdual{K<:Ket,B<:Bra}(a::DiracVector{K}, b::DiracVector{B}) = isdual(a.basis, b.basis) && a.coeffs==b.coeffs'
-isdual{K<:Ket,B<:Bra}(a::DiracVector{B}, b::DiracVector{K}) = isdual(b,a)
-isdual{S1<:Single, S2<:Single}(a::DiracVector{S1}, b::DiracVector{S2}) = false
-
-#####################################
-#Array-like Functions################
-#####################################
-copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
-
-ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
-size(d::DiracVector, args...) = size(d.coeffs, args...)
-getindex{K<:Ket}(d::DiracVector{K}, x) = d.coeffs[x,1]
-getindex{B<:Bra}(d::DiracVector{B}, x) = d.coeffs[1,x]
-getindex(d::DiracVector, x, y) = d.coeffs[x,y]
-setindex!{K<:Ket}(d::DiracVector{K}, y, x) = setindex!(d.coeffs, y, x, 1)
-setindex!{B<:Bra}(d::DiracVector{B}, y, x) = setindex!(d.coeffs, y, 1, x)
-setindex!(d::DiracVector, y, x...) = setindex!(d.coeffs, y, x...)
-
-for op=(:endof, :ndims, :eltype, :length, :find, :findn, :findnz, :nnz)
-	@eval ($op)(d::DiracVector) = ($op)(d.coeffs)
-end
-
-#####################################
-#Dict-like Functions#################
-#####################################
-getpos(d::DiracVector, s::State) = get(d.basis, s)
-function get(d::DiracVector, s::State, notfound)
-	try
-		return d[getpos(d, s)]
-	catch
-		return notfound
+type BraVector{T} <: DiracVector{T}
+	coeffs::SparseMatrixCSC{T} 
+	basis::AbstractBasis
+	function BraVector{B<:Bra}(coeffs, basis::AbstractBasis{B})
+		@assert size(coeffs)==(1,length(basis)) "Dimensions of coefficient array do not match basis"
+		new(coeffs, basis)
 	end
 end
 
-get(d::DiracVector, s::State) = d[getpos(d, s)]
-in(s::State, d::DiracVector) = in(s, d.basis)
+DiracVector{K,T}(coeffs::Array{T}, basis::AbstractBasis{K}) = DiracVector{K,T}(sparse(coeffs), basis)
+# DiracVector{K,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{K}) = DiracVector{K,T}(coeffs, basis)
 
-#####################################
-#Show Functions######################
-#####################################
+# #####################################
+# #Getter-style Functions##############
+# #####################################
+# basislabel(d::DiracVector) = label(d.basis)
+# kind(d::DiracVector) = kind(d.basis)
 
-summary{K<:Ket}(d::DiracVector{K}) = "$(size(d,1))x1 $(typeof(d))"
-summary{B<:Bra}(d::DiracVector{B}) = "1x$(size(d,2)) $(typeof(d))"
+# #####################################
+# #Boolean Functions###################
+# #####################################
+# isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis==b.basis
+# ==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
+# isdual(a::DiracVector{Ket}, b::DiracVector{Bra}) = isdual(a.basis, b.basis) && a.coeffs==b.coeffs'
+# isdual(a::DiracVector{Bra}, b::DiracVector{Ket}) = isdual(b,a)
+# isdual{K}(a::DiracVector{K}, b::DiracVector{K}) = false
 
-function showcompact(io::IO, d::DiracVector)
-	if length(d)==0
-		print(io, "$(typeof(d))[]")
-	else
-		tempio = IOBuffer()
-		print(tempio, [" + $(d.coeffs[i])$(d.basis[i])" for i in find(d)]...)
-		print(io, takebuf_string(tempio)[3:end])
-	end
-end
-function show(io::IO, d::DiracVector)
-	if length(d)==0
-		print(io, "$(typeof(d))[]")
-	else	
-		println(io, summary(d))
-		table = cell(length(d), 2)	
-		if length(d)>=52
-			for i=1:25
-				table[i,1]= d.coeffs[i]
-				table[i,2]= d.basis[i]
-			end
-			table[26:(length(d)-25),:] = 0 # prevents access to undefined reference
-			for i=(length(d)-25):length(d)
-				table[i,1]= d.coeffs[i]
-				table[i,2]= d.basis[i]
-			end
-		else
-			for i=1:length(d)
-				table[i,1]= d.coeffs[i]
-				table[i,2]= d.basis[i]
-			end
-		end
-		temp_io = IOBuffer()
-		if kind(d)==Ket
-			show(temp_io, table)
-		else
-			show(temp_io, [transpose(table[:,2]), transpose(table[:,1])])
-		end
-		io_str = takebuf_string(temp_io)
-		io_str = io_str[searchindex(io_str, "\n")+1:end]
-		print(io, io_str)
-	end
-end
+# #####################################
+# #Array-like Functions################
+# #####################################
+# copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
 
-#####################################
-#Function-passing Functions##########
-#####################################
+# ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
+# size(d::DiracVector, args...) = size(d.coeffs, args...)
+# getindex(d::DiracVector{Ket}, x) = d.coeffs[x,1]
+# getindex(d::DiracVector{Bra}, x) = d.coeffs[1,x]
+# getindex(d::DiracVector, x, y) = d.coeffs[x,y]
+# setindex!(d::DiracVector{Ket}, y, x) = setindex!(d.coeffs, y, x, 1)
+# setindex!(d::DiracVector{Bra}, y, x) = setindex!(d.coeffs, y, 1, x)
+# setindex!(d::DiracVector, y, x...) = setindex!(d.coeffs, y, x...)
+
+# for op=(:endof, :ndims, :eltype, :length, :find, :findn, :findnz, :nnz)
+# 	@eval ($op)(d::DiracVector) = ($op)(d.coeffs)
+# end
+
+# #####################################
+# #Dict-like Functions#################
+# #####################################
+# getpos(d::DiracVector, s::AbstractState) = get(d.basis, s)
+# function get(d::DiracVector, s::AbstractState, notfound)
+# 	try
+# 		return d[getpos(d, s)]
+# 	catch
+# 		return notfound
+# 	end
+# end
+
+# get(d::DiracVector, s::AbstractState) = d[getpos(d, s)]
+# in(s::AbstractState, d::DiracVector) = in(s, d.basis)
+# #####################################
+# #Show Functions######################
+# #####################################
+
+# summary(d::DiracVector{Ket}) = "$(size(d,1))x1 $(typeof(d))"
+# summary(d::DiracVector{Bra}) = "1x$(size(d,2)) $(typeof(d))"
+
+# function showcompact(io::IO, d::DiracVector)
+# 	if length(d)==0
+# 		print(io, "$(typeof(d))[]")
+# 	else
+# 		tempio = IOBuffer()
+# 		print(tempio, [" + $(d.coeffs[i])$(d.basis[i])" for i in find(d)]...)
+# 		print(io, takebuf_string(tempio)[3:end])
+# 	end
+# end
+# function show(io::IO, d::DiracVector)
+# 	if length(d)==0
+# 		print(io, "$(typeof(d))[]")
+# 	else	
+# 		println(io, summary(d))
+# 		table = cell(length(d), 2)	
+# 		if length(d)>=52
+# 			for i=1:25
+# 				table[i,1]= d.coeffs[i]
+# 				table[i,2]= d.basis[i]
+# 			end
+# 			table[26:(length(d)-25),:] = 0 # prevents access to undefined reference
+# 			for i=(length(d)-25):length(d)
+# 				table[i,1]= d.coeffs[i]
+# 				table[i,2]= d.basis[i]
+# 			end
+# 		else
+# 			for i=1:length(d)
+# 				table[i,1]= d.coeffs[i]
+# 				table[i,2]= d.basis[i]
+# 			end
+# 		end
+# 		temp_io = IOBuffer()
+# 		if kind(d)==Ket
+# 			show(temp_io, table)
+# 		else
+# 			show(temp_io, [transpose(table[:,2]), transpose(table[:,1])])
+# 		end
+# 		io_str = takebuf_string(temp_io)
+# 		io_str = io_str[searchindex(io_str, "\n")+1:end]
+# 		print(io, io_str)
+# 	end
+# end
+
+# #####################################
+# #Function-passing Functions##########
+# #####################################
 
 # find(f::Function, d::DiracVector) = find(f, d.coeffs)
 # findstates(f::Function, d::DiracVector) = find(f, d.basis)

@@ -20,6 +20,7 @@ function makebasis{S<:Single}(sv::Vector{S})
 end
 
 basis{S<:Single}(states::Vector{S}) = makebasis(unique(states))
+basis{S<:Single}(states::Vector{S}) = makebasis(unique(states))
 basis{S<:Single}(states::Array{S}) = basis(vec(states))
 basis{S<:Single}(s::S...) = basis(collect(s))
 
@@ -238,8 +239,8 @@ for t=(:Ket,:Bra)
 		return consbasis(b.bases, vcat(a.states, b.states))
 	end
 
-	tensor{S1<:($t), S2<:($t)}(s::State{S1},b::AbstractBasis{S2}) = map(s->tensor(s,b), b)
-	tensor{S1<:($t), S2<:($t)}(b::AbstractBasis{S1}, s::State{S2}) = map(s->tensor(b,s), b)
+	tensor{S1<:($t), S2<:($t)}(s::State{S1},b::AbstractBasis{S2}) = map(x->tensor(s,x), b)
+	tensor{S1<:($t), S2<:($t)}(b::AbstractBasis{S1}, s::State{S2}) = map(x->tensor(x,s), b)
 	end
 end
 

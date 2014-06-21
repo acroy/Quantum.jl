@@ -1,23 +1,29 @@
 #####################################
 #State###############################
 #####################################
-abstract State{S} <: Dirac#S<:Single
+abstract State{S} <: Dirac
+abstract SingleState{S} <: State{S}
 
-immutable Ket{T} <: State{Ket{T}}
+immutable Ket{T} <: SingleState{Ket{T}}
 	label::T
 	bsym::Symbol
 end
 
-immutable Bra{T} <: State{Bra{T}}
+immutable Bra{T} <: SingleState{Bra{T}}
 	label::T
 	bsym::Symbol
 end
 
-typealias Single Union(Ket,Bra)
+#alias useful for forcing parameterization
+#to either B<:Bra or K<:Ket without possibility 
+#of a mix (e.g. SingleState)
+typealias Single Union(Bra, Ket)
 
 immutable Tensor{S<:Single} <: State{S}
 	states::Vector{S}
 end 
+
+Tensor{S<:Single}(lv::Vector, bsym::Vector{Symbol}, T::Type{S}=Ket) = Tensor([T(lv[i], bsym[i]) for i=1:length(lv)])
 
 #####################################
 #Misc Functions######################
@@ -113,7 +119,7 @@ tensor{S<:State}(s::Vector{S}) = tensor([[separate(i) for i in s]...])
 tensor{S<:State}(s::Array{S}) = tensor(vec(s))
 tensor(s::Vector) = tensor([[separate(i) for i in s]...])
 tensor(s::State...) = tensor(collect(s)) 
-tensor(s::State) = error("cannot perform tensor operation on one state")
+tensor(s::State) = s
 
 function inner(a::Bra, b::Ket)
 	if samebasis(a,b)
