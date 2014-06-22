@@ -28,13 +28,15 @@ All calculations with states and operators resolve themselves using linear
 algebraic formulations whenever possible, and linear transformations act 
 in accordance with user-defined bases. 
 
-Quantum.jl does NOT yet feature or plan to feature operations on 
-continuous spaces. It is primarily for operations on discrete bases,
-which makes it a natural choice as a toolset for quantum information 
-research.
+Quantum.jl currently only supports work in discrete spaces, but 
+plans for implementing continuous space features are in the works 
+as a post-release goal. Additionally, it has been suggested that 
+Quantum.jl implement in an interface for other popular quantum 
+libraries like QuTiP in order to more quickly offer up a host of 
+advanced optimized features.
 
-All of this will become more clear once I get a chance to write up the docs;
-stay tuned for updates in the next few weeks!
+A discussion of the above, and elaboration on the project's plans
+for the very near future, can be found [here](https://github.com/jrevels/Quantum.jl/issues/1).
 
 Features
 ==========
@@ -42,6 +44,9 @@ Note: The whole package is currently undergoing a breaking refactor that
 will hopefully make things even faster than before! In the meantime, 
 all of the following are features that were implemented, but are in the
 process of being reimplemented with the new design in mind.
+
+The refactor is expected to be finished within the next two weeks, at which 
+time the package will be registered and extensive documentation will be released.
 
 ###Current:
 	- Basis, State, ScalarExpr, DiracVector, and DiracMatrix type implementations
@@ -72,6 +77,8 @@ process of being reimplemented with the new design in mind.
 	- Documentation
 	- register Quantum.jl as julia package
 
-###Long Term:
+###Post-Release Goals:
+	- Interface with other similar libraries (eg. QuTiP)
+	- Continuous space support
 	- HDF5 support
 	- design a system for data visualization of common state properties/operations
