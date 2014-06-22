@@ -1,51 +1,42 @@
 # Quantum.jl
 
-Julia is an up-and-coming language for scientific computing that promises a
-high level of abstraction without the performance sacrifice such abstraction
-usually entails. The capabilities of this new language provide an optimized
-codebase for tackling various problems in physics, which are often
-simultaneously conceptually difficult and computationally intensive.
+Quantum.jl is a toolset for Julia designed around the efficient and idiomatic
+manipulation of abstract quantum objects, so that one can easily transfer
+reasoning about quantum systems from the chalkboard to the computer without
+getting too bogged down in implementation details. Almost all quantum
+mechanics libraries work solely with vector/matrix representations of states,
+without storing the bases in which states and operators are represented. Quantum.jl 
+is designed to enable transformations of those representations to extend
+naturally to the abstract quantum objects that underlie them (bases of bras,
+kets, outer products, etc.), and conversely use abstract quantum objects to aid
+in the manipulation and analysis of representations.
 
-Many similar technologies - Mathematica, MATLab, NumPy, to name a few - have
-garnered support from the quantum physics community due to the wide variety of
-third-party physics libraries available. There are usually at least one or two
-projects for a given language that are dedicated to implementing quantum
-mechanics operations using Dirac notation in a manner that is idiomatic to the
-language.
+Many other libraries that offer a similarly abstract feature set 
+(e.g. Quantum Mathematica) are either:
 
-If Julia is to properly compete with these other languages, it should have
-such a library available; enter Quantum.jl.
+a) poorly optimized for heavy numeric work performed on matrix representations or 
 
-In addition to providing the basic functionality that many quantum mechanical
-implementations provide, this project provides a system for storing,
-manipulating, and analyzing subspaces of the Hilbert space. In other words,
-users can define their own bases, operators/states in terms of those bases, 
-and perform complex combinatorial filtering and mapping on the labels of 
-basis states. 
+b) don't preserve abstract structure when representation optimization is present. 
 
-All calculations with states and operators resolve themselves using linear 
-algebraic formulations whenever possible, and linear transformations act 
-in accordance with user-defined bases. 
+The goal of Quantum.jl is to be as optimized for numeric work as a library like
+QuTiP, while still having the abstract feature set that other libraries have shown 
+to be useful. Luckily, Julia is a language that quite naturally supports high levels 
+of abstraction with little sacrifice in performance.
 
-Quantum.jl currently only supports work in discrete spaces, but 
-plans for implementing continuous space features are in the works 
-as a post-release goal. Additionally, it has been suggested that 
-Quantum.jl implement in an interface for other popular quantum 
-libraries like QuTiP in order to more quickly offer up a host of 
-advanced optimized features.
+Quantum.jl currently only supports work in discrete spaces, but provides a foundation
+that could be extended to support work in continuous spaces in the future. 
 
-A discussion of the above, and elaboration on the project's plans
-for the very near future, can be found [here](https://github.com/jrevels/Quantum.jl/issues/1).
+Additionally, it has been suggested that Quantum.jl implement an interface for other 
+popular quantum libraries like QuTiP in order to more quickly offer up a host of advanced 
+optimized features, such as continuous space support, visualization systems, 
+and common algorithms used in quantum mechanics.
+
+By the time Quantum.jl is released (hopefully within the next two weeks), it will 
+have decent documentation and be registered as an actual Julia package for ease of
+use.
 
 Features
 ==========
-Note: The whole package is currently undergoing a breaking refactor that
-will hopefully make things even faster than before! In the meantime, 
-all of the following are features that were implemented, but are in the
-process of being reimplemented with the new design in mind.
-
-The refactor is expected to be finished within the next two weeks, at which 
-time the package will be registered and extensive documentation will be released.
 
 ###Current:
 	- Basis, State, ScalarExpr, DiracVector, and DiracMatrix type implementations
@@ -72,11 +63,11 @@ time the package will be registered and extensive documentation will be released
 	- The ability to perform mixed basis calculation via the use of ScalarExprs and InnerProducts
 
 ###In The Works:
-	- Refactor for optimization
+	- Refactor for optimization; expected finish date is early July
 	- Documentation
-	- register Quantum.jl as julia package
+	- registration of Quantum.jl as Julia package
 
-###Post-Release Goals:
+###Post-Release Goals/Ideas:
 	- Interface with other similar libraries (eg. QuTiP)
 	- Continuous space support
 	- HDF5 support using HDF5.jl (https://github.com/timholy/HDF5.jl)
