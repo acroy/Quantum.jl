@@ -83,4 +83,4 @@ time the package will be registered and extensive documentation will be released
 	- Continuous space support
 	- HDF5 support
 	- Visualization system (probably via interfacing to more mature libraries)
-	- incorporate units with [SIUnits.jl](https://github.com/Keno/SIUnits.jl) 
+	- incorporate units using SIUnits.jl (https://github.com/Keno/SIUnits.jl) 
