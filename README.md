@@ -81,6 +81,6 @@ time the package will be registered and extensive documentation will be released
 ###Post-Release Goals:
 	- Interface with other similar libraries (eg. QuTiP)
 	- Continuous space support
-	- HDF5 support
+	- HDF5 support using HDF5.jl (https://github.com/timholy/HDF5.jl)
 	- Visualization system (probably via interfacing to more mature libraries)
 	- incorporate units using SIUnits.jl (https://github.com/Keno/SIUnits.jl) 
