@@ -1,5 +1,4 @@
 # Quantum.jl
-*A framework for performing common quantum mechanical operations*
 
 Julia is an up-and-coming language for scientific computing that promises a
 high level of abstraction without the performance sacrifice such abstraction

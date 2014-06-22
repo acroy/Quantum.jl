@@ -169,9 +169,10 @@ inner{B<:Bra, K<:Ket}(d::DiracVector{B}, s::State{K}) = samebasis(d,s)	? get(d, 
 inner{B<:Bra, K<:Ket, N1<:Number, N2<:Number}(a::DiracVector{B, N1}, b::DiracVector{K, N2}) = isdual(a.basis, b.basis) ? (a.coeffs*b.coeffs)[1] : ireduce(a,b)
 inner{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = isdual(a.basis, b.basis) ? ireduce(a,b,true) : ireduce(a,b)
 
-# *(a::DiracVector{Bra}, b::DiracVector{Ket}) = inner(a,b)
-# *(a::DiracVector{Bra}, b::AbstractState{Ket}) = inner(a,b)
-# *(a::AbstractState{Bra}, b::DiracVector{Ket}) = inner(a,b)
+*{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = inner(a,b)
+*{B<:Bra, K<:Ket}(a::DiracVector{B}, b::State{K}) = inner(a,b)
+*{B<:Bra, K<:Ket}(a::State{B}, b::DiracVector{K}) = inner(a,b)
+
 # #see kron in misc.jl
 # *{K}(a::DiracVector{K}, b::DiracVector{K}) = kron(a,b)
 # *{K}(a::AbstractState{K}, b::DiracVector{K}) = kron(a,b)
