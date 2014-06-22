@@ -74,6 +74,7 @@ time the package will be registered and extensive documentation will be released
 	- The ability to perform mixed basis calculation via the use of ScalarExprs and InnerProducts
 
 ###In The Works:
+	- Refactor for optimization
 	- Documentation
 	- register Quantum.jl as julia package
 
@@ -81,4 +82,5 @@ time the package will be registered and extensive documentation will be released
 	- Interface with other similar libraries (eg. QuTiP)
 	- Continuous space support
 	- HDF5 support
-	- design a system for data visualization of common state properties/operations
+	- Visualization system (probably via interfacing to more mature libraries)
+	- incorporate units with [SIUnits.jl](https://github.com/Keno/SIUnits.jl) 
