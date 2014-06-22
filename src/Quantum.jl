@@ -12,6 +12,7 @@ module Quantum
 	#####################################
 	import Base:
 			length,
+			size,
 			endof,
 			isequal,
 			==,
@@ -19,7 +20,6 @@ module Quantum
 			getindex,
 			ctranspose,
 			show,
-			*,
 			zero,
 			conj,
 			eltype,
@@ -30,9 +30,20 @@ module Quantum
 		    in,
 		    setdiff,
 		    +,
+		    *,
+		    (.*),
+		    (.+),
+		    (.-),
+		    (./),
+		    (.^),
 		    map,
+		    map!,
 		    filter,
-		    find
+		    find,
+		    ndims,
+		    findn,
+		    findnz,
+		    nnz
 
 	#####################################
 	#abstract types######################
@@ -49,7 +60,7 @@ module Quantum
 	include("products.jl")
 	include("basis.jl")
 	# include("scalar.jl")
-	# include("diracvector.jl")
+	include("diracvector.jl")
 	# include("diracmatrix.jl")
 	include("misc.jl")
 
@@ -66,6 +77,7 @@ module Quantum
 		   AbstractBasis,
 		   Basis,
 		   TensorBasis,
+		   DiracVector,
 		   tensor,
 		   basis,
 		   dual,
@@ -77,5 +89,9 @@ module Quantum
 		   inner,
 		   samebasis,
 		   kind,
-		   bjoin
+		   bjoin,
+		   findstates,
+		   filtercoeffs,
+		   filterstates,
+		   getpos
 end

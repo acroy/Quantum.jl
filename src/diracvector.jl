@@ -31,7 +31,7 @@ isequal(a::DiracVector, b::DiracVector) = isequal(a.coeffs, b.coeffs) && a.basis
 ==(a::DiracVector, b::DiracVector) = a.coeffs==b.coeffs && a.basis==b.basis
 isdual{K<:Ket,B<:Bra}(a::DiracVector{K}, b::DiracVector{B}) = isdual(a.basis, b.basis) && a.coeffs==b.coeffs'
 isdual{K<:Ket,B<:Bra}(a::DiracVector{B}, b::DiracVector{K}) = isdual(b,a)
-isdual{S1<:Single, S2<:Single}(a::DiracVector{S1}, b::DiracVector{S2}) = false
+isdual(a::DiracVector, b::DiracVector) = false
 
 #####################################
 #Array-like Functions################
@@ -82,7 +82,7 @@ function showcompact(io::IO, d::DiracVector)
 		print(io, takebuf_string(tempio)[3:end])
 	end
 end
-function show(io::IO, d::DiracVector)
+function show{S}(io::IO, d::DiracVector{S})
 	if length(d)==0
 		print(io, "$(typeof(d))[]")
 	else	
@@ -105,7 +105,7 @@ function show(io::IO, d::DiracVector)
 			end
 		end
 		temp_io = IOBuffer()
-		if kind(d)==Ket
+		if S<:Ket
 			show(temp_io, table)
 		else
 			show(temp_io, [transpose(table[:,2]), transpose(table[:,1])])
@@ -120,94 +120,54 @@ end
 #Function-passing Functions##########
 #####################################
 
-# find(f::Function, d::DiracVector) = find(f, d.coeffs)
-# findstates(f::Function, d::DiracVector) = find(f, d.basis)
+find(f::Function, d::DiracVector) = find(f, d.coeffs)
+findstates(f::Function, d::DiracVector) = find(f, d.basis)
 
-# map(f::Function, d::DiracVector)=DiracVector(map(f, d.coeffs), d.basis)
+map(f::Function, d::DiracVector)=DiracVector(map(f, d.coeffs), d.basis)
 
-# function map!(f::Function, d::DiracVector)
-# 	d.coeffs = map(f, d.coeffs)
-# 	return d
-# end
+function map!(f::Function, d::DiracVector)
+	map!(f, d.coeffs)
+	return d
+end
 
-# function mapmatch(fstates::Function, fcoeffs::Function, d::DiracVector)
-# 	matched = findstates(fstates, d)	
-# 	coeffs = convert(SparseMatrixCSC{Any}, d.coeffs)
-# 	for i in matched
-# 		coeffs[i] = fcoeffs(coeffs[i])
-# 	end
-# 	#hacky concat strategy to force corect typing
-# 	if kind(d)==Ket
-# 		return DiracVector(vcat(coeffs...), d.basis)
-# 	else
-# 		return DiracVector(hcat(coeffs...), d.basis)		
-# 	end
-# end
+function loadcoeffs!(coeffs, d, newbasis)
+	for i=1:length(newbasis)
+		coeffs[i] = get(d, newbasis[i])
+	end	
+	return coeffs
+end
 
-# function mapmatch!(fstates::Function, fcoeffs::Function, d::DiracVector)
-# 	matched = findstates(fstates, d)	
-# 	for i in matched
-# 		d[i] = fcoeffs(d[i])
-# 	end
-# 	return d
-# end
+function filtercons{S,T}(newbasis::AbstractBasis, d::DiracVector{S,T})
+	return DiracVector(loadcoeffs!(S<:Ket ? Array(T, length(newbasis)) : Array(T, 1, length(newbasis)), d, newbasis), newbasis)
+end
 
-# function filtercons{K,T}(newbasis::AbstractBasis, d::DiracVector{K,T})
-# 	coeffs = K==Ket ? Array(T, length(newbasis)) : Array(T, 1, length(newbasis))
-# 	for i=1:length(newbasis)
-# 		coeffs[i] = get(d, newbasis[i])
-# 	end	
-# 	return DiracVector(coeffs, newbasis)
-# end
-
-# filterstates{K,T}(f::Function, d::DiracVector{K,T}) = filtercons(filter(f, d.basis), d)
-# filtercoeffs(f::Function, d::DiracVector) = filtercons(Basis(d.basis[find(map(f, d.coeffs))]), d)
+filterstates{S,T}(f::Function, d::DiracVector{S,T}) = filtercons(filter(f, d.basis), d)
+filtercoeffs(f::Function, d::DiracVector) = filtercons(basis(d.basis[find(map(f, d.coeffs))]), d)
 
 # qeval(f::Function, d::DiracVector) = map(x->qeval(f, x), d)
 
-# #####################################
-# #Arithmetic Operations###############
-# #####################################
+#####################################
+#Arithmetic Operations###############
+#####################################
 
-# for op=(:.*,:.-,:.+,:./,:.^)
-# 	@eval ($op)(a::DiracVector, b::DiracVector) = DiracVector(($op)(a.coeffs,b.coeffs), a.basis)
-# 	@eval ($op)(n, d::DiracVector) = DiracVector(($op)(n,d.coeffs), d.basis)
-# 	@eval ($op)(d::DiracVector, n) = DiracVector(($op)(d.coeffs,n), d.basis)
-# end
+for op=(:.*,:.-,:.+,:./,:.^)
+	@eval ($op)(a::DiracVector, b::DiracVector) = DiracVector(($op)(a.coeffs,b.coeffs), a.basis)
+	@eval ($op)(n, d::DiracVector) = DiracVector(($op)(n,d.coeffs), d.basis)
+	@eval ($op)(d::DiracVector, n) = DiracVector(($op)(d.coeffs,n), d.basis)
+end
 
-# *(c::DiracCoeff, d::DiracVector) = c.*d
-# *(d::DiracVector, c::DiracCoeff) = c*d
+*(c::DiracCoeff, d::DiracVector) = c.*d
+*(d::DiracVector, c::DiracCoeff) = c*d
 
-# function inner(s::AbstractState{Bra}, d::DiracVector{Ket})
-# 	if samebasis(d,s)	
-# 		return get(d, s', 0)
-# 	else
-# 		return reduce(+,[d[i]*(s*d.basis[i]) for i=1:length(d)])
-# 	end
-# end
-# function inner(d::DiracVector{Bra}, s::AbstractState{Ket})
-# 	if samebasis(d,s)	
-# 		return get(d, s', 0)
-# 	else
-# 		return reduce(+,[d[i]*(d.basis[i]*s) for i=1:length(d)])
-# 	end
-# end
+ireduce(s::State, d::DiracVector) = reduce(+,[d[i]*inner(s,d.basis[i]) for i=1:length(d)])
+ireduce(d::DiracVector, s::State) = reduce(+,[d[i]*inner(d.basis[i],s) for i=1:length(d)])
+ireduce(a::DiracVector, b::DiracVector) = reduce(+,[a[i]*b[j]*inner(a.basis[i],b.basis[j]) for i=1:length(a), j=1:length(b)])
+ireduce(a::DiracVector, b::DiracVector, eqbasis::Bool) = reduce(+,[a[i]*b[i]*inner(a.basis[i],b.basis[i]) for i=1:length(a)])
 
-# function inner{N1<:Number, N2<:Number}(a::DiracVector{Bra, N1}, b::DiracVector{Ket, N2})
-# 	if a.basis==b.basis 
-# 		return (a.coeffs*b.coeffs)[1]
-# 	else
-# 		return reduce(+,[a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
-# 	end
-# end
-
-# function inner(a::DiracVector{Bra}, b::DiracVector{Ket})
-# 	if a.basis==b.basis 
-# 		return reduce(+,[a[i]*b[i]*(a.basis[i]*b.basis[i]) for i=1:length(a)]) 
-# 	else
-# 		return reduce(+,[a[i]*b[j]*(a.basis[i]*b.basis[j]) for i=1:length(a), j=1:length(b)])
-# 	end
-# end	
+inner{B<:Bra, K<:Ket}(s::State{B}, d::DiracVector{K}) = samebasis(d,s)	? get(d, s', 0) : ireduce(s,d)
+inner{B<:Bra, K<:Ket}(d::DiracVector{B}, s::State{K}) = samebasis(d,s)	? get(d, s', 0) : ireduce(d,s)
+inner{B<:Bra, K<:Ket, N1<:Number, N2<:Number}(a::DiracVector{B, N1}, b::DiracVector{K, N2}) = isdual(a.basis, b.basis) ? (a.coeffs*b.coeffs)[1] : ireduce(a,b)
+inner{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = isdual(a.basis, b.basis) ? ireduce(a,b,true) : ireduce(a,b)
 
 # *(a::DiracVector{Bra}, b::DiracVector{Ket}) = inner(a,b)
 # *(a::DiracVector{Bra}, b::AbstractState{Ket}) = inner(a,b)

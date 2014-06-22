@@ -8,11 +8,12 @@ immutable Basis{S<:Single} <: AbstractBasis{S}
 	bsym::Symbol
 	states::Vector{S}
 	statemap::Dict
+	adjhash::Uint #hash statemap for quick isdual() functionality 
 end
 
 statemapper{S<:State}(sv::Vector{S}) = (labeltype(S)=>Int)[label(sv[i])=>i for i=1:length(sv)]
-
-consbasis{S<:Single}(sv::Vector{S}) = Basis(bsym(sv[1]), sv, statemapper(sv))
+hashbasis{S<:Single}(bsym::Symbol, sv::Vector{S}, statemap::Dict) = Basis(bsym, sv, statemap, hash(statemap))
+consbasis{S<:Single}(sv::Vector{S}) = hashbasis(bsym(sv[1]), sv, statemapper(sv))
 
 function makebasis{S<:Single}(sv::Vector{S})
 	@assert length(unique(map(bsym, sv)))==1 "BasisMismatch"
@@ -90,15 +91,22 @@ end
 #####################################
 #Misc Functions######################
 #####################################
-
-copy{B<:Basis}(b::B) = B(copy(b.bsym), copy(b.states), copy(b.statemap))
+copy{B<:Basis}(b::B) = B(copy(b.bsym), copy(b.states), copy(b.statemap), copy(adjhash))
 copy{B<:TensorBasis}(b::B)= B(copy(b.bases), copy(b.states), copy(b.statemap))
 
 bsym(b::Basis) = b.bsym
 bsym(b::TensorBasis) = map(bsym, b.bases)
+adjhash(b::Basis) = b.adjhash
+adjhash(b::TensorBasis) = map(adjhash, b.bases)
 
-isequal{B<:AbstractBasis}(a::B, b::B) = isequal(a.states, b.states)
-=={B<:AbstractBasis}(a::B, b::B) = a.states==b.states
+sameproperties(a::Basis,b::Basis) = adjhash(a)==adjhash(b) && samebasis(a,b)
+sameproperties(a::TensorBasis,b::TensorBasis) = adjhash(a)==adjhash(b) && samebasis(a,b)
+sameproperties(a::AbstractBasis,b::AbstractBasis) = false
+
+isequal{B<:AbstractBasis}(a::B, b::B) = sameproperties(a,b)
+=={B<:AbstractBasis}(a::B, b::B) = isequal(a,b)
+isequal(a::AbstractBasis,b::AbstractBasis) = isequal(a.states,b.states)
+==(a::AbstractBasis,b::AbstractBasis) = ==(a.states,b.states)
 
 for op=(:length, :endof)
 	@eval ($op)(b::AbstractBasis) = ($op)(b.states)
@@ -107,16 +115,16 @@ end
 dual{S<:Single}(t::Type{Basis{S}}) = Basis{dual(S)}
 dual{S<:Single}(t::Type{TensorBasis{S}}) = TensorBasis{dual(S)}
 
-ctranspose(b::Basis) = Basis(b.bsym, [ctranspose(i) for i in b.states], b.statemap)
+ctranspose(b::Basis) = Basis(b.bsym, [ctranspose(i) for i in b.states], b.statemap, b.adjhash)
 ctranspose(b::TensorBasis) = TensorBasis([ctranspose(i) for i in b.bases], [ctranspose(i) for i in b.states], b.statemap)
 
 for t=(:TensorBasis,:Basis)
 	@eval begin
-	isdual{T}(a::($t){Ket{T}}, b::($t){Bra{T}})= a.statemap==b.statemap && bsym(a)==bsym(b)
-	isdual(a::($t){Ket}, b::($t){Bra})= a.statemap==b.statemap && bsym(a)==bsym(b)
+	isdual{B<:Bra, K<:Ket}(a::($t){K}, b::($t){B}) = sameproperties(a,b)
 	isdual{B<:Bra, K<:Ket}(a::($t){B}, b::($t){K}) = isdual(b,a)
 	end
 end
+
 isdual(a::AbstractBasis,b::AbstractBasis)=false 
 
 getindex(b::AbstractBasis, x) = b.states[x]

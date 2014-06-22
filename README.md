@@ -55,7 +55,6 @@ time the package will be registered and extensive documentation will be released
 	  Quantum.jl collection objects. Related methods:
 	  	- filter
 	  	- map/map!
-	  	- mapmatch/mapmatch!
 	  	- filtercoeffs
 	 	- filterstates
 	 	- find/findstates
