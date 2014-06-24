@@ -112,8 +112,6 @@ show{B<:Bra}(io::IO, s::State{B}) = print(io, "$lang $(reprlabel(s)) |")
 #Arithmetic Operations###############
 #####################################
 
-# *(c::DiracCoeff, s::AbstractState) = c==0 ? 0 : (c==1 ? s : DiracVector([c], tobasis(s)))
-# *(s::AbstractState, c::DiracCoeff) = *(c,s)
 tensor{S<:Single}(s::Vector{S}) = Tensor(s)
 tensor{S<:State}(s::Vector{S}) = tensor([[separate(i) for i in s]...])
 tensor{S<:State}(s::Array{S}) = tensor(vec(s))
@@ -152,5 +150,7 @@ function inner{B<:Bra,K<:Ket}(a::Tensor{B}, b::Tensor{K})
 	end
 end
 
+*{K1<:Ket,K2<:Ket}(a::State{K1}, b::State{K2}) = tensor(a,b)
+*{B1<:Bra,B2<:Bra}(a::State{B1}, b::State{B2}) = tensor(a,b)
 *{B<:Bra,K<:Ket}(a::State{B}, b::State{K}) = inner(a,b)
 *{K<:Ket,B<:Bra}(a::State{K}, b::State{B}) = OuterProduct(a,b)

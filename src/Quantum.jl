@@ -63,7 +63,7 @@ module Quantum
 	include("diracvector.jl")
 	# include("diracmatrix.jl")
 	include("misc.jl")
-	# include("fock.jl")
+	include("fock.jl")
 
 	#####################################
 	#exports#############################

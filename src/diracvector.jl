@@ -158,6 +158,7 @@ end
 
 *(c::DiracCoeff, d::DiracVector) = c.*d
 *(d::DiracVector, c::DiracCoeff) = c*d
+-(d::DiracVector) = -1*d
 
 ireduce(s::State, d::DiracVector) = reduce(+,[d[i]*inner(s,d.basis[i]) for i=1:length(d)])
 ireduce(d::DiracVector, s::State) = reduce(+,[d[i]*inner(d.basis[i],s) for i=1:length(d)])
@@ -181,62 +182,79 @@ inner{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = isdual(a.basis, b.
 # *(a::AbstractState{Ket}, b::DiracVector{Bra}) = kron(a,b)
 # *(a::DiracVector{Ket}, b::DiracVector{Bra}) = kron(a,b)
 
+function addstate(d,s)
+	res = copy(d)
+	res[getpos(d,s)] = 1+get(res, s)
+	return res
+end
 
-# function +{K}(d::DiracVector{K}, s::AbstractState{K})
-# 	if in(s, d.basis)
-# 		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
-# 		res[getpos(d,s)] = 1+get(res, s)
-# 		return res
-# 	else
-# 		@assert samebasis(d,s) "BasisMismatch"
-# 		if K==Ket
-# 			return DiracVector(vcat(d.coeffs, 1), basisjoin(d.basis,s))
-# 		else
-# 			return DiracVector(hcat(d.coeffs, 1), basisjoin(d.basis,s))
-# 		end
-# 	end
-# end
+function +{K1<:Ket,K2<:Ket}(d::DiracVector{K1}, s::State{K2})
+	if in(s, d.basis)
+		return addstate(d,s)
+	else
+		@assert samebasis(d,s) "BasisMismatch"
+		return DiracVector(vcat(d.coeffs, speye(1)), bjoin(d.basis,s))
+	end
+end
 
-# function +{K}(s::AbstractState{K}, d::DiracVector{K})
-# 	if in(s, d.basis)
-# 		res = 1*d #forces the coeff array to accept numbers if it is InnerProduct; hacky but works
-# 		res[getpos(d,s)] = 1+get(res, s)
-# 		return res
-# 	else
-# 		@assert samebasis(d,s) "BasisMismatch"
-# 		if K==Ket
-# 			return DiracVector(vcat(1, d.coeffs), basisjoin(s, d.basis))
-# 		else
-# 			return DiracVector(hcat(1, d.coeffs), basisjoin(s, d.basis))
-# 		end
-# 	end
-# end
+function +{B1<:Bra,B2<:Bra}(d::DiracVector{B1}, s::State{B2})
+	if in(s, d.basis)
+		return addstate(d,s)
+	else
+		@assert samebasis(d,s) "BasisMismatch"
+		return DiracVector(hcat(d.coeffs, speye(1)), bjoin(d.basis,s))
+	end
+end
 
-# function +{K}(a::DiracVector{K}, b::DiracVector{K})
-# 	if a.basis==b.basis
-# 		return DiracVector(a.coeffs+b.coeffs, a.basis)
-# 	else
-# 		@assert samebasis(a,b) "BasisMismatch"
-# 		res = 1*a
-# 		for i=1:length(b)
-# 			res = res+b.basis[i]
-# 			res[getpos(res, b.basis[i])] = get(res, b.basis[i]) + b[i] - 1
-# 		end
-# 		return res
-# 	end
-# end
+function +{K1<:Ket,K2<:Ket}(s::State{K1}, d::DiracVector{K2})
+	if in(s, d.basis)
+		return addstate(d,s)
+	else
+		@assert samebasis(d,s) "BasisMismatch"
+		return DiracVector(vcat(speye(1), d.coeffs), bjoin(s,d.basis))
+	end
+end
 
-# -{K}(d::DiracVector{K}, s::AbstractState{K}) = d+(-s)
-# -{K}(s::AbstractState{K}, d::DiracVector{K}) = s+(-d)
-# -{K}(a::DiracVector{K}, b::DiracVector{K}) = a+(-b)
+function +{B1<:Bra,B2<:Bra}(s::State{B1}, d::DiracVector{B2})
+	if in(s, d.basis)
+		return addstate(d,s)
+	else
+		@assert samebasis(d,s) "BasisMismatch"
+		return DiracVector(hcat(speye(1),d.coeffs), bjoin(s,d.basis))
+	end
+end
 
-# +(a::AbstractState{Ket}, b::AbstractState{Ket}) = a==b ? 2*a : DiracVector([1, 1], tobasis([a,b])) 
-# +(a::AbstractState{Bra}, b::AbstractState{Bra}) = a==b ? 2*a : DiracVector([1 1], tobasis([a,b])) 
-# -(a::AbstractState{Ket}, b::AbstractState{Ket}) = a==b ? 0 : DiracVector([1, -1], tobasis([a,b])) 
-# -(a::AbstractState{Bra}, b::AbstractState{Bra}) =  a==b ? 0 : DiracVector([1 -1], tobasis([a,b])) 
+for t=(:Bra,:Ket)
+	@eval begin 
+	function +{S1<:($t),S2<:($t)}(a::DiracVector{S1}, b::DiracVector{S2})
+		if a.basis==b.basis
+			return DiracVector(a.coeffs+b.coeffs, a.basis)
+		else
+			@assert samebasis(a,b) "BasisMismatch"
+			#the contents of this "else" could and should be further optimized
+			res = copy(a)
+			for i=1:length(b)
+				res = res+b.basis[i]
+				res[getpos(res, b.basis[i])] = get(res, b.basis[i]) + b[i] - 1
+			end
+			return res
+		end
+	end
 
-# -(s::AbstractState) = -1*s
-# -(d::DiracVector) = DiracVector(-1*d.coeffs, d.basis)
+	-{S1<:($t),S2<:($t)}(d::DiracVector{S1}, s::State{S2}) = d+(-s)
+	-{S1<:($t),S2<:($t)}(s::State{S1}, d::DiracVector{S2}) = s+(-d)
+	-{S1<:($t),S2<:($t)}(a::DiracVector{S1}, b::DiracVector{S2}) = a+(-b)
+	end
+end
 
-# norm(d::DiracVector, p::Int=2) = reduce(+,map(i->abs(i)^p, d.coeffs))^(1/p) 
-# normalize(d::DiracVector) = DiracVector((1/norm(d.coeffs))*d.coeffs, d.basis)
++{K1<:Ket,K2<:Ket}(a::State{K1}, b::State{K2}) = a==b ? 2*a : DiracVector([1, 1], basis([a,b])) 
++{B1<:Bra,B2<:Bra}(a::State{B1}, b::State{B2}) = a==b ? 2*a : DiracVector([1 1], basis([a,b])) 
+-{K1<:Ket,K2<:Ket}(a::State{K1}, b::State{K2}) = a==b ? 0 : DiracVector([1, -1], basis([a,b])) 
+-{B1<:Bra,B2<:Bra}(a::State{B1}, b::State{B2}) =  a==b ? 0 : DiracVector([1 -1], basis([a,b])) 
+
+*(c::DiracCoeff, s::State) = c==0 ? 0 : (c==1 ? s : DiracVector([c], basis(s)))
+*(s::State, c::DiracCoeff) = *(c,s)
+-(s::State) = -1*s
+
+norm(d::DiracVector, p::Int=2) = reduce(+,map(i->abs(i)^p, d.coeffs))^(1/p) 
+normalize(d::DiracVector) = DiracVector((1/norm(d.coeffs))*d.coeffs, d.basis)

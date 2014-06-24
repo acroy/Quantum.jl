@@ -23,8 +23,6 @@ end
 basis{S<:Single}(states::Vector{S}) = makebasis(unique(states))
 basis{S<:Single}(states::Vector{S}) = makebasis(unique(states))
 basis{S<:Single}(states::Array{S}) = basis(vec(states))
-basis{S<:Single}(s::S...) = basis(collect(s))
-
 basis(labelvec::Array, bsym::Symbol) = consbasis([Ket(i, bsym) for i in labelvec])
 #####################################
 #TensorBasis#########################
@@ -92,7 +90,9 @@ end
 #####################################
 #Misc Functions######################
 #####################################
-copy{B<:Basis}(b::B) = B(copy(b.bsym), copy(b.states), copy(b.statemap), copy(adjhash))
+basis{S<:State}(s::S...) = basis(collect(s))
+
+copy{B<:Basis}(b::B) = B(copy(b.bsym), copy(b.states), copy(b.statemap), copy(b.adjhash))
 copy{B<:TensorBasis}(b::B)= B(copy(b.bases), copy(b.states), copy(b.statemap))
 
 bsym(b::Basis) = b.bsym
@@ -104,10 +104,16 @@ sameproperties(a::Basis,b::Basis) = adjhash(a)==adjhash(b) && samebasis(a,b)
 sameproperties(a::TensorBasis,b::TensorBasis) = adjhash(a)==adjhash(b) && samebasis(a,b)
 sameproperties(a::AbstractBasis,b::AbstractBasis) = false
 
-isequal{B<:AbstractBasis}(a::B, b::B) = sameproperties(a,b)
-=={B<:AbstractBasis}(a::B, b::B) = isequal(a,b)
-isequal(a::AbstractBasis,b::AbstractBasis) = isequal(a.states,b.states)
-==(a::AbstractBasis,b::AbstractBasis) = ==(a.states,b.states)
+
+for op=(:isequal, :(==))
+	for t=(:TensorBasis, :Basis)
+		@eval begin
+		($op){K1<:Ket, K2<:Ket}(a::($t){K1}, b::($t){K2}) = sameproperties(a,b)
+		($op){B1<:Bra, B2<:Bra}(a::($t){B1}, b::($t){B2}) = sameproperties(a,b)
+		end
+	end
+	@eval ($op)(a::AbstractBasis,b::AbstractBasis) = false
+end
 
 for op=(:length, :endof)
 	@eval ($op)(b::AbstractBasis) = ($op)(b.states)
@@ -202,7 +208,7 @@ end
 
 for t=(:Ket,:Bra)
 	@eval begin
-	function bjoin{S1<:($t), S2<:($t)}(b::Basis{S1}, s::S2)
+	function bjoin{S<:($t)}(b::Basis{S}, s::S)
 		if in(s, b)
 			return b
 		else
@@ -211,7 +217,16 @@ for t=(:Ket,:Bra)
 		end
 	end
 
-	function bjoin{S1<:($t), S2<:($t)}(s::S2,b::Basis{S1})
+	function bjoin{S1<:($t), S2<:($t)}(b::Basis{S1}, s::S2) #default to this if above optimization can't be performed		
+		if in(s, b)
+			return b
+		else
+			@assert samebasis(b, s) "BasisMismatch"
+			return consbasis(vcat(b.states,s))
+		end
+	end
+
+	function bjoin{S<:($t)}(s::S,b::Basis{S})
 		if in(s, b)
 			return b
 		else
@@ -220,17 +235,26 @@ for t=(:Ket,:Bra)
 		end
 	end
 
-	function bjoin{S1<:($t), S2<:($t)}(a::Basis{S1}, b::Basis{S2}) 
+	function bjoin{S1<:($t), S2<:($t)}(a::Basis{S1}, b::Basis{S2})
 		@assert samebasis(a,b) "BasisMismatch"
-		return consbasis(vcat(a.states, b.states))
+		consbasis(unique(vcat(a.states, b.states)))
 	end
 	
-	function bjoin{S1<:($t), S2<:($t)}(b::TensorBasis{S1}, s::Tensor{S2})
+	function bjoin{S<:($t)}(b::TensorBasis{S}, s::Tensor{S})
 		if in(s, b)
 			return b
 		else
 			@assert samebasis(b, s) "BasisMismatch"
 			return TensorBasis(b.bases, vcat(b.states, s), stateappend(b.statemap,s))
+		end
+	end
+
+	function bjoin{S1<:($t), S2<:($t)}(b::TensorBasis{S1}, s::Tensor{S2})
+		if in(s, b)
+			return b
+		else
+			@assert samebasis(b, s) "BasisMismatch"
+			return consbasis(b.bases, vcat(b.states,s))
 		end
 	end
 
@@ -243,10 +267,7 @@ for t=(:Ket,:Bra)
 		end
 	end
 
-	function bjoin{S1<:($t), S2<:($t)}(a::TensorBasis{S1}, b::TensorBasis{S2}) 
-		@assert samebasis(a,b) "BasisMismatch"
-		return consbasis(b.bases, vcat(a.states, b.states))
-	end
+	bjoin{S1<:($t), S2<:($t)}(a::TensorBasis{S1}, b::TensorBasis{S2}) = basis(vcat(a.states, b.states))
 
 	tensor{S1<:($t), S2<:($t)}(s::State{S1},b::AbstractBasis{S2}) = map(x->tensor(s,x), b)
 	tensor{S1<:($t), S2<:($t)}(b::AbstractBasis{S1}, s::State{S2}) = map(x->tensor(x,s), b)
