@@ -3,7 +3,7 @@
 #####################################
 
 type DiracVector{S<:Single, T} <: Dirac
-	coeffs::SparseMatrixCSC{T} 
+	coeffs::SparseMatrixCSC{T, Int} 
 	basis::AbstractBasis{S}
 	function DiracVector(coeffs, basis)
 		if S<:Ket
@@ -231,7 +231,6 @@ for t=(:Bra,:Ket)
 			return DiracVector(a.coeffs+b.coeffs, a.basis)
 		else
 			@assert samebasis(a,b) "BasisMismatch"
-			#the contents of this "else" could and should be further optimized
 			res = copy(a)
 			for i=1:length(b)
 				res = res+b.basis[i]
@@ -256,5 +255,6 @@ end
 *(s::State, c::DiracCoeff) = *(c,s)
 -(s::State) = -1*s
 
+norm{S,N<:Number}(d::DiracVector{S,N}, p::Int=2) = norm(d.coeffs)
 norm(d::DiracVector, p::Int=2) = reduce(+,map(i->abs(i)^p, d.coeffs))^(1/p) 
-normalize(d::DiracVector) = DiracVector((1/norm(d.coeffs))*d.coeffs, d.basis)
+normalize(d::DiracVector) = DiracVector((1/norm(d))*d.coeffs, d.basis)

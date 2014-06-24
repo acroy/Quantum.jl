@@ -43,7 +43,9 @@ module Quantum
 		    ndims,
 		    findn,
 		    findnz,
-		    nnz
+		    nnz,
+		    norm,
+		    summary
 
 	#####################################
 	#abstract types######################
@@ -73,6 +75,7 @@ module Quantum
 		   Bra,
 		   Ket,
 		   Tensor,
+		   Single,
 		   InnerProduct,
 		   OuterProduct,
 		   AbstractBasis,
@@ -96,5 +99,6 @@ module Quantum
 		   filterstates,
 		   getpos,
 		   fbasis,
-		   fvec
+		   fvec,
+		   normalize
 end
