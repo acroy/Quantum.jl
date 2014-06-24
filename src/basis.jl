@@ -25,6 +25,7 @@ basis{S<:Single}(states::Vector{S}) = makebasis(unique(states))
 basis{S<:Single}(states::Array{S}) = basis(vec(states))
 basis{S<:Single}(s::S...) = basis(collect(s))
 
+basis(labelvec::Array, bsym::Symbol) = consbasis([Ket(i, bsym) for i in labelvec])
 #####################################
 #TensorBasis#########################
 #####################################
@@ -77,7 +78,7 @@ sjointype(sarr::Array)=typejoin(map(eltype, sarr[1,:])...)
 statejoin{S<:Single}(sarr::Array{S,2}) = Tensor{S}[tensor(sarr[i, :]) for i=1:size(sarr, 1)]
 statejoin{S<:State}(sarr::Array{S,2}) = Tensor{sjointype(sarr)}[tensor(sarr[i, :]) for i=1:size(sarr, 1)]
 
-statecross(v::Vector) = statejoin(reduce(crossjoin, v))
+statecross(v) = statejoin(reduce(crossjoin,v))
 
 tensor() = error("tensor needs arguments of type T<:Basis or T<:State")
 tensor(b::AbstractBasis) = error("cannot perform tensor operation on one basis")
