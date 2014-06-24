@@ -63,6 +63,7 @@ module Quantum
 	include("diracvector.jl")
 	# include("diracmatrix.jl")
 	include("misc.jl")
+	# include("fock.jl")
 
 	#####################################
 	#exports#############################
@@ -93,5 +94,7 @@ module Quantum
 		   findstates,
 		   filtercoeffs,
 		   filterstates,
-		   getpos
+		   getpos,
+		   fbasis,
+		   fvec
 end
