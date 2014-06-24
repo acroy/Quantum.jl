@@ -49,6 +49,7 @@ module Quantum
 		    findn,
 		    findnz,
 		    nnz,
+		    ndims,
 		    norm,
 		    summary
 
@@ -68,7 +69,7 @@ module Quantum
 	include("basis.jl")
 	include("scalar.jl")
 	include("diracvector.jl")
-	# include("diracmatrix.jl")
+	include("diracmatrix.jl")
 	include("misc.jl")
 	include("fock.jl")
 
@@ -89,6 +90,7 @@ module Quantum
 		   Basis,
 		   TensorBasis,
 		   DiracVector,
+		   DiracMatrix,
 		   tensor,
 		   basis,
 		   dual,
@@ -108,5 +110,7 @@ module Quantum
 		   fbasis,
 		   fvec,
 		   normalize,
-		   qeval
+		   qeval,
+		   dvec,
+		   dmat
 end

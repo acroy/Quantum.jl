@@ -18,6 +18,7 @@ end
 
 DiracVector{S,T}(coeffs::Array{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(sparse(coeffs), basis)
 DiracVector{S,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(coeffs, basis)
+dvec = DiracVector
 
 #####################################
 #Getter-style Functions##############
@@ -47,7 +48,7 @@ setindex!{K<:Ket}(d::DiracVector{K}, y, x) = setindex!(d.coeffs, y, x, 1)
 setindex!{B<:Bra}(d::DiracVector{B}, y, x) = setindex!(d.coeffs, y, 1, x)
 setindex!(d::DiracVector, y, x...) = setindex!(d.coeffs, y, x...)
 
-for op=(:endof, :ndims, :eltype, :length, :find, :findn, :findnz, :nnz)
+for op=(:endof, :ndims, :eltype, :length, :find, :findn, :findnz, :nnz, :ndims)
 	@eval ($op)(d::DiracVector) = ($op)(d.coeffs)
 end
 
@@ -175,6 +176,8 @@ inner{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = isdual(a.basis, b.
 *{B<:Bra, K<:Ket}(a::DiracVector{B}, b::State{K}) = inner(a,b)
 *{B<:Bra, K<:Ket}(a::State{B}, b::DiracVector{K}) = inner(a,b)
 
+#define the below using tensor, then define kron using 
+#tensor as well
 # #see kron in misc.jl
 # *{K}(a::DiracVector{K}, b::DiracVector{K}) = kron(a,b)
 # *{K}(a::AbstractState{K}, b::DiracVector{K}) = kron(a,b)
