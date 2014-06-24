@@ -144,7 +144,7 @@ end
 filterstates{S,T}(f::Function, d::DiracVector{S,T}) = filtercons(filter(f, d.basis), d)
 filtercoeffs(f::Function, d::DiracVector) = filtercons(basis(d.basis[find(map(f, d.coeffs))]), d)
 
-# qeval(f::Function, d::DiracVector) = map(x->qeval(f, x), d)
+qeval(f::Function, d::DiracVector) = map(x->qeval(f, x), d)
 
 #####################################
 #Arithmetic Operations###############
@@ -156,8 +156,9 @@ for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(d::DiracVector, n) = DiracVector(($op)(d.coeffs,n), d.basis)
 end
 
-*(c::DiracCoeff, d::DiracVector) = c.*d
-*(d::DiracVector, c::DiracCoeff) = c*d
+*(n::DiracCoeff, d::DiracVector) = DiracVector(*(n,d.coeffs), d.basis)
+*(d::DiracVector, n::DiracCoeff) = DiracVector(*(d.coeffs,n), d.basis)
+
 -(d::DiracVector) = -1*d
 
 ireduce(s::State, d::DiracVector) = reduce(+,[d[i]*inner(s,d.basis[i]) for i=1:length(d)])
@@ -255,6 +256,6 @@ end
 *(s::State, c::DiracCoeff) = *(c,s)
 -(s::State) = -1*s
 
-norm{S,N<:Number}(d::DiracVector{S,N}, p::Int=2) = norm(d.coeffs)
 norm(d::DiracVector, p::Int=2) = reduce(+,map(i->abs(i)^p, d.coeffs))^(1/p) 
+norm{S<:Single,N<:Number}(d::DiracVector{S,N}, p::Int=2) = norm(d.coeffs)
 normalize(d::DiracVector) = DiracVector((1/norm(d))*d.coeffs, d.basis)

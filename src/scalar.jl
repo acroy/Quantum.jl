@@ -21,7 +21,7 @@ qeval(f::Function, n::Number) = n
 function qreduce(f::Function, ex::Expr)
 	ex = copy(ex)
 	for i=1:length(ex.args)
-		if typeof(ex.args[i])==InnerProduct
+		if typeof(ex.args[i])<:InnerProduct
 			ex.args[i] = f(ex.args[i].bra, ex.args[i].ket)
 		elseif typeof(ex.args[i])==Expr
 			ex.args[i] = qreduce(f, ex.args[i])
@@ -112,10 +112,10 @@ conj(s::ScalarExpr)	= length(s.ex.args)==2 && s.ex.args[1]==:conj ? ScalarExpr(s
 for op=(:*,:-,:+,:/,:^) #define for elementwise operators
 	elop = symbol(string(:.) * string(op))
 	@eval ($elop)(a::DiracCoeff, b::DiracCoeff) = ($op)(a,b)
-	@eval ($elop)(a::AbstractScalar, arr::Array) = broadcast(($op), [a], arr)
-	@eval ($elop)(arr::Array, a::AbstractScalar) = broadcast(($op), arr, [a])
+	@eval ($elop)(a::AbstractScalar, arr::AbstractArray) = broadcast(($op), [a], arr)
+	@eval ($elop)(arr::AbstractArray, a::AbstractScalar) = broadcast(($op), arr, [a])
 end
 
-*(a::AbstractScalar, arr::Array) = a.*arr
-*(arr::Array, a::AbstractScalar) = arr.*a
-/(arr::Array, a::AbstractScalar) = arr./a
+*(a::AbstractScalar, arr::AbstractArray) = a.*arr
+*(arr::AbstractArray, a::AbstractScalar) = arr.*a
+/(arr::AbstractArray, a::AbstractScalar) = arr./a

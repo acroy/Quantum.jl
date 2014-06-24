@@ -30,12 +30,17 @@ module Quantum
 		    in,
 		    setdiff,
 		    +,
+		    -,
 		    *,
+		    /,
+		    ^,
 		    (.*),
 		    (.+),
 		    (.-),
 		    (./),
 		    (.^),
+		    abs,
+		    exp,
 		    map,
 		    map!,
 		    filter,
@@ -61,7 +66,7 @@ module Quantum
 	include("state.jl")
 	include("products.jl")
 	include("basis.jl")
-	# include("scalar.jl")
+	include("scalar.jl")
 	include("diracvector.jl")
 	# include("diracmatrix.jl")
 	include("misc.jl")
@@ -79,6 +84,8 @@ module Quantum
 		   InnerProduct,
 		   OuterProduct,
 		   AbstractBasis,
+		   AbstractScalar,
+		   ScalarExpr,
 		   Basis,
 		   TensorBasis,
 		   DiracVector,
@@ -100,5 +107,6 @@ module Quantum
 		   getpos,
 		   fbasis,
 		   fvec,
-		   normalize
+		   normalize,
+		   qeval
 end
