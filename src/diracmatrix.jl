@@ -16,16 +16,19 @@ DiracMatrix{K<:Ket, B<:Bra, T}(coeffs::Matrix{T}, rowb::AbstractBasis{K}, colb::
 DiracMatrix{K<:Ket}(coeffs::AbstractArray, b::AbstractBasis{K}) = DiracMatrix(coeffs, b, b') 
 DiracMatrix{B<:Bra}(coeffs::AbstractArray, b::AbstractBasis{B}) = DiracMatrix(coeffs, b', b) 
 
-function constructop!{K<:Ket}(coeffs::SparseMatrixCSC, fcoeff::Function, fstate::Function, b::AbstractBasis{K})
-	for i=1:length(b)
-		for j=1:length(b)
+function constructop!(coeffs, fcoeff, fstate, b)
+	#basically never use this function except for in the below context
+	@inbounds begin
+		for i=1:length(b), j=1:length(b)
 			coeffs[i,j] = fcoeff(b[j])*inner(b[i]',fstate(b[j]))
 		end
 	end
 end
 
 function DiracMatrix{K<:Ket}(fcoeff::Function, fstate::Function, b::AbstractBasis{K}, t::DataType=typeof(fcoeff(b[1])))
-	coeffs = convert(SparseMatrixCSC{t}, spzeros(length(b), length(b)))
+	coeffs = ones(t,length(b),length(b))
+	#we pass the non-sparse array here since
+	#construction is performed one index at a time
 	constructop!(coeffs, fcoeff, fstate, b)
 	return DiracMatrix(coeffs, b)
 end
@@ -35,7 +38,7 @@ dmat=DiracMatrix
 #####################################
 #Getter-style Functions##############
 #####################################
-bsym(op::DiracMatrix) = [bsym(op.rowb), bsym(op.colb)]
+bsym(dm::DiracMatrix) = [bsym(dm.rowb), bsym(dm.colb)]
 
 #####################################
 #Boolean Functions###################
@@ -47,121 +50,105 @@ isdual(a::DiracMatrix, b::DiracMatrix) = a.coeffs'==b.coeffs && a.rowb==b.colb &
 #####################################
 #Array-like Functions################
 #####################################
-size(op::DiracMatrix, args...) = size(op.coeffs, args...)
+size(dm::DiracMatrix, args...) = size(dm.coeffs, args...)
 for op=(:endof, :eltype, :length, :find, :findn, :findnz, :nnz,:ndims)
-	@eval ($op)(d::DiracMatrix) = ($op)(d.coeffs)
+	@eval ($op)(dm::DiracMatrix) = ($op)(dm.coeffs)
 end
-ctranspose(op::DiracMatrix) = DiracMatrix(op.coeffs', op.colb', op.rowb')
-getindex(op::DiracMatrix, x...) = op.coeffs[x...]
-setindex!(op::DiracMatrix, y, x...) = setindex!(op.coeffs,y,x...)
+ctranspose(dm::DiracMatrix) = DiracMatrix(dm.coeffs', dm.colb', dm.rowb')
+getindex(dm::DiracMatrix, x...) = dm.coeffs[x...]
+setindex!(dm::DiracMatrix, y, x...) = setindex!(dm.coeffs,y,x...)
 
-# #####################################
-# #Dict-like Functions#################
-# #####################################
-# getpos(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}) = (get(op.rowb, k), get(op.colb, b))
-# getpos(op::DiracMatrix, o::OuterProduct) = getpos(op, o.ket, o.bra)
+#####################################
+#Dict-like Functions#################
+#####################################
+getpos{K<:Ket}(dm::DiracMatrix{K}, k::State{K}) = get(dm.rowb, k)
+getpos{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, s::State{B}) = get(dm.colb, b)
+getpos{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, k::State{K}, b::State{B}) = (getpos(dm, k), getpos(dm, b))
+getpos{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, o::OuterProduct{K,B}) = getpos(dm, o.ket, o.bra)
+getpos(dm::DiracMatrix, arg) = throw(KeyError(arg)) 
+getpos(dm::DiracMatrix, args...) = throw(KeyError(args)) 
 
-# get(op::DiracMatrix, s::AbstractState{Ket}) = DiracVector(op[get(op.rowb, s), :], op.colb)
-# get(op::DiracMatrix, s::AbstractState{Bra}) = DiracVector(op[:, get(op.colb, s)], op.rowb)
-# get(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}) = op[get(op.rowb, k), get(op.colb, b)]
-# get(op::DiracMatrix, o::OuterProduct) = get(op, o.ket, o.bra)
+get{K<:Ket}(dm::DiracMatrix{K}, s::State{K}) = DiracVector(dm[getpos(dm, s), :], dm.colb)
+get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, s::State{B}) = DiracVector(dm[:, getpos(dm, s)], dm.rowb)
+get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, k::State{K}, b::State{B}) = dm[getpos(dm, k), getpos(dm, b)]
+get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, o::OuterProduct{K,B}) = get(dm, o.ket, o.bra)
 
-# function get(op::DiracMatrix, s::AbstractState, notfound)
-# 	try
-# 		return get(op, s)
-# 	catch
-# 		return notfound
-# 	end
-# end
+get{K<:Ket}(dm::DiracMatrix{K}, s::State{K}, notfound) = in(k, dm.rowb) ? get(dm, k) : notfound
+get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, s::State{B}, notfound) = in(b, dm.colb) ? get(dm, b) : notfound
+function get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, k::State{K}, b::State{B}, notfound)
+	if in(k, dm.rowb) && in(b, dm.colb)
+		return get(dm, k, b)
+	else
+		return notfound
+	end	
+end
+get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, o::OuterProduct{K,B}, notfound) = get(dm, o.ket, o.bra, notfound)
 
-# function get(op::DiracMatrix, k::AbstractState{Ket}, b::AbstractState{Bra}, notfound)
-# 	try
-# 		return get(op, k, b)
-# 	catch
-# 		return notfound
-# 	end
-# end
+get(dm::DiracMatrix, arg) = throw(KeyError(arg)) 
+get(dm::DiracMatrix, args...) = throw(KeyError(args)) 
 
-# #####################################
-# #Show Functions######################
-# #####################################
-summary(op::DiracMatrix) = "$(size(op,1))x$(size(op,2)) $(typeof(op))"
+#####################################
+#Show Functions######################
+#####################################
+summary(dm::DiracMatrix) = "$(size(dm,1))x$(size(dm,2)) $(typeof(dm))"
 
-function showcompact(io::IO, op::DiracMatrix)
-	if length(op.coeffs)==0
-		print(io, "$(typeof(op))[]")
+function showcompact(io::IO, dm::DiracMatrix)
+	if length(dm.coeffs)==0
+		print(io, "$(typeof(dm))[]")
 	else
 		tempio = IOBuffer()
-		nz = hcat(findn(op)...)
-		print(tempio, [" + $(op.coeffs[nz[i,1],nz[i,2]])$(op.rowb[nz[i,1]])$(op.colb[nz[i,2]])" for i=1:size(nz,1)]...)
+		nz = hcat(findn(dm)...)
+		print(tempio, [" + $(dm.coeffs[nz[i,1],nz[i,2]])$(dm.rowb[nz[i,1]])$(dm.colb[nz[i,2]])" for i=1:size(nz,1)]...)
 		print(io, takebuf_string(tempio)[3:end])
 	end
 end
 
-function show(io::IO, op::DiracMatrix)
-	println(io, summary(op))
-	table = cell(length(op.rowb)+1, length(op.colb)+1)	
-	for i = 1:length(op.rowb)
-		table[i+1,1] = op.rowb[i]
+function show(io::IO, dm::DiracMatrix)
+	println(io, summary(dm))
+	table = cell(length(dm.rowb)+1, length(dm.colb)+1)	
+	for i = 1:length(dm.rowb)
+		table[i+1,1] = dm.rowb[i]
 	end
-	for j = 1:length(op.colb)
-		table[1,j+1] = op.colb[j]
+	for j = 1:length(dm.colb)
+		table[1,j+1] = dm.colb[j]
 	end
 	table[1,1] = 0
-	table[2:end, 2:end] = full(op.coeffs)
+	table[2:end, 2:end] = full(dm.coeffs)
 	temp_io = IOBuffer()
 	show(temp_io, table)
 	io_str = takebuf_string(temp_io)
 	print(io, io_str[searchindex(io_str, "\n")+3:end])
 end
 
-# #####################################
-# #Function-passing Functions##########
-# #####################################
-# find(f::Function, op::DiracMatrix) = find(f, op.coeffs)
-# findstates(f::Function, op::DiracMatrix) = find(f, [op.rowb[i]*op.colb[j] for i=1:length(op.rowb), j=1:length(op.colb)]) #f takes OuterProduct as argument
+#####################################
+#Function-passing Functions##########
+#####################################
+find(f::Function, dm::DiracMatrix) = find(f, dm.coeffs)
+findstates(f::Function, dm::DiracMatrix) = find(f, [dm.rowb[i]*dm.colb[j] for i=1:length(dm.rowb), j=1:length(dm.colb)]) #f takes OuterProduct as argument
 
-# map(f::Function, op::DiracMatrix) = DiracMatrix(map(f, op.coeffs), op.rowb, op.colb)
+map(f::Function, dm::DiracMatrix) = DiracMatrix(map(f, dm.coeffs), dm.rowb, dm.colb)
 
-# function map!(f::Function, op::DiracMatrix)
-# 	op.coeffs = map(f, op.coeffs)
-# 	return op
-# end
+function map!(f::Function, dm::DiracMatrix)
+	dm.coeffs = map(f, dm.coeffs)
+	return dm
+end
 
-# function mapmatch(fstates::Function, fcoeffs::Function, op::DiracMatrix) #fstates takes OuterProduct as argument
-# 	matched = findstates(fstates, op)
-# 	coeffs = convert(Array{Any}, op.coeffs)
-# 	for i in matched
-# 		coeffs[i] = fcoeffs(coeffs[i])
-# 	end
-# 	#hacky concat strategy to force corect typing
-# 	DiracMatrix(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), op.rowb, op.colb)
-# end
+qeval(f::Function, dm::DiracMatrix) = map(x->qeval(f, x), dm)
 
-# function mapmatch!(fstates::Function, fcoeffs::Function, op::DiracMatrix)
-# 	matched = findstates(fstates, op)
-# 	for i in matched
-# 		op[i] = fcoeffs(op[i])
-# 	end
-# 	return op
-# end
+#####################################
+#Arithmetic Operations###############
+#####################################
+for op=(:.*,:.-,:.+,:./,:.^)
+	@eval ($op)(a::DiracMatrix, b::DiracVector) = DiracMatrix(($op)(a.coeffs,b.coeffs), a.rowb, a.colb)
+	@eval ($op)(a::DiracVector, b::DiracMatrix) = DiracMatrix(($op)(a.coeffs,b.coeffs), b.rowb, b.colb)
+	@eval ($op)(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(($op)(a.coeffs,b.coeffs), a.rowb, a.colb)
+	@eval ($op)(n, d::DiracMatrix) = DiracMatrix(($op)(n,d.coeffs), d.rowb, d.colb)
+	@eval ($op)(d::DiracMatrix, n) = DiracMatrix(($op)(d.coeffs,n), d.rowb, d.colb)
+end
 
-# qeval(f::Function, op::DiracMatrix) = map(x->qeval(f, x), op)
-
-# #####################################
-# #Arithmetic Operations###############
-# #####################################
-# for op=(:.*,:.-,:.+,:./,:.^)
-# 	@eval ($op)(a::DiracMatrix, b::DiracVector) = DiracMatrix(($op)(a.coeffs,b.coeffs), a.rowb, a.colb)
-# 	@eval ($op)(a::DiracVector, b::DiracMatrix) = DiracMatrix(($op)(a.coeffs,b.coeffs), b.rowb, b.colb)
-# 	@eval ($op)(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(($op)(a.coeffs,b.coeffs), a.rowb, a.colb)
-# 	@eval ($op)(n, d::DiracMatrix) = DiracMatrix(($op)(n,d.coeffs), d.rowb, d.colb)
-# 	@eval ($op)(d::DiracMatrix, n) = DiracMatrix(($op)(d.coeffs,n), d.rowb, d.colb)
-# end
-
-# /(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs/d, op.rowb, op.colb)
-# *(op::DiracMatrix, d::DiracCoeff) = DiracMatrix(op.coeffs*d, op.rowb, op.colb)
-# *(d::DiracCoeff, op::DiracMatrix) = DiracMatrix(d*op.coeffs, op.rowb, op.colb)
+/(dm::DiracMatrix, d::DiracCoeff) = DiracMatrix(dm.coeffs/d, dm.rowb, dm.colb)
+*(dm::DiracMatrix, d::DiracCoeff) = DiracMatrix(dm.coeffs*d, dm.rowb, dm.colb)
+*(d::DiracCoeff, dm::DiracMatrix) = DiracMatrix(d*dm.coeffs, dm.rowb, dm.colb)
 
 # function *(op::DiracMatrix, s::AbstractState{Ket}) 
 # 	if in(s', op.colb) 

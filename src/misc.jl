@@ -1,6 +1,8 @@
 #necessary for SparseMatrixCSC{Any} to function properly
 zero(::Any) = 0
 zero(::Dirac) = 0
+one(::Any) = 1
+one(::Dirac) = 1
 
 samebasis(a::Dirac, b::Dirac)= bsym(a)==bsym(b)
 samebasis(a::Symbol, b::Dirac)= a==bsym(b)

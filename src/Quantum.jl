@@ -21,6 +21,7 @@ module Quantum
 			ctranspose,
 			show,
 			zero,
+			one,
 			conj,
 			eltype,
 			hash,
