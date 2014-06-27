@@ -52,7 +52,8 @@ module Quantum
 		    nnz,
 		    ndims,
 		    norm,
-		    summary
+		    summary,
+		    kron
 
 	#####################################
 	#abstract types######################
@@ -108,10 +109,13 @@ module Quantum
 		   filtercoeffs,
 		   filterstates,
 		   getpos,
-		   fbasis,
-		   fvec,
 		   normalize,
 		   qeval,
 		   dvec,
-		   dmat
+		   dmat,
+		   fbasis,
+		   fvec,
+		   fcreate,
+		   fdestroy,
+		   fnum
 end

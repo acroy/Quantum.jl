@@ -20,11 +20,11 @@ samebasis(a::Dirac, b::Symbol)= samebasis(b, a)
 # kron{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(kron(a.coeffs, b.coeffs), btensor(a.basis, b.basis))
 # kron{K}(s::AbstractState{K}, d::DiracVector{K}) = DiracVector(d.coeffs, btensor(s,d.basis))
 # kron{K}(d::DiracVector{K}, s::AbstractState{K}) = DiracVector(d.coeffs, btensor(d.basis,s))
-# kron(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(kron(a.coeffs, b.coeffs), btensor(a.rowbasis, b.rowbasis), btensor(a.colbasis, b.colbasis)) 
-# kron(op::DiracMatrix, d::DiracVector{Ket}) = DiracMatrix(kron(op.coeffs, d.coeffs), btensor(op.rowbasis, d.basis), op.colbasis)
-# kron(op::DiracMatrix, d::DiracVector{Bra}) = DiracMatrix(kron(op.coeffs, d.coeffs), op.rowbasis, btensor(op.colbasis, d.basis))
-# kron(d::DiracVector{Ket}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), btensor(d.basis, op.rowbasis), op.colbasis)
-# kron(d::DiracVector{Bra}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), op.rowbasis, btensor(d.basis, op.colbasis))
+kron(a::DiracMatrix, b::DiracMatrix) = DiracMatrix(kron(a.coeffs, b.coeffs), tensor(a.rowb, b.rowb), tensor(a.colb, b.colb)) 
+# kron(op::DiracMatrix, d::DiracVector{Ket}) = DiracMatrix(kron(op.coeffs, d.coeffs), btensor(op.rowb, d.basis), op.colb)
+# kron(op::DiracMatrix, d::DiracVector{Bra}) = DiracMatrix(kron(op.coeffs, d.coeffs), op.rowb, btensor(op.colb, d.basis))
+# kron(d::DiracVector{Ket}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), btensor(d.basis, op.rowb), op.colb)
+# kron(d::DiracVector{Bra}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), op.rowb, btensor(d.basis, op.colb))
 # kron(a::DiracVector{Ket}, b::DiracVector{Bra}) = DiracMatrix(kron(a.coeffs, b.coeffs), a.basis, b.basis)
 # kron(a::DiracVector{Bra}, b::DiracVector{Ket}) = kron(b,a)
 # kron(a::DiracVector{Ket}, b::AbstractState{Bra}) = DiracMatrix(a.coeffs, a.basis, tobasis(b))
@@ -66,16 +66,16 @@ samebasis(a::Dirac, b::Symbol)= samebasis(b, a)
 # 				end
 # 			end
 # 	end	
-# 	@eval ($op){T}(a::Array{T, 1}, m::DiracMatrix) = ($op)(DiracVector(a, m.rowbasis), m)
-# 	@eval ($op){T}(m::DiracMatrix, a::Array{T, 1}) = ($op)(m, DiracVector(a, m.rowbasis))
+# 	@eval ($op){T}(a::Array{T, 1}, m::DiracMatrix) = ($op)(DiracVector(a, m.rowb), m)
+# 	@eval ($op){T}(m::DiracMatrix, a::Array{T, 1}) = ($op)(m, DiracVector(a, m.rowb))
 # 	@eval begin
 # 			function ($op)(a::AbstractArray, m::DiracMatrix)
 # 				if size(a,1)==size(m,1) && size(a,2)==size(m,2)
-# 					return ($op)(DiracMatrix(a, m.rowbasis, m.colbasis), m)
+# 					return ($op)(DiracMatrix(a, m.rowb, m.colb), m)
 # 				elseif size(a,1)==1
-# 					return ($op)(DiracVector(a, m.colbasis), m)
+# 					return ($op)(DiracVector(a, m.colb), m)
 # 				elseif size(a,2)==1
-# 					return ($op)(DiracVector(a, m.rowbasis), m)
+# 					return ($op)(DiracVector(a, m.rowb), m)
 # 				else
 # 					error("DimensionMismatch")
 # 				end
@@ -84,11 +84,11 @@ samebasis(a::Dirac, b::Symbol)= samebasis(b, a)
 # 	@eval begin
 # 			function ($op)(m::DiracMatrix, a::AbstractArray)
 # 				if size(a,1)==size(m,1) && size(a,2)==size(m,2)
-# 					return ($op)(m, DiracMatrix(a, m.rowbasis, m.colbasis))
+# 					return ($op)(m, DiracMatrix(a, m.rowb, m.colb))
 # 				elseif size(a,1)==1
-# 					return ($op)(m, DiracVector(a, m.colbasis))
+# 					return ($op)(m, DiracVector(a, m.colb))
 # 				elseif size(a,2)==1
-# 					return ($op)(m, DiracVector(a, m.rowbasis))
+# 					return ($op)(m, DiracVector(a, m.rowb))
 # 				else
 # 					error("DimensionMismatch")
 # 				end
