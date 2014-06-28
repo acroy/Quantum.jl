@@ -117,5 +117,6 @@ module Quantum
 		   fvec,
 		   fcreate,
 		   fdestroy,
-		   fnum
+		   fnum,
+		   feye
 end
