@@ -23,6 +23,7 @@ end
 
 basis{S<:Single}(states::Vector{S}) = makebasis(unique(states))
 basis{S<:Single}(states::Array{S}) = basis(vec(states))
+
 basis(labelvec::Array, bsym::Symbol) = basis(svec(bsym, labelvec))
 
 basis{S<:Single}(states::Array{S}) = basis(vec(states))

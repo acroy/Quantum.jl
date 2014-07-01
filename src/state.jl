@@ -11,8 +11,8 @@ immutable Bra{b,T} <: State{Bra{b,T}}
 	label::T
 end
 
-Ket{T}(b,label::T) = Ket{b,T}(label)
-Bra{T}(b,label::T) = Bra{b,T}(label)
+ket{T}(b,label::T) = Ket{b,T}(label)
+bra{T}(b,label::T) = Bra{b,T}(label)
 
 typealias Single Union(Bra, Ket)
 

@@ -12,8 +12,8 @@ xb2 = xb*xb
 @test isdual(xb, xb')
 @test basis(:X, [1,3,5]) == filter(s->label(s)%2!=0, xb)
 @test basis(xb[1]*xb[1]) == filter(s->s==xb[1]*xb[1], xb2)
-@test map(s->Ket(:X,label(s)+1), xb) == basis(:X,[2:6])
-@test map(s->Ket(:X,label(s[1])+1)*s[2], xb2) == xbplus*xb
+@test map(s->ket(:X,label(s)+1), xb) == basis(:X,[2:6])
+@test map(s->ket(:X,label(s[1])+1)*s[2], xb2) == xbplus*xb
 @test setdiff(xbplus, xb) == [xbplus[5]]
 @test xb+xb == xb
 @test xbplus[5]+xb == basis(:X,[6, 1:5]) 
