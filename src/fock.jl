@@ -1,7 +1,7 @@
 #This file contains convenience functions and structures
 #as they relate to handling Fock spaces
 
-fbasis(levels::Integer) = basis([0:levels-1],:F)
+fbasis(levels::Integer) = consbasis([Ket{Int,:F}(i) for i=0:levels-1])
 fbasis(levels::Integer, systems::Integer) = tensor([fbasis(levels) for i=1:systems]...)
 function fvec(levels::Integer, init::Integer=0)
 	d=DiracVector(spzeros(levels,1), fbasis(levels))

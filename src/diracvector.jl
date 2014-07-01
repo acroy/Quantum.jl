@@ -145,7 +145,7 @@ end
 filterstates{S,T}(f::Function, d::DiracVector{S,T}) = filtercons(filter(f, d.basis), d)
 filtercoeffs(f::Function, d::DiracVector) = filtercons(basis(d.basis[find(map(f, d.coeffs))]), d)
 
-qeval(f::Function, d::DiracVector) = map(x->qeval(f, x), d)
+qeval(f::Function, d::DiracVector) = DiracVector(vcat([qeval(f,x) for x in d.coeffs]...), d.basis) #vcat forces correct typing, but this is hacky
 
 #####################################
 #Arithmetic Operations###############
@@ -167,8 +167,11 @@ ireduce(d::DiracVector, s::State) = reduce(+,[d[i]*inner(d.basis[i],s) for i=1:l
 ireduce(a::DiracVector, b::DiracVector) = reduce(+,[a[i]*b[j]*inner(a.basis[i],b.basis[j]) for i=1:length(a), j=1:length(b)])
 ireduce(a::DiracVector, b::DiracVector, eqbasis::Bool) = reduce(+,[a[i]*b[i]*inner(a.basis[i],b.basis[i]) for i=1:length(a)])
 
-inner{B<:Bra, K<:Ket}(s::State{B}, d::DiracVector{K}) = samebasis(d,s)	? get(d, s', 0) : ireduce(s,d)
-inner{B<:Bra, K<:Ket}(d::DiracVector{B}, s::State{K}) = samebasis(d,s)	? get(d, s', 0) : ireduce(d,s)
+inner{T1,T2,b}(s::State{Bra{T1,b}}, d::DiracVector{Ket{T2,b}}) = get(d, s', 0)
+inner{T1,T2,b}(d::DiracVector{Bra{T2,b}},s::State{Ket{T1,b}}) = get(d, s', 0)
+
+inner{B<:Bra, K<:Ket}(s::State{B}, d::DiracVector{K}) = ireduce(s,d)
+inner{B<:Bra, K<:Ket}(d::DiracVector{B}, s::State{K}) = ireduce(d,s)
 inner{B<:Bra, K<:Ket, N1<:Number, N2<:Number}(a::DiracVector{B, N1}, b::DiracVector{K, N2}) = isdual(a.basis, b.basis) ? (a.coeffs*b.coeffs)[1] : ireduce(a,b)
 inner{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = isdual(a.basis, b.basis) ? ireduce(a,b,true) : ireduce(a,b)
 
@@ -192,49 +195,44 @@ function addstate(d,s)
 	return res
 end
 
-function +{K1<:Ket,K2<:Ket}(d::DiracVector{K1}, s::State{K2})
+function +{T1,T2,b}(d::DiracVector{Ket{T1,b}}, s::State{Ket{T2,b}})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
-		@assert samebasis(d,s) "BasisMismatch"
 		return DiracVector(vcat(d.coeffs, speye(1)), bjoin(d.basis,s))
 	end
 end
 
-function +{B1<:Bra,B2<:Bra}(d::DiracVector{B1}, s::State{B2})
+function +{T1,T2,b}(d::DiracVector{Bra{T1,b}}, s::State{Bra{T2,b}})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
-		@assert samebasis(d,s) "BasisMismatch"
 		return DiracVector(hcat(d.coeffs, speye(1)), bjoin(d.basis,s))
 	end
 end
 
-function +{K1<:Ket,K2<:Ket}(s::State{K1}, d::DiracVector{K2})
+function +{T1,T2,b}(s::State{Ket{T1,b}}, d::DiracVector{Ket{T2,b}})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
-		@assert samebasis(d,s) "BasisMismatch"
 		return DiracVector(vcat(speye(1), d.coeffs), bjoin(s,d.basis))
 	end
 end
 
-function +{B1<:Bra,B2<:Bra}(s::State{B1}, d::DiracVector{B2})
+function +{T1,T2,b}(s::State{Bra{T1,b}}, d::DiracVector{Bra{T2,b}})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
-		@assert samebasis(d,s) "BasisMismatch"
 		return DiracVector(hcat(speye(1),d.coeffs), bjoin(s,d.basis))
 	end
 end
 
 for t=(:Bra,:Ket)
 	@eval begin 
-	function +{S1<:($t),S2<:($t)}(a::DiracVector{S1}, b::DiracVector{S2})
+	function +{T1,T2,bs}(a::DiracVector{($t){T1,bs}}, b::DiracVector{($t){T2,bs}})
 		if a.basis==b.basis
 			return DiracVector(a.coeffs+b.coeffs, a.basis)
 		else
-			@assert samebasis(a,b) "BasisMismatch"
 			res = copy(a)
 			for i=1:length(b)
 				res = res+b.basis[i]
@@ -243,7 +241,6 @@ for t=(:Bra,:Ket)
 			return res
 		end
 	end
-
 	-{S1<:($t),S2<:($t)}(d::DiracVector{S1}, s::State{S2}) = d+(-s)
 	-{S1<:($t),S2<:($t)}(s::State{S1}, d::DiracVector{S2}) = s+(-d)
 	-{S1<:($t),S2<:($t)}(a::DiracVector{S1}, b::DiracVector{S2}) = a+(-b)

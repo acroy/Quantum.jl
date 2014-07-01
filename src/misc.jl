@@ -8,13 +8,13 @@ samebasis(a::Dirac, b::Dirac)= bsym(a)==bsym(b)
 samebasis(a::Symbol, b::Dirac)= a==bsym(b)
 samebasis(a::Dirac, b::Symbol)= samebasis(b, a)
 
-# #additive identities
-# for t=(:DiracMatrix, :DiracVector, :AbstractState, :OuterProduct)
-# 	@eval +(n::Number, d::($t)) = n==0 ? d : error("cannot add number and $(string($t))")
-# 	@eval +(d::($t), n::Number) = +(n,d)
-# 	@eval -(n::Number, d::($t)) = +(n,d)
-# 	@eval -(d::($t), n::Number) = +(n,d)
-# end
+#additive identities
+for t=(:DiracMatrix, :DiracVector, :State, :OuterProduct)
+	@eval +(n::Number, d::($t)) = n==0 ? d : error("cannot add number and $(string($t))")
+	@eval +(d::($t), n::Number) = +(n,d)
+	@eval -(n::Number, d::($t)) = +(n,d)
+	@eval -(d::($t), n::Number) = +(n,d)
+end
 
 # kron{K}(a::AbstractState{K}, b::AbstractState{K}) = tensor(a,b)
 # kron{K}(a::DiracVector{K}, b::DiracVector{K}) = DiracVector(kron(a.coeffs, b.coeffs), btensor(a.basis, b.basis))

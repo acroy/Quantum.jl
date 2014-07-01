@@ -2,9 +2,9 @@ module StateTest
 using Base.Test 
 using Quantum
 
-xb = Basis([1:5], :X)
-yb = Basis([1:5], :Y)
-xyb = xb*yb
+xb = Quantum.statevec([1:5], :X)
+yb = Quantum.statevec([1:5], :Y)
+# xyb = xb*yb
 
 @test 0*xb[1]==0
 @test 1*xb[1]==xb[1]

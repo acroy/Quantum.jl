@@ -2,51 +2,56 @@
 #State###############################
 #####################################
 abstract State{S} <: Dirac
-abstract SingleState{S} <: State{S}
 
-immutable Ket{T} <: SingleState{Ket{T}}
+immutable Ket{T,b} <: State{Ket{T,b}}
 	label::T
-	bsym::Symbol
 end
 
-immutable Bra{T} <: SingleState{Bra{T}}
+immutable Bra{T,b} <: State{Bra{T,b}}
 	label::T
-	bsym::Symbol
 end
 
-#alias useful for forcing parameterization
-#to either B<:Bra or K<:Ket without possibility 
-#of a mix (e.g. SingleState)
+Ket{T}(label::T, b) = Ket{T,b}(label)
+Bra{T}(label::T, b) = Bra{T,b}(label)
+
 typealias Single Union(Bra, Ket)
 
 immutable Tensor{S<:Single} <: State{S}
 	states::Vector{S}
 end 
 
-Tensor{S<:Single}(lv::Vector, bsym::Vector{Symbol}, T::Type{S}=Ket) = Tensor([T(lv[i], bsym[i]) for i=1:length(lv)])
-
 #####################################
 #Misc Functions######################
 #####################################
 
-copy{S<:Single}(s::S) = S(copy(s.label), copy(s.bsym))
-copy{S<:Tensor}(s::S) = S(copy(s.states))
-
-for s=(:Ket,:Bra)
+in(s::Single, t::Tensor) = false
+for kb=(:Ket,:Bra)
 	@eval begin
-	labeltype{T}(t::Type{($s){T}}) = T
-	labeltype(t::Type{($s)}) = Any
-	labeltype{T}(t::Type{Tensor{($s){T}}}) = Vector{T}
-	labeltype(t::Type{Tensor{($s)}}) = Vector{Any}
-	in{S1<:($s),S2<:($s)}(s::S1, t::Tensor{S2}) = in(s, t.states)
+	in{S1<:($kb),S2<:($kb)}(s::S1, t::Tensor{S2}) = in(s, t.states)
+	bsym{T}(s::Type{($kb){T}}) = Any
+	bsym{T,b}(s::Type{($kb){T,b}}) = b
+	bsym{T,b}(s::($kb){T,b}) = b
+	labeltype{T,b}(t::Type{($kb){T,b}}) = T
+	labeltype(t::Type{($kb)}) = Any
+	labeltype{T,b}(t::Type{Tensor{($kb){T,b}}}) = Vector{T}
+	labeltype(t::Type{Tensor{($kb)}}) = Vector{Any}
 	end
 end
 
 labeltype(s::State) = labeltype(typeof(s))
-in(s::Single, t::Tensor) = false
+
+label(s::Single) = s.label
+bsym(s::Tensor) = map(bsym, s.states)
+label(s::Tensor) = [label(i) for i in s.states]
+
+copy{S<:Single}(s::S) = S(copy(s.label))
+copy{S<:Tensor}(s::S) = S(copy(s.states))
+
+labeltype(s::State) = labeltype(typeof(s))
+in(s::State, t::State) = in(s, t.states)
 
 eltype{S<:Single}(t::Type{S}) = S
-eltype{K}(t::Type{Tensor{K}}) = K
+eltype{S}(t::Type{Tensor{S}}) = S
 eltype(s::State) = eltype(typeof(s))
 
 kind{K<:Ket}(b::State{K}) = Ket
@@ -54,49 +59,44 @@ kind{B<:Bra}(b::State{B}) = Bra
 
 dual(t::Type{Ket}) = Bra
 dual(t::Type{Bra}) = Ket
-dual{T}(t::Type{Ket{T}}) = Bra{T}
-dual{T}(t::Type{Bra{T}}) = Ket{T}
-dual{K}(t::Type{Tensor{K}}) = Tensor{dual(K)}
+dual{T,b}(t::Type{Ket{T,b}}) = Bra{T,b}
+dual{T,b}(t::Type{Bra{T,b}}) = Ket{T,b}
+dual{S}(t::Type{Tensor{S}}) = Tensor{dual(S)}
 
-isequal{S<:Single}(a::S, b::S) = isequal(a.label, b.label) && a.bsym==b.bsym
-=={S<:Single}(a::S,b::S) = a.label==b.label && a.bsym==b.bsym
+isequal{S<:Single}(a::S, b::S) = isequal(label(a), label(b))
+=={S<:Single}(a::S,b::S) = label(a)==label(b)
 
 isequal{S<:Tensor}(a::S, b::S) = isequal(a.states, b.states)
 =={S<:Tensor}(a::S, b::S) = a.states==b.states
 
 hash(s::Tensor) = sum(map(hash, s.states))
 
-ctranspose{S<:Single}(s::S) = dual(S)(s.label, s.bsym)
+ctranspose{S<:Single}(s::S) = dual(S)(label(s))
 ctranspose{S<:Tensor}(s::S) = dual(S)([ctranspose(i) for i in s.states])
 
 getindex(s::Tensor, x) = s.states[x]
 separate(s::Single) = s
 separate(s::Tensor) = s.states
 
-bsym(s::Single) = s.bsym
-label(s::Single) = s.label
-bsym(s::Tensor) = map(bsym, s.states)
-label(s::Tensor) = [label(i) for i in s.states]
-
+labeldelta(a::State, b::State) = 0 #default to 0
 labeldelta(a::Single, b::Single) = label(a)==label(b) ? 1 : 0
 labeldelta(a::Tensor, b::Tensor) = label(a)==label(b) ? 1 : 0
-labeldelta(a::State, b::State) = 0 #default to 0
 
-isdual{B<:Bra, K<:Ket}(a::State{B},b::State{K}) = label(a)==label(b) && samebasis(a,b)
-isdual{K<:Ket, B<:Bra}(a::State{K},b::State{B}) = isdual(b,a)
 isdual(a::State, b::State) = false #default to false
+isdual{T1,T2,b}(x::State{Bra{T1,b}},y::State{Ket{T2,b}}) = label(x)==label(y)
+isdual{T1,T2,b}(x::State{Ket{T1,b}},y::State{Bra{T2,b}}) = isdual(y,x)
 
-for op=(:length, :endof, :eltype)
+for op=(:length, :endof)
 	@eval ($op)(s::Tensor) = $(op)(s.states)
 end
 
-statevec{S<:Single}(arr::Array, bsym::Symbol, K::Type{S}=Ket) = [K(i, bsym) for i in arr]
+svec{T}(arr::Array{T}, bsym::Symbol) = map(Ket{T,bsym}, arr)
 
 #####################################
 #Show Functions######################
 #####################################
 
-reprlabel(s::Single) = "$(repr(s.label)):$(s.bsym)"
+reprlabel(s::Single) = "$(repr(label(s))):$(bsym(s))"
 function reprlabel(s::Tensor)
 	str = "$(reprlabel(s.states[1]))"
 	for i=2:length(s.states)
@@ -117,15 +117,12 @@ tensor{S<:State}(s::Vector{S}) = tensor([[separate(i) for i in s]...])
 tensor{S<:State}(s::Array{S}) = tensor(vec(s))
 tensor(s::Vector) = tensor([[separate(i) for i in s]...])
 tensor(s::State...) = tensor(collect(s)) 
-tensor(s::State) = s
+tensor(s::State) = s 
 
-function inner(a::Bra, b::Ket)
-	if samebasis(a,b)
-		return labeldelta(a,b)
-	else
-		return InnerProduct(a, b)
-	end
-end
+
+inner(x::Bra, y::Ket) = InnerProduct(x, y)
+inner{T1,T2,b}(x::Bra{T1,b}, y::Ket{T2,b}) = labeldelta(x,y)
+
 inner{K<:Ket}(a::Bra, b::Tensor{K}, i::Int) = inner(a, b[i])*tensor(vcat(b[1:i-1], b[i+1:end]))
 inner{B<:Bra}(a::Tensor{B}, b::Ket, i::Int) = tensor(vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
 inner{K<:Ket}(a::Bra, b::Tensor{K}) = inner(a,b[1])*tensor(b[2:end])

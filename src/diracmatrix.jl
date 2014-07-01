@@ -16,8 +16,7 @@ DiracMatrix{K<:Ket, B<:Bra, T}(coeffs::Matrix{T}, rowb::AbstractBasis{K}, colb::
 DiracMatrix{K<:Ket}(coeffs::AbstractArray, b::AbstractBasis{K}) = DiracMatrix(coeffs, b, b') 
 DiracMatrix{B<:Bra}(coeffs::AbstractArray, b::AbstractBasis{B}) = DiracMatrix(coeffs, b', b) 
 
-function constructop!(coeffs, fcoeff, fstate, b)
-	#basically never use this function except for in the below context
+function constructop!(coeffs, fcoeff, fstate, b) #basically never use this function except for in the below context
 	@inbounds begin
 		for i=1:length(b), j=1:length(b)
 			coeffs[i,j] = fcoeff(b[j])*inner(b[i]',fstate(b[j]))
@@ -27,8 +26,6 @@ end
 
 function DiracMatrix{K<:Ket}(fcoeff::Function, fstate::Function, b::AbstractBasis{K}, t::DataType=typeof(fcoeff(b[1])))
 	coeffs = ones(t,length(b),length(b))
-	#we pass the non-sparse array here since
-	#construction is performed one index at a time
 	constructop!(coeffs, fcoeff, fstate, b)
 	return DiracMatrix(coeffs, b)
 end
@@ -46,7 +43,6 @@ bsym(dm::DiracMatrix) = [bsym(dm.rowb), bsym(dm.colb)]
 isequal(a::DiracMatrix, b::DiracMatrix) = isequal(a.coeffs,b.coeffs) && a.rowb==b.rowb && a.colb==b.colb 
 ==(a::DiracMatrix, b::DiracMatrix) = a.coeffs==b.coeffs && a.rowb==b.rowb && a.colb==b.colb 
 isdual(a::DiracMatrix, b::DiracMatrix) = a.coeffs'==b.coeffs && a.rowb==b.colb && b.colb==a.rowb
-
 #####################################
 #Array-like Functions################
 #####################################
@@ -62,7 +58,7 @@ setindex!(dm::DiracMatrix, y, x...) = setindex!(dm.coeffs,y,x...)
 #Dict-like Functions#################
 #####################################
 getpos{K<:Ket}(dm::DiracMatrix{K}, k::State{K}) = get(dm.rowb, k)
-getpos{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, s::State{B}) = get(dm.colb, b)
+getpos{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, b::State{B}) = get(dm.colb, b)
 getpos{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, k::State{K}, b::State{B}) = (getpos(dm, k), getpos(dm, b))
 getpos{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, o::OuterProduct{K,B}) = getpos(dm, o.ket, o.bra)
 getpos(dm::DiracMatrix, arg) = throw(KeyError(arg)) 
@@ -150,27 +146,38 @@ end
 *(dm::DiracMatrix, d::DiracCoeff) = DiracMatrix(dm.coeffs*d, dm.rowb, dm.colb)
 *(d::DiracCoeff, dm::DiracMatrix) = DiracMatrix(d*dm.coeffs, dm.rowb, dm.colb)
 
-# function *(op::DiracMatrix, s::AbstractState{Ket}) 
-# 	if in(s', op.colb) 
-# 		return get(op, s') 
-# 	else
-# 		return reduce(+,[op.rowb[i]*reduce(+,[op[i,j]*(op.colb[j]*d) for j=1:length(op.colb)]) for i=1:length(op.rowb)])
-# 	end
-# end
-# function *(s::AbstractState{Bra}, op::DiracMatrix)
-# 	if in(s', op.rowb) 
-# 		return get(op, s')
-# 	else
-# 		return reduce(+,[op.colb[j]*reduce(+,[op[i,j]*(d*op.rowb[i]) for j=1:length(op.rowb)]) for i=1:length(op.colb)])
-# 	end
-# end
-# function *(op::DiracMatrix, d::DiracVector{Ket})
-# 	if isdual(op.colb, d.basis)
-# 		return DiracVector(op.coeffs*d.coeffs, op.rowb)
-# 	else
-# 		return reduce(+,[op.rowb[i]*reduce(+,[op[i,j]*(op.colb[j]*d) for j=1:length(op.colb)]) for i=1:length(op.rowb)])
-# 	end
-# end
+function multbystate!{K<:Ket}(dm::DiracMatrix, s::State{K}, dv::DiracVector) 
+	for i in findn(dm)[1]
+		coeff = 0
+		for j in findn(dm)[2]
+			coeff+=dm[i,j]*(dm.colb[j]*s)
+		end
+		dv[i]=dv[i]+coeff
+	end
+	return dv
+end
+
+function multbystate!{B<:Bra}(dm::DiracMatrix, s::State{B}, dv::DiracVector)
+	for j in findn(dm)[2]
+		coeff = 0
+		for i in findn(dm)[1]
+			coeff+=dm[i,j]*(s*dm.rowb[i])
+		end
+		dv[j]=dv[j]+coeff
+	end
+	return dv
+end
+
+# reduce(+,[op.rowb[i]*reduce(+,[op[i,j]*(op.colb[j]*d) for j=1:length(op.colb)]) for i=1:length(op.rowb)])
+
+consmult{K<:Ket}(dm::DiracMatrix, s::State{K}) = multbystate!(dm, s, dvec(samebasis(dm.colb,s') ? spzeros(length(dm.rowb),1) : zeros(Any,length(dm.rowb)), dm.rowb))
+consmult{B<:Bra}(dm::DiracMatrix, s::State{B}) = multbystate!(dm, s, dvec(samebasis(dm.rowb,s') ? spzeros(1,length(dm.colb)) : zeros(Any,1,length(dm.colb)), dm.colb))
+#consmult{B<:Bra}(dm::DiracMatrix, s::DiracVector{B}) = multbystate!(dm, s, dvec(samebasis(dm.rowb,s') ? spzeros(1,length(dm.colb)) : zeros(Any,1,length(dm.colb)), dm.colb))
+
+*{K<:Ket}(dm::DiracMatrix, s::State{K}) = in(s', dm.colb) ? get(dm, s') : consmult(dm,s)
+*{B<:Bra}(s::State{B}, dm::DiracMatrix) = in(s', dm.rowb) ? get(dm, s') : consmult(dm,s)
+
+#*{K<:Ket}(dm::DiracMatrix, dv::DiracVector{K}) = isdual(dm.colb, dv.basis) ? DiracVector(dm.coeffs*dv.coeffs, dm.rowb) : consmult(dm,dv)
 
 # function *(d::DiracVector{Bra}, op::DiracMatrix) 
 # 	if isdual(op.rowb, d.basis)

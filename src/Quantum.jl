@@ -112,6 +112,7 @@ module Quantum
 		   normalize,
 		   qeval,
 		   dvec,
+		   svec,
 		   dmat,
 		   fbasis,
 		   fvec,
