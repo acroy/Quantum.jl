@@ -21,7 +21,7 @@ DiracVector{S,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{S}) = DiracVec
 dvec = DiracVector
 
 #####################################
-#Getter-style Functions##############
+#Access Functions####################
 #####################################
 bsym(d::DiracVector) = bsym(d.basis)
 
@@ -167,8 +167,8 @@ ireduce(d::DiracVector, s::State) = reduce(+,[d[i]*inner(d.basis[i],s) for i=1:l
 ireduce(a::DiracVector, b::DiracVector) = reduce(+,[a[i]*b[j]*inner(a.basis[i],b.basis[j]) for i=1:length(a), j=1:length(b)])
 ireduce(a::DiracVector, b::DiracVector, eqbasis::Bool) = reduce(+,[a[i]*b[i]*inner(a.basis[i],b.basis[i]) for i=1:length(a)])
 
-inner{T1,T2,b}(s::State{Bra{T1,b}}, d::DiracVector{Ket{T2,b}}) = get(d, s', 0)
-inner{T1,T2,b}(d::DiracVector{Bra{T2,b}},s::State{Ket{T1,b}}) = get(d, s', 0)
+inner{b,T1,T2}(s::State{Bra{b,T1}}, d::DiracVector{Ket{b,T2}}) = get(d, s', 0)
+inner{b,T1,T2}(d::DiracVector{Bra{b,T1}},s::State{Ket{b,T2}}) = get(d, s', 0)
 
 inner{B<:Bra, K<:Ket}(s::State{B}, d::DiracVector{K}) = ireduce(s,d)
 inner{B<:Bra, K<:Ket}(d::DiracVector{B}, s::State{K}) = ireduce(d,s)
@@ -195,7 +195,7 @@ function addstate(d,s)
 	return res
 end
 
-function +{T1,T2,b}(d::DiracVector{Ket{T1,b}}, s::State{Ket{T2,b}})
+function +{K<:Ket}(d::DiracVector{K}, s::State{K})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
@@ -203,7 +203,7 @@ function +{T1,T2,b}(d::DiracVector{Ket{T1,b}}, s::State{Ket{T2,b}})
 	end
 end
 
-function +{T1,T2,b}(d::DiracVector{Bra{T1,b}}, s::State{Bra{T2,b}})
+function +{B<:Bra}(d::DiracVector{B}, s::State{B})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
@@ -211,7 +211,7 @@ function +{T1,T2,b}(d::DiracVector{Bra{T1,b}}, s::State{Bra{T2,b}})
 	end
 end
 
-function +{T1,T2,b}(s::State{Ket{T1,b}}, d::DiracVector{Ket{T2,b}})
+function +{K<:Ket}(s::State{K}, d::DiracVector{K})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
@@ -219,7 +219,7 @@ function +{T1,T2,b}(s::State{Ket{T1,b}}, d::DiracVector{Ket{T2,b}})
 	end
 end
 
-function +{T1,T2,b}(s::State{Bra{T1,b}}, d::DiracVector{Bra{T2,b}})
+function +{B<:Bra}(s::State{B}, d::DiracVector{B})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
@@ -229,14 +229,14 @@ end
 
 for t=(:Bra,:Ket)
 	@eval begin 
-	function +{T1,T2,bs}(a::DiracVector{($t){T1,bs}}, b::DiracVector{($t){T2,bs}})
-		if a.basis==b.basis
-			return DiracVector(a.coeffs+b.coeffs, a.basis)
+	function +{b,T1,T2}(x::DiracVector{($t){b,T1}}, y::DiracVector{($t){b,T2}})
+		if x.basis==y.basis
+			return DiracVector(x.coeffs+y.coeffs, x.basis)
 		else
-			res = copy(a)
-			for i=1:length(b)
-				res = res+b.basis[i]
-				res[getpos(res, b.basis[i])] = get(res, b.basis[i]) + b[i] - 1
+			res = copy(x)
+			for i=1:length(y)
+				res = res+y.basis[i]
+				res[getpos(res, y.basis[i])] = get(res, y.basis[i]) + y[i] - 1
 			end
 			return res
 		end

@@ -2,7 +2,7 @@ module DVectorTest
 using Base.Test 
 using Quantum
 
-xb = Basis([1:5], :X)
+xb = Basis(:X,[1:5])
 d = DiracVector([1:5], xb)
 @test d==d''
 @test d[:]==d.coeffs

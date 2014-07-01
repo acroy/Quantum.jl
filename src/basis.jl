@@ -13,29 +13,32 @@ end
 statemapper{S<:State}(sv::Vector{S}) = (labeltype(S)=>Int)[label(sv[i])=>i for i=1:length(sv)]
 hashbasis{S<:Single}(sv::Vector{S}, statemap::Dict) = Basis(sv, statemap, hash(statemap))
 consbasis{S<:Single}(sv::Vector{S}) = hashbasis(sv, statemapper(sv))
-consbasis(labelvec::Array, bsym::Symbol) = consbasis(svec(labelvec, bsym))
+consbasis(bsym::Symbol,labelvec::Array) = consbasis(svec(bsym,labelvec))
 
 function makebasis{S<:Single}(sv::Vector{S})
 	@assert bsym(eltype(sv))!=Any "all states must have same bsym to construct Basis"
-	@assert labeltype(eltype(sv))!=Any "all states must have same labeltype to construct Basis"
+	@assert labeltype(eltype(sv))!=Any "all states must have same labeltype to construct Basis"	
 	consbasis(sv)
 end
 
 basis{S<:Single}(states::Vector{S}) = makebasis(unique(states))
 basis{S<:Single}(states::Array{S}) = basis(vec(states))
-basis(labelvec::Array, bsym::Symbol) = basis(svec(labelvec, bsym))
+basis(labelvec::Array, bsym::Symbol) = basis(svec(bsym, labelvec))
+
+basis{S<:Single}(states::Array{S}) = basis(vec(states))
+basis(bsym::Symbol, labelvec::Array) = basis(svec(bsym, labelvec))
 
 #####################################
 #TensorBasis#########################
 #####################################
 
 immutable TensorBasis{S<:Single} <: AbstractBasis{S}
-	bases::Vector
+	bases::Vector{Basis{S}}
 	states::Vector{Tensor{S}}
 	statemap::Dict
 end
 
-consbasis{S<:Single,B<:Basis}(bv::Vector{B}, sv::Vector{Tensor{S}}) = TensorBasis(bv, sv, statemapper(sv))
+consbasis{S<:Single}(bv::Vector{Basis{S}}, sv::Vector{Tensor{S}}) = TensorBasis(bv, sv, statemapper(sv))
 
 separate(b::Basis) = [b]
 separate(b::TensorBasis) = b.bases
@@ -59,8 +62,7 @@ function consbvec!{B<:Basis}(bases, seps::Vector{B})
 	bases
 end
 
-prepbvec{T}(sv::Vector{Tensor{Ket{T}}}) = Array(Basis{Ket{T}}, length(sv[1]))
-prepbvec{T}(sv::Vector{Tensor{Bra{T}}}) = Array(Basis{Bra{T}}, length(sv[1]))
+prepbvec{S<:Single}(sv::Vector{Tensor{S}}) = Array(Basis{S}, length(sv[1]))
 prepbvec{S<:Tensor}(sv::Vector{S}) = Array(Basis, length(sv[1]))
 
 maketensorbasis{S<:Tensor}(sv::Vector{S}) = consbasis(consbvec!(prepbvec(sv),sepstates(sv)), sv)
@@ -82,21 +84,20 @@ statecross(v) = statejoin(reduce(crossjoin,v))
 tensor() = error("tensor needs arguments of type T<:Basis or T<:State")
 tensor(b::AbstractBasis) = b
 
-function tensor(b::AbstractBasis...)
-	@assert length(unique(map(kind, b))) == 1 "arguments to tensor must be of uniform kind (B<:Bra or K<:Ket)"
-	sv = statecross([i.states for i in b])
-	TensorBasis([[separate(i) for i in b]...], sv, statemapper(sv))
-end
+tensor(b::AbstractBasis...) = consbasis([[separate(i) for i in b]...], statecross([i.states for i in b]))
 
 #####################################
 #Misc Functions######################
 #####################################
 basis{S<:State}(s::S...) = basis(collect(s))
+basis(s::State...) = basis(kind(s[1])[s...])
+basis(arr::Array) = basis([arr...]) #vcat forces retyping
+
 
 copy{B<:Basis}(b::B) = B(copy(b.states), copy(b.statemap), copy(b.adjhash))
 copy{B<:TensorBasis}(b::B)= B(copy(b.bases), copy(b.states), copy(b.statemap))
 for t=(:Ket,:Bra)
-	@eval bsym{T,bs}(b::Basis{($t){T,bs}}) = bs
+	@eval bsym{b,T}(bs::Basis{($t){b,T}}) = b
 end
 bsym(b::TensorBasis) = map(bsym, b.bases)
 adjhash(b::Basis) = b.adjhash
@@ -104,8 +105,8 @@ adjhash(b::TensorBasis) = map(adjhash, b.bases)
 
 for op=(:isequal, :(==))
 	@eval ($op){S<:Single}(a::Basis{S}, b::Basis{S}) = adjhash(a)==adjhash(b)
-	@eval ($op){T,b}(x::TensorBasis{Bra{T,b}}, y::TensorBasis{Bra{T,b}}) = adjhash(x)==adjhash(y)
-	@eval ($op){T,b}(x::TensorBasis{Ket{T,b}}, y::TensorBasis{Ket{T,b}}) = adjhash(x)==adjhash(y)
+	@eval ($op){b,T}(x::TensorBasis{Bra{b,T}}, y::TensorBasis{Bra{b,T}}) = adjhash(x)==adjhash(y)
+	@eval ($op){b,T}(x::TensorBasis{Ket{b,T}}, y::TensorBasis{Ket{b,T}}) = adjhash(x)==adjhash(y)
 	@eval ($op){S1<:Ket,S2<:Ket}(a::TensorBasis{S1}, b::TensorBasis{S2}) = adjhash(a)==adjhash(b) && samebasis(a,b)
 	@eval ($op){S1<:Bra,S2<:Bra}(a::TensorBasis{S1}, b::TensorBasis{S2}) = adjhash(a)==adjhash(b) && samebasis(a,b)
 end
@@ -120,10 +121,10 @@ dual{S<:Single}(t::Type{TensorBasis{S}}) = TensorBasis{dual(S)}
 ctranspose(b::Basis) = Basis([ctranspose(i) for i in b.states], b.statemap, b.adjhash)
 ctranspose(b::TensorBasis) = TensorBasis([ctranspose(i) for i in b.bases], [ctranspose(i) for i in b.states], b.statemap)
 
-isdual{T,b}(x::Basis{Ket{T,b}}, y::Basis{Bra{T,b}}) = adjhash(x)==adjhash(y)
-isdual{T,b}(x::Basis{Bra{T,b}}, y::Basis{Ket{T,b}}) = isdual(y,x)
-isdual{T,b}(x::TensorBasis{Ket{T,b}}, y::TensorBasis{Bra{T,b}}) = adjhash(x)==adjhash(y)
-isdual{T,b}(x::TensorBasis{Bra{T,b}}, y::TensorBasis{Ket{T,b}}) = isdual(y,x)
+isdual{b,T}(x::Basis{Ket{b,T}}, y::Basis{Bra{b,T}}) = adjhash(x)==adjhash(y)
+isdual{b,T}(x::Basis{Bra{b,T}}, y::Basis{Ket{b,T}}) = isdual(y,x)
+isdual{b,T}(x::TensorBasis{Ket{b,T}}, y::TensorBasis{Bra{b,T}}) = adjhash(x)==adjhash(y)
+isdual{b,T}(x::TensorBasis{Bra{b,T}}, y::TensorBasis{Ket{b,T}}) = isdual(y,x)
 
 isdual{S1<:Ket,S2<:Bra}(a::TensorBasis{S1}, b::TensorBasis{S2}) = adjhash(a)==adjhash(b) && samebasis(a,b)
 isdual{S1<:Bra,S2<:Ket}(a::TensorBasis{S1}, b::TensorBasis{S2}) = isdual(b,a)
@@ -135,15 +136,15 @@ getindex(b::AbstractBasis, x) = b.states[x]
 
 for t=(:Ket,:Bra)
 	@eval begin
-	get{T,bs}(b::Basis{($t){T,bs}}, s::($t){T,bs}, notfound) = get(b.statemap, label(s), notfound)
-	get{T,bs}(b::Basis{($t){T,bs}}, s::($t){T,bs}) = b.statemap[label(s)]
-	get{T,bs}(b::TensorBasis{($t){T,bs}}, s::Tensor{($t){T,bs}}, notfound) = get(b.statemap, label(s), notfound)
-	get{T,bs}(b::TensorBasis{($t){T,bs}}, s::Tensor{($t){T,bs}}) = b.statemap[label(s)]
+	get{b,T}(bs::Basis{($t){b,T}}, s::($t){b,T}, notfound) = get(bs.statemap, label(s), notfound)
+	get{b,T}(bs::Basis{($t){b,T}}, s::($t){b,T}) = bs.statemap[label(s)]
+	get{b,T}(bs::TensorBasis{($t){b,T}}, s::Tensor{($t){b,T}}, notfound) = get(bs.statemap, label(s), notfound)
+	get{b,T}(bs::TensorBasis{($t){b,T}}, s::Tensor{($t){b,T}}) = bs.statemap[label(s)]
 
 	get{S1<:($t),S2<:($t)}(b::TensorBasis{S1}, s::Tensor{S2}, notfound) = samebasis(b,s) ? get(b.statemap, label(s), notfound) : notfound
 	get{S1<:($t),S2<:($t)}(b::TensorBasis{S1}, s::Tensor{S2}) = samebasis(b,s) ? b.statemap[label(s)] : throw(KeyError(s))
 
-	in{T,bs}(s::($t){T,bs}, bs::Basis{($t){T,bs}})= get(b,s,"FALSE")=="FALSE" ? false : true
+	in{b,T}(s::($t){b,T}, bs::Basis{($t){b,T}})= get(bs,s,"FALSE")=="FALSE" ? false : true
 	in{S1<:($t),S2<:($t)}(s::Tensor{S1}, b::TensorBasis{S2})= get(b,s,"FALSE")=="FALSE" ? false : true
 	end
 end
@@ -182,8 +183,10 @@ function show(io::IO, b::AbstractBasis)
 			println(io, b.states[i])
 		end
 	else
-		for i in b.states
-			println(io, i)
+		show(io, b.states[1])
+		for i=2:length(b.states)
+			print('\n')
+			show(io, b.states[i])
 		end	
 	end
 end
@@ -194,7 +197,7 @@ end
 
 find(f::Function, b::Basis) = find(f, b.states)
 filter(f::Function, b::Basis) = consbasis(filter(f, b.states))
-filter(f::Function, b::TensorBasis) = consbasis(b.bases, filter(f, b.states))
+filter(f::Function, b::TensorBasis) = maketensorbasis(filter(f, b.states))
 map(f::Function, b::AbstractBasis) = basis(map(f, b.states))
 
 ######################################

@@ -38,4 +38,5 @@ function rep(x::AbstractArray, times::Integer = 1, each::Integer = 1)
 end
 
 crossjoin(A::Array, B::Array) = hcat(rep(A, 1, size(B,1)), rep(B, size(A,1), 1))
+
 crossjoin(A::Array...) = reduce(crossjoin, A)

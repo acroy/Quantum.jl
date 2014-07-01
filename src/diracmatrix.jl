@@ -146,6 +146,7 @@ end
 *(dm::DiracMatrix, d::DiracCoeff) = DiracMatrix(dm.coeffs*d, dm.rowb, dm.colb)
 *(d::DiracCoeff, dm::DiracMatrix) = DiracMatrix(d*dm.coeffs, dm.rowb, dm.colb)
 
+
 function multbystate!{K<:Ket}(dm::DiracMatrix, s::State{K}, dv::DiracVector) 
 	for i in findn(dm)[1]
 		coeff = 0
