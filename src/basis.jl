@@ -87,6 +87,13 @@ tensor(b::AbstractBasis) = b
 
 tensor(b::AbstractBasis...) = consbasis([[separate(i) for i in b]...], statecross([i.states for i in b]))
 
+for t=(:Ket,:Bra)
+	@eval begin
+	tensor{S1<:($t), S2<:($t)}(s::State{S1}, b::AbstractBasis{S2}) = tensor(basis(s), b)
+	tensor{S1<:($t), S2<:($t)}(b::AbstractBasis{S1}, s::State{S2}) = tensor(b, basis(s))
+	end
+end
+
 #####################################
 #Misc Functions######################
 #####################################
@@ -251,12 +258,6 @@ end
 
 bjoin{S}(a::TensorBasis{S}, b::TensorBasis{S}) = basis(vcat(a.states, b.states))
 
-for t=(:Ket,:Bra)
-	@eval begin
-	tensor{S1<:($t), S2<:($t)}(s::State{S1},b::AbstractBasis{S2}) = map(x->tensor(s,x), b)
-	tensor{S1<:($t), S2<:($t)}(b::AbstractBasis{S1}, s::State{S2}) = map(x->tensor(x,s), b)
-	end
-end
 
 *(a::AbstractBasis, b::AbstractBasis) = tensor(a,b)
 *(a::AbstractBasis, b::State) = tensor(a,b)

@@ -12,7 +12,7 @@ type DiracMatrix{K<:Ket, B<:Bra, T} <: Dirac
 	end
 end
 DiracMatrix{K<:Ket, B<:Bra, T}(coeffs::SparseMatrixCSC{T}, rowb::AbstractBasis{K}, colb::AbstractBasis{B}) = DiracMatrix{K,B,T}(coeffs, rowb, colb) 
-DiracMatrix{K<:Ket, B<:Bra, T}(coeffs::Matrix{T}, rowb::AbstractBasis{K}, colb::AbstractBasis{B}) = DiracMatrix{K,B,T}(sparse(coeffs), rowb, colb) 
+DiracMatrix{K<:Ket, B<:Bra, T}(coeffs::Array{T}, rowb::AbstractBasis{K}, colb::AbstractBasis{B}) = DiracMatrix{K,B,T}(sparse(coeffs), rowb, colb) 
 DiracMatrix{K<:Ket}(coeffs::AbstractArray, b::AbstractBasis{K}) = DiracMatrix(coeffs, b, b') 
 DiracMatrix{B<:Bra}(coeffs::AbstractArray, b::AbstractBasis{B}) = DiracMatrix(coeffs, b', b) 
 
@@ -146,8 +146,7 @@ end
 *(dm::DiracMatrix, d::DiracCoeff) = DiracMatrix(dm.coeffs*d, dm.rowb, dm.colb)
 *(d::DiracCoeff, dm::DiracMatrix) = DiracMatrix(d*dm.coeffs, dm.rowb, dm.colb)
 
-
-function multbystate!{K<:Ket}(dm::DiracMatrix, s::State{K}, dv::DiracVector) 
+function multbystate!{K<:Ket}(dm::DiracMatrix, s::State{K}, dv::AbstractArray) 
 	for i in findn(dm)[1]
 		coeff = 0
 		for j in findn(dm)[2]
@@ -155,10 +154,10 @@ function multbystate!{K<:Ket}(dm::DiracMatrix, s::State{K}, dv::DiracVector)
 		end
 		dv[i]=dv[i]+coeff
 	end
-	return dv
+	return dvec(dv, dm.rowb)
 end
 
-function multbystate!{B<:Bra}(dm::DiracMatrix, s::State{B}, dv::DiracVector)
+function multbystate!{B<:Bra}(dm::DiracMatrix, s::State{B}, dv::AbstractArray)
 	for j in findn(dm)[2]
 		coeff = 0
 		for i in findn(dm)[1]
@@ -166,19 +165,18 @@ function multbystate!{B<:Bra}(dm::DiracMatrix, s::State{B}, dv::DiracVector)
 		end
 		dv[j]=dv[j]+coeff
 	end
-	return dv
+	return dvec(dv, dm.colb)
 end
 
-# reduce(+,[op.rowb[i]*reduce(+,[op[i,j]*(op.colb[j]*d) for j=1:length(op.colb)]) for i=1:length(op.rowb)])
 
-consmult{K<:Ket}(dm::DiracMatrix, s::State{K}) = multbystate!(dm, s, dvec(samebasis(dm.colb,s') ? spzeros(length(dm.rowb),1) : zeros(Any,length(dm.rowb)), dm.rowb))
-consmult{B<:Bra}(dm::DiracMatrix, s::State{B}) = multbystate!(dm, s, dvec(samebasis(dm.rowb,s') ? spzeros(1,length(dm.colb)) : zeros(Any,1,length(dm.colb)), dm.colb))
-#consmult{B<:Bra}(dm::DiracMatrix, s::DiracVector{B}) = multbystate!(dm, s, dvec(samebasis(dm.rowb,s') ? spzeros(1,length(dm.colb)) : zeros(Any,1,length(dm.colb)), dm.colb))
+consmult{K<:Ket}(dm::DiracMatrix, s::State{K}) = multbystate!(dm, s, samebasis(dm.colb,s') ? zeros(length(dm.rowb)) : zeros(Any,length(dm.rowb)))
+consmult{B<:Bra}(dm::DiracMatrix, s::State{B}) = multbystate!(dm, s, samebasis(dm.rowb,s') ? zeros(1,length(dm.colb)) : zeros(Any,1,length(dm.colb)))
+consmult{K<:Ket}(dm::DiracMatrix, s::DiracVector{K}) = reduce(+,[op.rowb[i]*reduce(+,[op[i,j]*(op.colb[j]*d) for j=1:length(op.colb)]) for i=1:length(op.rowb)])
 
 *{K<:Ket}(dm::DiracMatrix, s::State{K}) = in(s', dm.colb) ? get(dm, s') : consmult(dm,s)
 *{B<:Bra}(s::State{B}, dm::DiracMatrix) = in(s', dm.rowb) ? get(dm, s') : consmult(dm,s)
 
-#*{K<:Ket}(dm::DiracMatrix, dv::DiracVector{K}) = isdual(dm.colb, dv.basis) ? DiracVector(dm.coeffs*dv.coeffs, dm.rowb) : consmult(dm,dv)
+*{K<:Ket}(dm::DiracMatrix, dv::DiracVector{K}) = isdual(dm.colb, dv.basis) ? DiracVector(dm.coeffs*dv.coeffs, dm.rowb) : consmult(dm,dv)
 
 # function *(d::DiracVector{Bra}, op::DiracMatrix) 
 # 	if isdual(op.rowb, d.basis)
@@ -196,6 +194,13 @@ consmult{B<:Bra}(dm::DiracMatrix, s::State{B}) = multbystate!(dm, s, dvec(sameba
 # 						 for n=1:size(b,2), m=1:size(b,1), j=1:size(a,2), i=1:size(a,1)])
 # 	end
 # end
+
+kron(a::DiracMatrix, b::DiracMatrix) = dmat(kron(a.coeffs, b.coeffs), tensor(a.rowb, b.rowb), tensor(a.colb, b.colb)) 
+# kron(op::DiracMatrix, d::DiracVector{Ket}) = DiracMatrix(kron(op.coeffs, d.coeffs), btensor(op.rowb, d.basis), op.colb)
+# kron(op::DiracMatrix, d::DiracVector{Bra}) = DiracMatrix(kron(op.coeffs, d.coeffs), op.rowb, btensor(op.colb, d.basis))
+# kron(d::DiracVector{Ket}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), btensor(d.basis, op.rowb), op.colb)
+# kron(d::DiracVector{Bra}, op::DiracMatrix) = DiracMatrix(kron(d.coeffs, op.coeffs), op.rowb, btensor(d.basis, op.colb))
+
 
 # function +(op::DiracMatrix, o::OuterProduct)
 # 	if in(o.ket, op.rowb) && in(o.bra, op.colb)

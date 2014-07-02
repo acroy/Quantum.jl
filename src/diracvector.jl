@@ -37,9 +37,9 @@ isdual(a::DiracVector, b::DiracVector) = false
 #####################################
 #Array-like Functions################
 #####################################
-copy(d::DiracVector) = DiracVector(copy(d.coeffs), copy(d.basis))
+copy(d::DiracVector) = dvec(copy(d.coeffs), copy(d.basis))
 
-ctranspose(d::DiracVector) = DiracVector(d.coeffs', d.basis')
+ctranspose(d::DiracVector) = dvec(d.coeffs', d.basis')
 size(d::DiracVector, args...) = size(d.coeffs, args...)
 getindex{K<:Ket}(d::DiracVector{K}, x) = d.coeffs[x,1]
 getindex{B<:Bra}(d::DiracVector{B}, x) = d.coeffs[1,x]
@@ -124,7 +124,7 @@ end
 find(f::Function, d::DiracVector) = find(f, d.coeffs)
 findstates(f::Function, d::DiracVector) = find(f, d.basis)
 
-map(f::Function, d::DiracVector)=DiracVector(map(f, d.coeffs), d.basis)
+map(f::Function, d::DiracVector)=dvec(map(f, d.coeffs), d.basis)
 
 function map!(f::Function, d::DiracVector)
 	map!(f, d.coeffs)
@@ -139,26 +139,26 @@ function loadcoeffs!(coeffs, d, newbasis)
 end
 
 function filtercons{S,T}(newbasis::AbstractBasis, d::DiracVector{S,T})
-	return DiracVector(loadcoeffs!(S<:Ket ? Array(T, length(newbasis)) : Array(T, 1, length(newbasis)), d, newbasis), newbasis)
+	return dvec(loadcoeffs!(S<:Ket ? Array(T, length(newbasis)) : Array(T, 1, length(newbasis)), d, newbasis), newbasis)
 end
 
 filterstates{S,T}(f::Function, d::DiracVector{S,T}) = filtercons(filter(f, d.basis), d)
 filtercoeffs(f::Function, d::DiracVector) = filtercons(basis(d.basis[find(map(f, d.coeffs))]), d)
 
-qeval(f::Function, d::DiracVector) = DiracVector(vcat([qeval(f,x) for x in d.coeffs]...), d.basis) #vcat forces correct typing, but this is hacky
+qeval(f::Function, d::DiracVector) = dvec(vcat([qeval(f,x) for x in d.coeffs]...), d.basis) #vcat forces correct typing, but this is hacky
 
 #####################################
 #Arithmetic Operations###############
 #####################################
 
 for op=(:.*,:.-,:.+,:./,:.^)
-	@eval ($op)(a::DiracVector, b::DiracVector) = DiracVector(($op)(a.coeffs,b.coeffs), a.basis)
-	@eval ($op)(n, d::DiracVector) = DiracVector(($op)(n,d.coeffs), d.basis)
-	@eval ($op)(d::DiracVector, n) = DiracVector(($op)(d.coeffs,n), d.basis)
+	@eval ($op)(a::DiracVector, b::DiracVector) = dvec(($op)(a.coeffs,b.coeffs), a.basis)
+	@eval ($op)(n, d::DiracVector) = dvec(($op)(n,d.coeffs), d.basis)
+	@eval ($op)(d::DiracVector, n) = dvec(($op)(d.coeffs,n), d.basis)
 end
 
-*(n::DiracCoeff, d::DiracVector) = DiracVector(*(n,d.coeffs), d.basis)
-*(d::DiracVector, n::DiracCoeff) = DiracVector(*(d.coeffs,n), d.basis)
+kron(n::DiracCoeff, d::DiracVector) = dvec(*(n,d.coeffs), d.basis)
+kron(d::DiracVector, n::DiracCoeff) = dvec(*(d.coeffs,n), d.basis)
 
 -(d::DiracVector) = -1*d
 
@@ -175,19 +175,25 @@ inner{B<:Bra, K<:Ket}(d::DiracVector{B}, s::State{K}) = ireduce(d,s)
 inner{B<:Bra, K<:Ket, N1<:Number, N2<:Number}(a::DiracVector{B, N1}, b::DiracVector{K, N2}) = isdual(a.basis, b.basis) ? (a.coeffs*b.coeffs)[1] : ireduce(a,b)
 inner{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = isdual(a.basis, b.basis) ? ireduce(a,b,true) : ireduce(a,b)
 
+for t=(:Bra, :Ket)
+	@eval begin
+	tensor{A<:($t), B<:($t)}(a::DiracVector{A}, b::DiracVector{B}) = dvec(kron(a.coeffs, b.coeffs), tensor(a.basis, b.basis))
+	tensor{A<:($t), B<:($t)}(a::DiracVector{A}, b::State{B}) = dvec(a.coeffs, tensor(a.basis, b))
+	tensor{A<:($t), B<:($t)}(a::State{B}, b::DiracVector{A}) = dvec(b.coeffs, tensor(a, b.basis))
+	kron{A<:($t), B<:($t)}(a::DiracVector{A}, b::DiracVector{B}) = tensor(a,b)
+	kron{A<:($t), B<:($t)}(a::DiracVector{A}, b::State{B}) = tensor(a,b)
+	kron{A<:($t), B<:($t)}(a::State{B}, b::DiracVector{A}) = tensor(a,b)
+	end
+end
+
+kron{K<:Ket, B<:Bra}(a::DiracVector{K}, b::State{B}) = dmat(a.coeffs, a.basis, basis(b))
+kron{K<:Ket, B<:Bra}(a::State{K}, b::DiracVector{B}) = dmat(b.coeffs, basis(a), b.basis)
+kron{K<:Ket, B<:Bra}(a::DiracVector{K}, b::DiracVector{B}) = dmat(a.coeffs*b.coeffs, a.basis, b.basis)
+kron{K<:Ket, B<:Bra}(a::DiracVector{B}, b::DiracVector{K}) = kron(b,a)
+
 *{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = inner(a,b)
 *{B<:Bra, K<:Ket}(a::DiracVector{B}, b::State{K}) = inner(a,b)
 *{B<:Bra, K<:Ket}(a::State{B}, b::DiracVector{K}) = inner(a,b)
-
-#define the below using tensor, then define kron using 
-#tensor as well
-# #see kron in misc.jl
-# *{K}(a::DiracVector{K}, b::DiracVector{K}) = kron(a,b)
-# *{K}(a::AbstractState{K}, b::DiracVector{K}) = kron(a,b)
-# *{K}(a::DiracVector{K}, b::AbstractState{K}) = kron(a,b)
-# *(a::DiracVector{Ket}, b::AbstractState{Bra}) = kron(a,b)
-# *(a::AbstractState{Ket}, b::DiracVector{Bra}) = kron(a,b)
-# *(a::DiracVector{Ket}, b::DiracVector{Bra}) = kron(a,b)
 
 function addstate(d,s)
 	res = copy(d)
@@ -199,7 +205,7 @@ function +{K<:Ket}(d::DiracVector{K}, s::State{K})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
-		return DiracVector(vcat(d.coeffs, speye(1)), bjoin(d.basis,s))
+		return dvec(vcat(d.coeffs, speye(1)), bjoin(d.basis,s))
 	end
 end
 
@@ -207,7 +213,7 @@ function +{B<:Bra}(d::DiracVector{B}, s::State{B})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
-		return DiracVector(hcat(d.coeffs, speye(1)), bjoin(d.basis,s))
+		return dvec(hcat(d.coeffs, speye(1)), bjoin(d.basis,s))
 	end
 end
 
@@ -215,7 +221,7 @@ function +{K<:Ket}(s::State{K}, d::DiracVector{K})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
-		return DiracVector(vcat(speye(1), d.coeffs), bjoin(s,d.basis))
+		return dvec(vcat(speye(1), d.coeffs), bjoin(s,d.basis))
 	end
 end
 
@@ -223,7 +229,7 @@ function +{B<:Bra}(s::State{B}, d::DiracVector{B})
 	if in(s, d.basis)
 		return addstate(d,s)
 	else
-		return DiracVector(hcat(speye(1),d.coeffs), bjoin(s,d.basis))
+		return dvec(hcat(speye(1),d.coeffs), bjoin(s,d.basis))
 	end
 end
 
@@ -231,7 +237,7 @@ for t=(:Bra,:Ket)
 	@eval begin 
 	function +{b,T1,T2}(x::DiracVector{($t){b,T1}}, y::DiracVector{($t){b,T2}})
 		if x.basis==y.basis
-			return DiracVector(x.coeffs+y.coeffs, x.basis)
+			return dvec(x.coeffs+y.coeffs, x.basis)
 		else
 			res = copy(x)
 			for i=1:length(y)
@@ -247,15 +253,15 @@ for t=(:Bra,:Ket)
 	end
 end
 
-+{K1<:Ket,K2<:Ket}(a::State{K1}, b::State{K2}) = a==b ? 2*a : DiracVector([1, 1], basis([a,b])) 
-+{B1<:Bra,B2<:Bra}(a::State{B1}, b::State{B2}) = a==b ? 2*a : DiracVector([1 1], basis([a,b])) 
--{K1<:Ket,K2<:Ket}(a::State{K1}, b::State{K2}) = a==b ? 0 : DiracVector([1, -1], basis([a,b])) 
--{B1<:Bra,B2<:Bra}(a::State{B1}, b::State{B2}) =  a==b ? 0 : DiracVector([1 -1], basis([a,b])) 
++{K1<:Ket,K2<:Ket}(a::State{K1}, b::State{K2}) = a==b ? 2*a : dvec([1, 1], basis([a,b])) 
++{B1<:Bra,B2<:Bra}(a::State{B1}, b::State{B2}) = a==b ? 2*a : dvec([1 1], basis([a,b])) 
+-{K1<:Ket,K2<:Ket}(a::State{K1}, b::State{K2}) = a==b ? dvec(spzero(1),basis(a)) : dvec([1, -1], basis([a,b])) 
+-{B1<:Bra,B2<:Bra}(a::State{B1}, b::State{B2}) = a==b ? dvec(spzero(1),basis(a)) : dvec([1 -1], basis([a,b])) 
 
-*(c::DiracCoeff, s::State) = c==0 ? 0 : (c==1 ? s : DiracVector([c], basis(s)))
-*(s::State, c::DiracCoeff) = *(c,s)
--(s::State) = -1*s
+kron(c::DiracCoeff, s::State) = dvec([c], basis(s))
+kron(s::State, c::DiracCoeff) = kron(c,s)
+-(s::State) = kron(-1,s)
 
 norm(d::DiracVector, p::Int=2) = reduce(+,map(i->abs(i)^p, d.coeffs))^(1/p) 
 norm{S<:Single,N<:Number}(d::DiracVector{S,N}, p::Int=2) = norm(d.coeffs)
-normalize(d::DiracVector) = DiracVector((1/norm(d))*d.coeffs, d.basis)
+normalize(d::DiracVector) = dvec((1/norm(d))*d.coeffs, d.basis)

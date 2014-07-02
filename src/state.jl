@@ -161,7 +161,11 @@ function inner{B<:Bra,K<:Ket}(a::Tensor{B}, b::Tensor{K})
 	end
 end
 
-*{K1<:Ket,K2<:Ket}(a::State{K1}, b::State{K2}) = tensor(a,b)
-*{B1<:Bra,B2<:Bra}(a::State{B1}, b::State{B2}) = tensor(a,b)
+for t=(:Ket, :Bra)
+	@eval begin
+	kron{A<:($t),B<:($t)}(a::State{A}, b::State{B}) = tensor(a,b)
+	end
+end
+
 *{B<:Bra,K<:Ket}(a::State{B}, b::State{K}) = inner(a,b)
-*{K<:Ket,B<:Bra}(a::State{K}, b::State{B}) = OuterProduct(a,b)
+kron{K<:Ket,B<:Bra}(a::State{K}, b::State{B}) = OuterProduct(a,b)
