@@ -164,6 +164,7 @@ end
 for t=(:Ket, :Bra)
 	@eval begin
 	kron{A<:($t),B<:($t)}(a::State{A}, b::State{B}) = tensor(a,b)
+	*{A<:($t), B<:($t)}(a::State{A}, b::State{B}) = error("vector multiplication undefined between two $(A)s. Perhaps you meant to use kron()?")
 	end
 end
 

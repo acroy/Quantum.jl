@@ -33,13 +33,13 @@ basis(bsym::Symbol, labelvec::Array) = basis(svec(bsym, labelvec))
 #TensorBasis#########################
 #####################################
 
-immutable TensorBasis{S<:Single} <: AbstractBasis{S}
-	bases::Vector{Basis{S}}
+immutable TensorBasis{S<:Single,B<:Basis} <: AbstractBasis{S}
+	bases::Vector{B}
 	states::Vector{Tensor{S}}
 	statemap::Dict
 end
 
-consbasis{S<:Single}(bv::Vector{Basis{S}}, sv::Vector{Tensor{S}}) = TensorBasis(bv, sv, statemapper(sv))
+consbasis{B<:Basis,T<:Tensor}(bv::Vector{B}, sv::Vector{T}) = TensorBasis(bv, sv, statemapper(sv))
 
 separate(b::Basis) = [b]
 separate(b::TensorBasis) = b.bases
@@ -259,9 +259,9 @@ end
 bjoin{S}(a::TensorBasis{S}, b::TensorBasis{S}) = basis(vcat(a.states, b.states))
 
 
-*(a::AbstractBasis, b::AbstractBasis) = tensor(a,b)
-*(a::AbstractBasis, b::State) = tensor(a,b)
-*(a::State, b::AbstractBasis) = tensor(a,b)
+kron(a::AbstractBasis, b::AbstractBasis) = tensor(a,b)
+kron(a::AbstractBasis, b::State) = tensor(a,b)
+kron(a::State, b::AbstractBasis) = tensor(a,b)
 +(a::AbstractBasis, b::AbstractBasis) = bjoin(a,b)
 +(a::AbstractBasis, b::State) = bjoin(a,b)
 +(a::State, b::AbstractBasis) = bjoin(a,b)

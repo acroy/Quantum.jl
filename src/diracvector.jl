@@ -16,6 +16,8 @@ type DiracVector{S<:Single, T} <: Dirac
 	end
 end
 
+
+
 DiracVector{S,T}(coeffs::Array{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(sparse(coeffs), basis)
 DiracVector{S,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(coeffs, basis)
 dvec = DiracVector
@@ -157,8 +159,12 @@ for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(d::DiracVector, n) = dvec(($op)(d.coeffs,n), d.basis)
 end
 
-kron(n::DiracCoeff, d::DiracVector) = dvec(*(n,d.coeffs), d.basis)
-kron(d::DiracVector, n::DiracCoeff) = dvec(*(d.coeffs,n), d.basis)
+/(dv::DiracVector, c::DiracCoeff) = dvec(dv.coeffs/c, dv.basis)
+*(dm::DiracMatrix, c::DiracCoeff) = dvec(dv.coeffs*c, dv.basis)
+*(d::DiracCoeff, dm::DiracMatrix) = dvec(c*dm.coeffs, dv.basis)
+
+kron(c::DiracCoeff, d::DiracVector) = n*d
+kron(d::DiracVector, c::DiracCoeff) = d*n
 
 -(d::DiracVector) = -1*d
 
@@ -183,6 +189,9 @@ for t=(:Bra, :Ket)
 	kron{A<:($t), B<:($t)}(a::DiracVector{A}, b::DiracVector{B}) = tensor(a,b)
 	kron{A<:($t), B<:($t)}(a::DiracVector{A}, b::State{B}) = tensor(a,b)
 	kron{A<:($t), B<:($t)}(a::State{B}, b::DiracVector{A}) = tensor(a,b)
+	*{A<:($t), B<:($t)}(a::DiracVector{A}, b::DiracVector{B}) = error("vector multiplication undefined between two $(A)s. Perhaps you meant to use elementwise multiplication (.*)?")
+	*{A<:($t), B<:($t)}(a::DiracVector{A}, b::State{B}) = error("vector multiplication undefined between two $(A)s.")
+	*{A<:($t), B<:($t)}(a::State{A}, b::DiracVector{B}) = error("vector multiplication undefined between two $(A)s.")
 	end
 end
 
@@ -194,6 +203,10 @@ kron{K<:Ket, B<:Bra}(a::DiracVector{B}, b::DiracVector{K}) = kron(b,a)
 *{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = inner(a,b)
 *{B<:Bra, K<:Ket}(a::DiracVector{B}, b::State{K}) = inner(a,b)
 *{B<:Bra, K<:Ket}(a::State{B}, b::DiracVector{K}) = inner(a,b)
+
+kron(c::DiracCoeff, s::State) = dvec([c], basis(s))
+kron(s::State, c::DiracCoeff) = kron(c,s)
+-(s::State) = kron(-1,s)
 
 function addstate(d,s)
 	res = copy(d)
@@ -257,10 +270,6 @@ end
 +{B1<:Bra,B2<:Bra}(a::State{B1}, b::State{B2}) = a==b ? 2*a : dvec([1 1], basis([a,b])) 
 -{K1<:Ket,K2<:Ket}(a::State{K1}, b::State{K2}) = a==b ? dvec(spzero(1),basis(a)) : dvec([1, -1], basis([a,b])) 
 -{B1<:Bra,B2<:Bra}(a::State{B1}, b::State{B2}) = a==b ? dvec(spzero(1),basis(a)) : dvec([1 -1], basis([a,b])) 
-
-kron(c::DiracCoeff, s::State) = dvec([c], basis(s))
-kron(s::State, c::DiracCoeff) = kron(c,s)
--(s::State) = kron(-1,s)
 
 norm(d::DiracVector, p::Int=2) = reduce(+,map(i->abs(i)^p, d.coeffs))^(1/p) 
 norm{S<:Single,N<:Number}(d::DiracVector{S,N}, p::Int=2) = norm(d.coeffs)
