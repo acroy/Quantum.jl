@@ -160,11 +160,11 @@ for op=(:.*,:.-,:.+,:./,:.^)
 end
 
 /(dv::DiracVector, c::DiracCoeff) = dvec(dv.coeffs/c, dv.basis)
-*(dm::DiracMatrix, c::DiracCoeff) = dvec(dv.coeffs*c, dv.basis)
-*(d::DiracCoeff, dm::DiracMatrix) = dvec(c*dm.coeffs, dv.basis)
+*(dv::DiracVector, c::DiracCoeff) = dvec(dv.coeffs*c, dv.basis)
+*(c::DiracCoeff, dv::DiracVector) = dvec(c*dv.coeffs, dv.basis)
 
-kron(c::DiracCoeff, d::DiracVector) = n*d
-kron(d::DiracVector, c::DiracCoeff) = d*n
+kron(c::DiracCoeff, d::DiracVector) = c*d
+kron(d::DiracVector, c::DiracCoeff) = d*c
 
 -(d::DiracVector) = -1*d
 

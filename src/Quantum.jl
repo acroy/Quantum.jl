@@ -53,7 +53,8 @@ module Quantum
 		    ndims,
 		    norm,
 		    summary,
-		    kron
+		    kron,
+		    trace
 
 	#####################################
 	#abstract types######################
@@ -82,15 +83,15 @@ module Quantum
 		   State,
 		   Bra,
 		   Ket,
-		   Tensor,
-		   Single,
-		   InnerProduct,
-		   OuterProduct,
+		   # Tensor,
+		   # Single,
+		   # InnerProduct, 
+		   # OuterProduct,
+		   # TensorBasis,
 		   AbstractBasis,
 		   AbstractScalar,
 		   ScalarExpr,
 		   Basis,
-		   TensorBasis,
 		   DiracVector,
 		   DiracMatrix,
 		   tensor,
@@ -114,10 +115,14 @@ module Quantum
 		   dvec,
 		   svec,
 		   dmat,
+		   bra,
+		   ket,
 		   fbasis,
 		   fvec,
 		   fcreate,
 		   fdestroy,
 		   fnum,
-		   feye
+		   feye,
+		   commutator,
+		   ptrace
 end
