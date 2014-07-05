@@ -54,7 +54,9 @@ module Quantum
 		    norm,
 		    summary,
 		    kron,
-		    trace
+		    trace,
+		    promote_rule,
+		    convert
 
 	#####################################
 	#abstract types######################
@@ -83,11 +85,6 @@ module Quantum
 		   State,
 		   Bra,
 		   Ket,
-		   # Tensor,
-		   # Single,
-		   # InnerProduct, 
-		   # OuterProduct,
-		   # TensorBasis,
 		   AbstractBasis,
 		   AbstractScalar,
 		   ScalarExpr,

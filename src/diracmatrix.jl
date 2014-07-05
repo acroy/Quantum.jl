@@ -137,8 +137,8 @@ for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(a::DiracMatrix, b::DiracVector) = dmat(($op)(a.coeffs,b.coeffs), a.rowb, a.colb)
 	@eval ($op)(a::DiracVector, b::DiracMatrix) = dmat(($op)(a.coeffs,b.coeffs), b.rowb, b.colb)
 	@eval ($op)(a::DiracMatrix, b::DiracMatrix) = dmat(($op)(a.coeffs,b.coeffs), a.rowb, a.colb)
-	@eval ($op)(n, d::DiracMatrix) = dmat(($op)(n,d.coeffs), d.rowb, d.colb)
-	@eval ($op)(d::DiracMatrix, n) = dmat(($op)(d.coeffs,n), d.rowb, d.colb)
+	@eval ($op)(n::DiracCoeff, d::DiracMatrix) = dmat(($op)(n,d.coeffs), d.rowb, d.colb)
+	@eval ($op)(d::DiracMatrix, n::DiracCoeff) = dmat(($op)(d.coeffs,n), d.rowb, d.colb)
 end
 
 /(dm::DiracMatrix, d::DiracCoeff) = dmat(dm.coeffs/d, dm.rowb, dm.colb)

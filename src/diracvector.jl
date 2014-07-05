@@ -16,8 +16,6 @@ type DiracVector{S<:Single, T} <: Dirac
 	end
 end
 
-
-
 DiracVector{S,T}(coeffs::Array{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(sparse(coeffs), basis)
 DiracVector{S,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(coeffs, basis)
 dvec = DiracVector
@@ -155,8 +153,8 @@ qeval(f::Function, d::DiracVector) = dvec(vcat([qeval(f,x) for x in d.coeffs]...
 
 for op=(:.*,:.-,:.+,:./,:.^)
 	@eval ($op)(a::DiracVector, b::DiracVector) = dvec(($op)(a.coeffs,b.coeffs), a.basis)
-	@eval ($op)(n, d::DiracVector) = dvec(($op)(n,d.coeffs), d.basis)
-	@eval ($op)(d::DiracVector, n) = dvec(($op)(d.coeffs,n), d.basis)
+	@eval ($op)(n::DiracCoeff, d::DiracVector) = dvec(($op)(n,d.coeffs), d.basis)
+	@eval ($op)(d::DiracVector, n::DiracCoeff) = dvec(($op)(d.coeffs,n), d.basis)
 end
 
 /(dv::DiracVector, c::DiracCoeff) = dvec(dv.coeffs/c, dv.basis)
