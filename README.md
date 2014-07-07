@@ -31,9 +31,9 @@ popular quantum libraries like QuTiP in order to more quickly offer up a host of
 optimized features, such as continuous space support, visualization systems, 
 and common algorithms used in quantum mechanics.
 
-By the time Quantum.jl is released (hopefully within the next few weeks), it will 
+By the time Quantum.jl is released (in a week or two), it will 
 have decent documentation and be registered as an actual Julia package for ease of
-use.
+use - so stay tuned!
 
 Features
 ==========
@@ -63,9 +63,10 @@ Features
 	- The ability to perform mixed basis calculation via the use of ScalarExprs and InnerProducts
 
 ###In The Works:
-	- Refactor for optimization; expected finish date is early July
 	- Documentation
 	- registration of Quantum.jl as Julia package
+	- More Tests
+	- Optimization of mixed basis calculations
 
 ###Post-Release Goals/Ideas:
 	- Interface with other similar libraries (eg. QuTiP)
