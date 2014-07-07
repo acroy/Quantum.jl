@@ -31,7 +31,7 @@ popular quantum libraries like QuTiP in order to more quickly offer up a host of
 optimized features, such as continuous space support, visualization systems, 
 and common algorithms used in quantum mechanics.
 
-By the time Quantum.jl is released (hopefully within the next two weeks), it will 
+By the time Quantum.jl is released (hopefully within the next few weeks), it will 
 have decent documentation and be registered as an actual Julia package for ease of
 use.
 
