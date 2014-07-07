@@ -32,6 +32,8 @@ end
 
 dmat=DiracMatrix
 
+copy(dm::DiracMatrix) = dmat(copy(dm.coeffs), copy(dm.rowb), copy(dm.colb))
+
 #####################################
 #Getter-style Functions##############
 #####################################
@@ -205,69 +207,106 @@ kron(dm::DiracMatrix, o::OuterProduct) = dmat(dm.coeffs, tensor(dm.rowb, o.ket),
 #be optimized in the slightest...
 #preallocation of memory and splitting
 #up into component functions will 
-#help quite a bit
-function +(op::DiracMatrix, o::OuterProduct)
-	if in(o.ket, op.rowb) && in(o.bra, op.colb)
-		res = 1*op #ensures that op.coeffs can hold numeric types
-		res[getpos(op, o)...] = 1+get(op, o)
-		return res
-	elseif in(o.ket, op.rowb) && samebasis(o.bra, op.colb)
-		newcol = zeros(size(op,1))
-		newcol[get(op.rowb, o.ket)] = 1 
-		return dmat(hcat(op.coeffs,newcol), op.rowb, bjoin(op.colb, o.bra))
-	elseif samebasis(o.ket, op.rowb) && in(o.bra, op.colb)
-		newrow = zeros(1,size(op,2))
-		newrow[get(op.colb, o.bra)] = 1 
-		return dmat(vcat(op.coeffs,newrow), bjoin(op.rowb, o.ket), op.colb)
+#help quite a bit, as well as 
+#dispatching on basis symbols
+#in order to break up the if-else train
+function add_out!(dm, o)
+	dm[getpos(dm, o)...] = 1+get(dm, o)
+	return dm
+end
+
+add_out(dm, o) = add_out!(copy(dm), o)
+add_out{K,B,T<:InnerProduct}(dm::DiracMatrix{K,B,T}, o) = add_out!(1*dm, o) #converts res to DiracMatrix{K,B,ScalarExpr}
+
+function add_bra(dm::DiracMatrix, o::OuterProduct)
+	newcol = zeros(size(dm,1))
+	newcol[get(dm.rowb, o.ket)] = 1 
+	return dmat(hcat(dm.coeffs,newcol), dm.rowb, bjoin(dm.colb, o.bra))
+end
+
+function add_bra(o::OuterProduct, dm::DiracMatrix)
+	newcol = zeros(size(dm,1))
+	newcol[get(dm.rowb, o.ket)] = 1 
+	return dmat(hcat(newcol, dm.coeffs), dm.rowb, bjoin(o.bra, dm.colb))
+end
+
+function add_ket(dm::DiracMatrix, o::OuterProduct)
+	newrow = zeros(1,size(dm,2))
+	newrow[get(dm.colb, o.bra)] = 1 
+	return dmat(vcat(dm.coeffs,newrow), bjoin(dm.rowb, o.ket), dm.colb)
+end
+
+function add_ket(o::OuterProduct, dm::DiracMatrix)
+	newrow = zeros(1,size(dm,2))
+	newrow[get(dm.colb, o.bra)] = 1 
+	return dmat(vcat(newrow,dm.coeffs), bjoin(o.ket,dm.rowb), dm.colb)
+end
+
+function add_both!(dm::DiracMatrix, o::OuterProduct)
+	dm[getpos(dm, o)...] = 1+get(dm, o)
+	return dm
+end
+function add_both!(dm::DiracMatrix, o::OuterProduct,rb,cb,res)
+	res[1:size(dm,1), 1:size(dm,2)] = dm.coeffs
+	return add_both!(dmat(res, rb, cb), o)
+end
+
+function add_both!(o::OuterProduct,dm::DiracMatrix,rb,cb,res)
+	res[2:size(dm,1)+1, 2:size(dm,2)+1] = dm.coeffs
+	return add_both!(dmat(res, rb, cb), o)
+end
+
+add_both(dm::DiracMatrix, o::OuterProduct, rb, cb) = add_both!(dm, o, rb, cb, zeros(length(rb), length(cb)))
+add_both{K,B,T}(dm::DiracMatrix{K,B,T}, o::OuterProduct) = add_both(dm, o, bjoin(dm.rowb, o.ket), bjoin(dm.colb, o.bra))
+add_both{K,B,T<:InnerProduct}(dm::DiracMatrix{K,B,T}, o::OuterProduct) = add_both(1*dm, o)
+
+add_both(o::OuterProduct, dm::DiracMatrix, rb, cb) = add_both!(o, dm, rb, cb, zeros(length(rb), length(cb)))
+add_both{K,B,T}(o::OuterProduct, dm::DiracMatrix{K,B,T}) = add_both(o, dm, bjoin(o.ket, dm.rowb), bjoin(o.bra, dm.colb))
+add_both{K,B,T<:InnerProduct}(o::OuterProduct, dm::DiracMatrix{K,B,T}) = add_both(o,1*dm)
+
+function +{K<:Ket, B<:Bra}(op::DiracMatrix{K,B}, o::OuterProduct{K,B})
+	if in(o.ket, op.rowb)
+		if in(o.bra, op.colb)
+			return add_out(op, o)
+		else
+			return add_bra(op, o)
+		end
+	elseif in(o.bra, op.colb)
+		return add_ket(op, o)
 	else
-		@assert samebasis(op, o) "BasisMismatch"
-		rowb = bjoin(op.rowb, o.ket)
-		colb = bjoin(op.colb, o.bra)
-		res = dmat(convert(typeof(op.coeffs), zeros(length(rowb),length(colb))), rowb, colb)
-		res[1:size(op,1), 1:size(op,2)] = op.coeffs
-		res[getpos(res, o)...] = 1+get(res, o)
-		return res
+		return add_both(op,o)
 	end
 end
 
-function +(o::OuterProduct, op::DiracMatrix)
-	if in(o.ket, op.rowb) && in(o.bra, op.colb)
-		res = 1*op #ensures that op.coeffs can hold numeric types
-		res[getpos(op, o)...] = 1+get(op, o)
-		return res
-	elseif in(o.ket, op.rowb) && samebasis(o.bra, op.colb)
-		newcol = zeros(size(op,1))
-		newcol[get(op.rowb, o.ket)] = 1 
-		return dmat(hcat(newcol, op.coeffs), op.rowb, bjoin(o.bra,op.colb))
-	elseif samebasis(o.ket, op.rowb) && in(o.bra, op.colb)
-		newrow = zeros(1,size(op,2))
-		newrow[get(op.colb, o.bra)] = 1 
-		return dmat(vcat(newrow,op.coeffs), bjoin(o.ket,op.rowb), op.colb)
+function +{K<:Ket, B<:Bra}(o::OuterProduct{K,B}, op::DiracMatrix{K,B})
+	if in(o.ket, op.rowb)
+		if in(o.bra, op.colb)
+			return add_out(op,o)
+		else
+			return add_bra(o,op)
+		end
+	elseif in(o.bra, op.colb)
+		return add_ket(o,op)
 	else
-		@assert samebasis(o,op) "BasisMismatch"
-		rowb = bjoin(o.ket, op.rowb)
-		colb = bjoin(o.bra, op.colb)
-		res = dmat(convert(typeof(op.coeffs), zeros(length(rowb),length(colb))), rowb, colb)
-		res[2:size(op,1)+1, 2:size(op,2)+1] = op.coeffs
-		res[getpos(res, o)...] = 1+get(res, o)
-		return res
+		return add_both(o,op)
 	end
 end
 
-function +(a::DiracMatrix, b::DiracMatrix)
+function add_dmat!(a::DiracMatrix, b::DiracMatrix)
+	for i=1:findn(b)[1]
+		for j=1:findn(b)[2]
+			a=a+(b.rowb[i]*b.colb[j])
+			a[getpos(a, b.rowb[i], b.colb[j])...] = get(a, b.rowb[i], b.colb[j])+b[i,j]-1
+		end
+	end
+	return a
+end
+
+function +{K<:Ket, B<:Bra}(a::DiracMatrix{K,B}, b::DiracMatrix{K,B})
 	if a.rowb==b.rowb && a.colb==b.colb 
 		return dmat(a.coeffs+b.coeffs, a.rowb, a.colb) 
 	else
-		@assert samebasis(a, b) "BasisMismatch"
-		for i=1:size(b, 1)
-			for j=1:size(b, 2)
-				if b[i,j]!=0
-					a=a+(b.rowb[i]*b.colb[j])
-					a[getpos(a, b.rowb[i], b.colb[j])...] = get(a, b.rowb[i], b.colb[j])+b[i,j]-1
-				end
-			end
-		end
-		return a
+		return add_dmat!(copy(a), b)
 	end
 end
 

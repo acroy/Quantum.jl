@@ -48,19 +48,21 @@ kron{B<:Bra}(s::State{B}, o::OuterProduct) = dvec([inner(s,o.ket)], basis(o.bra)
 kron{K<:Ket}(s::State{K}, o::OuterProduct) = OuterProduct(tensor(s,o.ket), o.bra)
 kron(c::DiracCoeff,o::OuterProduct) = dmat([c], basis(o.ket), basis(o.bra))
 kron(o::OuterProduct, c::DiracCoeff) = kron(c,o)
+*(c::DiracCoeff,o::OuterProduct) = kron(c,o)
+*(o::OuterProduct, c::DiracCoeff) = kron(c,o)
 -(o::OuterProduct) = kron(-1,o)
 
-# function +(a::OuterProduct, b::OuterProduct)
-# 	if a==b
-# 		return DiracMatrix(2.0, tobasis(a.ket), tobasis(b.bra))
-# 	elseif samebasis(a,b)
-# 		rowb = tobasis([a.ket, b.ket])
-# 		colb = tobasis([a.bra, b.bra])
-# 		res = DiracMatrix(zeros(2,2)[1:length(rowb), 1:length(colb)], rowb, colb)
-# 		res[getpos(res, a)...] = 1.0
-# 		res[getpos(res, b)...] = 1.0
-# 		return res
-# 	end
-# end
+function +{K<:Ket, B<:Bra}(a::OuterProduct{K,B}, b::OuterProduct{K,B})
+	if a==b
+		return dmat([2.0], basis(a.ket), basis(b.bra))
+	else
+		rowb = basis(a.ket, b.ket)
+		colb = basis(a.bra, b.bra)
+		res = dmat(zeros(2,2)[1:length(rowb), 1:length(colb)], rowb, colb)
+		res[getpos(res, a)...] = 1.0
+		res[getpos(res, b)...] = 1.0
+		return res
+	end
+end
 
-# -(a::OuterProduct, b::OuterProduct) = a+(-b)
+-(a::OuterProduct, b::OuterProduct) = a+(-b)

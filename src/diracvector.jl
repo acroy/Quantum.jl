@@ -18,6 +18,7 @@ end
 
 DiracVector{S,T}(coeffs::Array{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(sparse(coeffs), basis)
 DiracVector{S,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(coeffs, basis)
+DiracVector(coeffs, s::State...) = DiracVector(coeffs, basis(collect(s)))
 dvec = DiracVector
 
 #####################################
@@ -204,6 +205,8 @@ kron{K<:Ket, B<:Bra}(a::DiracVector{B}, b::DiracVector{K}) = kron(b,a)
 
 kron(c::DiracCoeff, s::State) = dvec([c], basis(s))
 kron(s::State, c::DiracCoeff) = kron(c,s)
+*(c::DiracCoeff, s::State) = kron(c,s)
+*(s::State, c::DiracCoeff) = kron(c,s)
 -(s::State) = kron(-1,s)
 
 function addstate!(d,s)

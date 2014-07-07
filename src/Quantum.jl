@@ -121,5 +121,6 @@ module Quantum
 		   fnum,
 		   feye,
 		   commutator,
-		   ptrace
+		   ptrace,
+		   scalar
 end

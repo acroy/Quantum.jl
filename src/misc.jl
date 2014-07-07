@@ -1,7 +1,13 @@
-#necessary for SparseMatrixCSC{Any} to function properly
+
+zero{A<:AbstractScalar}(::Type{A}) = scalar(0)
+#necessary for SparseMatrixCSC{Any} to function properly;
+#the fact that Any is often inferenced when ScalarExpr
+#should be inferenced is a Bad Thing. As a result, in the future
+#the below zeros should be removed as soon as the inferencing issue 
+#is fixed
 zero(::Type{Any}) = 0
-zero{D<:Dirac}(::Type{D}) = 0
-zero(::Type{ScalarExpr}) = ScalarExpr(:(0+0))
+
+orient_error(a,b) = error("Multiplication $(typeof(a))*$(typeof(b)) is undefined. Perhaps you meant to use kron($(typeof(a)), $(typeof(b)))?")
 
 samebasis(a::Dirac, b::Dirac)= bsym(a)==bsym(b)
 samebasis(a::Symbol, b::Dirac)= a==bsym(b)
@@ -14,9 +20,9 @@ for t=(:DiracMatrix, :DiracVector, :State, :OuterProduct)
 	@eval -(d::($t), n::Number) = +(n,d)
 end
 
-*(a::Dirac, b::Dirac) = kron(a,b)
-*(a, b::Dirac) = kron(a,b)
-*(a::Dirac, b) = kron(a,b)
+*(a::Dirac, b::Dirac) = orient_error(a,b)
+*(a, b::Dirac) = orient_error(a,b)
+*(a::Dirac, b) = orient_error(a,b)
 
 kron(a::AbstractScalar, b::AbstractScalar) = a*b
 kron(a::Dirac, b::DiracCoeff) = a*b

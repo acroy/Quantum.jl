@@ -137,16 +137,16 @@ show{B<:Bra}(io::IO, s::State{B}) = print(io, "$lang $(reprlabel(s)) |")
 inner(x::Bra, y::Ket) = InnerProduct(x, y)
 inner{b}(x::Bra{b}, y::Ket{b}) = labeldelta(x,y)
 
-inner{K<:Ket}(a::Bra, b::Tensor{K}, i::Int) = inner(a, b[i])*tensor(vcat(b[1:i-1], b[i+1:end]))
-inner{B<:Bra}(a::Tensor{B}, b::Ket, i::Int) = tensor(vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
-inner{K<:Ket}(a::Bra, b::Tensor{K}) = inner(a,b[1])*tensor(b[2:end])
-inner{B<:Bra}(a::Tensor{B}, b::Ket) = inner(a[1],b)*tensor(a[2:end])
+inner{K<:Ket}(a::Bra, b::Tensor{K}, i::Int) = inner(a, b[i])*tensor(vcat(b[1:i-1], b[i+1:end])...)
+inner{B<:Bra}(a::Tensor{B}, b::Ket, i::Int) = tensor(vcat(a[1:i-1], a[i+1:end])...)*inner(a[i], b)
+inner{K<:Ket}(a::Bra, b::Tensor{K}) = inner(a,b[1])*tensor(b[2:end]...)
+inner{B<:Bra}(a::Tensor{B}, b::Ket) = inner(a[1],b)*tensor(a[2:end]...)
 
 function inner{B<:Bra,K<:Ket,S<:Single}(a::Tensor{B}, b::Tensor{K}, i::Int, target::Type{S}=Ket)
 	if target<:Ket
-		return inner(a, b[i])*tensor(vcat(b[1:i-1], b[i+1:end]))
+		return inner(a, b[i])*tensor(vcat(b[1:i-1], b[i+1:end])...)
 	else 
-		return tensor(vcat(a[1:i-1], a[i+1:end]))*inner(a[i], b)
+		return tensor(vcat(a[1:i-1], a[i+1:end])...)*inner(a[i], b)
 	end
 end
 
@@ -164,9 +164,10 @@ end
 for t=(:Ket, :Bra)
 	@eval begin
 	kron{A<:($t),B<:($t)}(a::State{A}, b::State{B}) = tensor(a,b)
-	*{A<:($t), B<:($t)}(a::State{A}, b::State{B}) = error("vector multiplication undefined between two $(A)s. Perhaps you meant to use kron()?")
 	end
 end
+kron{K<:Ket,B<:Bra}(a::State{K}, b::State{B}) = OuterProduct(a,b)
+kron{B<:Bra,K<:Ket}(a::State{B}, b::State{K}) = OuterProduct(b,a)
 
 *{B<:Bra,K<:Ket}(a::State{B}, b::State{K}) = inner(a,b)
-kron{K<:Ket,B<:Bra}(a::State{K}, b::State{B}) = OuterProduct(a,b)
+*{K<:Ket,B<:Bra}(a::State{K}, b::State{B}) = kron(a,b)

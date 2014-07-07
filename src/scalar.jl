@@ -9,6 +9,12 @@ end
 isequal(a::ScalarExpr, b::ScalarExpr) = isequal(a.ex, b.ex)
 ==(a::ScalarExpr, b::ScalarExpr) = ==(a.ex, b.ex)
 
+convert{N<:Union(InnerProduct, Number)}(::Type{ScalarExpr}, i::N) = ScalarExpr(:(1*$i))
+promote_rule{N<:Union(InnerProduct, Number)}(::Type{ScalarExpr}, ::Type{N}) = ScalarExpr
+
+scalar(ex::Expr) = ScalarExpr(ex)
+scalar(x) = convert(ScalarExpr, x)
+
 #####################################
 #Misc Functions######################
 #####################################
@@ -35,55 +41,55 @@ end
 #####################################
 function ^(d::DiracCoeff, n::Integer)
 	if n==1
-		return d
+		return scalar(d)
 	elseif n==0
-		return 1
+		return scalar(1)
 	else
-		ScalarExpr(:($(qexpr(d))^$(qexpr(n))))
+		return scalar(:($(qexpr(d))^$(qexpr(n))))
 	end
 end
 
 function ^(a::DiracCoeff, b::DiracCoeff)
 	if b==1
-		return a
+		return scalar(a)
 	elseif b==0
-		return 1
+		return scalar(1)
 	else
-		ScalarExpr(:($(qexpr(a))^$(qexpr(b))))
+		return scalar(:($(qexpr(a))^$(qexpr(b))))
 	end
 end
 
 function *(a::DiracCoeff, b::DiracCoeff)
 	if a==1
-		return b
+		return scalar(b)
 	elseif b==1
-		return a
+		return scalar(a)
 	elseif a==0 || b==0
-		return 0
+		return scalar(0)
 	else
-		ScalarExpr(:($(qexpr(a))*$(qexpr(b))))
+		return scalar(:($(qexpr(a))*$(qexpr(b))))
 	end
 end
 
 function +(a::DiracCoeff, b::DiracCoeff)
 	if a==0
-		return b
+		return scalar(b)
 	elseif b==0
-		return a
+		return scalar(a)
 	else
-		ScalarExpr(:($(qexpr(a))+$(qexpr(b))))
+		scalar(:($(qexpr(a))+$(qexpr(b))))
 	end
 end
 
 function -(a::DiracCoeff, b::DiracCoeff)
 	if a==0
-		return b
+		return scalar(-b)
 	elseif b==0
-		return a
+		return scalar(a)
 	elseif a==b
-		return 0
+		return scalar(0)
 	else
-		ScalarExpr(:($(qexpr(a))-$(qexpr(b))))
+		return scalar(:($(qexpr(a))-$(qexpr(b))))
 	end
 end
 
