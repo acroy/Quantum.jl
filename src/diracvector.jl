@@ -206,15 +206,14 @@ kron(c::DiracCoeff, s::State) = dvec([c], basis(s))
 kron(s::State, c::DiracCoeff) = kron(c,s)
 -(s::State) = kron(-1,s)
 
-function addstate(d,s)
-	res = copy(d)
+function addstate!(d,s)
 	res[getpos(d,s)] = 1+get(res, s)
 	return res
 end
 
 function +{K<:Ket}(d::DiracVector{K}, s::State{K})
 	if in(s, d.basis)
-		return addstate(d,s)
+		return addstate!(copy(d),s)
 	else
 		return dvec(vcat(d.coeffs, speye(1)), bjoin(d.basis,s))
 	end
@@ -222,7 +221,7 @@ end
 
 function +{B<:Bra}(d::DiracVector{B}, s::State{B})
 	if in(s, d.basis)
-		return addstate(d,s)
+		return addstate!(copy(d),s)
 	else
 		return dvec(hcat(d.coeffs, speye(1)), bjoin(d.basis,s))
 	end
@@ -230,7 +229,7 @@ end
 
 function +{K<:Ket}(s::State{K}, d::DiracVector{K})
 	if in(s, d.basis)
-		return addstate(d,s)
+		return addstate!(copy(d),s)
 	else
 		return dvec(vcat(speye(1), d.coeffs), bjoin(s,d.basis))
 	end
@@ -238,10 +237,18 @@ end
 
 function +{B<:Bra}(s::State{B}, d::DiracVector{B})
 	if in(s, d.basis)
-		return addstate(d,s)
+		return addstate!(copy(d),s)
 	else
 		return dvec(hcat(speye(1),d.coeffs), bjoin(s,d.basis))
 	end
+end
+
+function add_dvec!(d::DiracVector, y::DiracVector)
+	for i=1:length(y)
+		d = d+y.basis[i]
+		d[getpos(d, y.basis[i])] = get(d, y.basis[i]) + y[i] - 1
+	end
+	return res
 end
 
 for t=(:Bra,:Ket)
@@ -250,12 +257,7 @@ for t=(:Bra,:Ket)
 		if x.basis==y.basis
 			return dvec(x.coeffs+y.coeffs, x.basis)
 		else
-			res = copy(x)
-			for i=1:length(y)
-				res = res+y.basis[i]
-				res[getpos(res, y.basis[i])] = get(res, y.basis[i]) + y[i] - 1
-			end
-			return res
+			return add_dvec!(copy(x), y)
 		end
 	end
 	-{S1<:($t),S2<:($t)}(d::DiracVector{S1}, s::State{S2}) = d+(-s)
