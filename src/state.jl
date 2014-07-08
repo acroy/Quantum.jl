@@ -18,14 +18,33 @@ typealias Single Union(Bra, Ket)
 
 immutable Tensor{S<:Single} <: State{S}
 	states::Vector{S}
+	Tensor{K<:Ket}(v::Vector{K}) = new(v)
+	Tensor{B<:Bra}(v::Vector{B}) = new(v)
 end 
 
-tensor{S<:Single}(s::Vector{S}) = Tensor(s)
-tensor{S<:State}(s::Vector{S}) = tensor([[separate(i) for i in s]...])
-tensor{S<:State}(s::Array{S}) = tensor(vec(s))
-tensor(s::Vector) = tensor([[separate(i) for i in s]...])
-tensor(s::State...) = tensor(collect(s)) 
+tensor() = error("no method tensor()")
 tensor(s::State) = s 
+tensor(s::State...) = tensor(collect(s)) 
+
+tensor{S<:Single}(v::Vector{S}) = Tensor{S}(v)
+tensor(s::Array) = reduce(tensor, s)
+
+for t=(:Ket,:Bra)
+	@eval begin
+	tensor(a::($t), b::($t)) = Tensor{($t)}([a,b])
+	tensor{S<:($t)}(a::($t), b::Tensor{S}) = Tensor{($t)}([a,separate(b)])
+	tensor{S<:($t)}(a::Tensor{S}, b::($t)) = Tensor{($t)}([separate(a),b])
+	tensor{A<:($t), B<:($t)}(a::Tensor{A}, b::Tensor{B}) = Tensor{($t)}([separate(a),separate(b)])
+
+	tensor{S<:($t)}(a::S, b::S) = Tensor{S}([a,b])
+	tensor{S<:($t)}(a::S, b::Tensor{S}) = Tensor{S}([a,separate(b)])
+	tensor{S<:($t)}(a::Tensor{S}, b::S) = Tensor{S}([separate(a),b])
+	tensor{S<:($t)}(a::Tensor{S}, b::Tensor{S}) = Tensor{S}([separate(a),separate(b)])
+	end
+end
+
+tensor{K<:Ket, B<:Bra}(a::State{K},b::State{B}) = error("KindMismatch: cannot perform tensor($a, $b)")
+tensor{K<:Ket, B<:Bra}(b::State{B},a::State{K}) = error("KindMismatch: cannot perform tensor($b, $a)")
 
 #####################################
 #Misc Functions######################
@@ -112,7 +131,8 @@ for op=(:length, :endof)
 	@eval ($op)(s::Tensor) = $(op)(s.states)
 end
 
-svec{T}(bsym::Symbol, arr::Array{T}) = map(Ket{bsym,T}, arr)
+svec(bsym, arr::Array{Any}) = [ket(bsym, i) for i in arr]
+svec{T}(bsym, arr::Array{T}) = map(Ket{bsym, T}, arr)
 
 #####################################
 #Show Functions######################

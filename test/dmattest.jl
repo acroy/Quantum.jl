@@ -1,4 +1,4 @@
-module DVectorTest
+module DMatTest
 using Base.Test 
 using Quantum
 
@@ -22,13 +22,8 @@ d = dmat(eye(3), xb)
 @test ket(:X,1)*bra(:X,1)+d == dmat((coeff=eye(3); coeff[1,1]=2.0; coeff),xb)
 
 @test d+d==2*d
-
 @test isdual(d,d')
-
 @test map(x->x*2, d)==d+d
-@test xb[1]'*d == 1
-@test d'*xb[1] == 1
-@test norm(normalize(d)) < 1+1e-8 && norm(normalize(d)) > 1-1e-8
-@test reduce(+,[i*xb[i]' for i=1:length(xb)]) == d'
+@test commutator(d,d)==dmat(zeros(3,3), xb)
 
 end

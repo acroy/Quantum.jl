@@ -44,7 +44,7 @@ bsym(dm::DiracMatrix) = [bsym(dm.rowb), bsym(dm.colb)]
 #####################################
 isequal(a::DiracMatrix, b::DiracMatrix) = isequal(a.coeffs,b.coeffs) && a.rowb==b.rowb && a.colb==b.colb 
 ==(a::DiracMatrix, b::DiracMatrix) = a.coeffs==b.coeffs && a.rowb==b.rowb && a.colb==b.colb 
-isdual(a::DiracMatrix, b::DiracMatrix) = a.coeffs'==b.coeffs && a.rowb==b.colb && b.colb==a.rowb
+isdual(a::DiracMatrix, b::DiracMatrix) = a.coeffs'==b.coeffs && isdual(a.rowb,b.colb) && isdual(b.rowb,a.colb)
 #####################################
 #Array-like Functions################
 #####################################

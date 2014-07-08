@@ -19,5 +19,28 @@ xyb = kron(xb,yb);
 @test inner(xyb[1]', xyb[2], 1)==0
 @test inner(xyb[1]', xyb[2], 2)==xb[1]'*yb[2]*yb[1]'*xb[1]
 
+k = ket(:K,1)
+s = ket(:S,"a")
+v = [tensor(s,s),tensor(s,k),tensor(s',s'), tensor(s',k')] 
+
+@test typeof(v[1]) == Tensor{Ket{:S,ASCIIString}}
+@test typeof(v[2]) == Tensor{Ket}
+@test typeof(v[3]) == Tensor{Bra{:S,ASCIIString}}
+@test typeof(v[4]) == Tensor{Bra}
+@test typeof(tensor(v[1], s)) == Tensor{Ket{:S,ASCIIString}}
+@test typeof(tensor(s, v[1])) == Tensor{Ket{:S,ASCIIString}}
+@test typeof(tensor(v[2], s)) == Tensor{Ket}
+@test typeof(tensor(s, v[2])) == Tensor{Ket}
+@test typeof(tensor(v[3], s')) == Tensor{Bra{:S,ASCIIString}}
+@test typeof(tensor(s', v[3])) == Tensor{Bra{:S,ASCIIString}}
+@test typeof(tensor(v[4], s')) == Tensor{Bra}
+@test typeof(tensor(s', v[4])) == Tensor{Bra}
+
+@test typeof(tensor(v[1], v[1])) == Tensor{Ket{:S,ASCIIString}}
+@test typeof(tensor(v[2], v[1])) == Tensor{Ket}
+@test typeof(tensor(v[3], v[3])) == Tensor{Bra{:S,ASCIIString}}
+@test typeof(tensor(v[4], v[3])) == Tensor{Bra}
+
+
 
 end

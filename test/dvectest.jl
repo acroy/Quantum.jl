@@ -1,4 +1,4 @@
-module DVectorTest
+module DVeTest
 using Base.Test 
 using Quantum
 

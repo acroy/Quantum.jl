@@ -85,6 +85,7 @@ module Quantum
 		   State,
 		   Bra,
 		   Ket,
+		   Tensor,
 		   AbstractBasis,
 		   AbstractScalar,
 		   ScalarExpr,

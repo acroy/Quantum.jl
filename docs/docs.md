@@ -1,187 +1,129 @@
-The documentation is now out of date due to the recent redesign of the project. Once the 
-new design has been more or less fully implemented, I'll come back and fix up the documentation.
-<!-- Quantum.jl Documentation
+*CURRENTLY A WORK IN PROGRESS*
+Quantum.jl Documentation
 ===
-1. Abstract Types
----
-The following list contains the abstract types and type aliases referenced in this documentation:
 
-	abstract Dirac
-	abstract BraKet <: Dirac
-	abstract Bra <: BraKet
-	abstract Ket <: BraKet
-	abstract AbstractBasis{K<:BraKet} <: Dirac
-	abstract AbstractState{K<:BraKet} <: Dirac
-	abstract AbstractScalar <: Dirac
-	typealias DiracCoeff Union(Number, AbstractScalar)
-
-
-The not operator `!` can be applied to `Bra` and `Ket` types to alternate between 
-the two:
-
-	!(K::Type{Ket}) = Bra
-	!(B::Type{Bra}) = Ket
-
-2. State 
---- 
+##1. States and Their Operations
+###1.1 Eigenkets and Eigenbras
 __Description__
 
-A `State` is an object that stores two labels. The first label is a unique identifier
-for the state, while the second label specifies the basis for which the state is an
-eigenstate. All instances of type `State` are explicit eigenstates of a basis (the 
-representation of non-eigenstates is covered in the `DiracVector` section).
-States are parameterized by their `kind`, which identifies whether the state
-belongs to `Ket`-space or `Bra`-space.
+Quantum.jl is built on a system of eigenstates - objects which 
+are either of type `Bra` or `Ket`, and are parameterized
+by a primitive that explicitly specifies a basis to which 
+the object belongs. Here are the type definitions and 
+constructors for `Bra`s and Ket`s:
 
-The first label, as seen in the definition below, can be an instance of any type.
+	abstract State{S} <: Dirac
 
-__Definition__
-
-	immutable State{K<:BraKet, T} <: AbstractState{K}
-	  label::T
-	  basislabel::Symbol
+	immutable Ket{b,T} <: State{Ket{b,T}}
+		label::T
 	end
 
-__Constructors__
+	immutable Bra{b,T} <: State{Bra{b,T}}
+		label::T
+	end
 
-	State{K<:BraKet,T}(label::T, basislabel::Symbol, kind::Type{K}=Ket) = State{kind, T}(label, basislabel)
+	ket{T}(b,label::T) = Ket{b,T}(label)
+	bra{T}(b,label::T) = Bra{b,T}(label)
 
-__Methods and Examples__
+The above definition allows for each state to store a basis
+identifier as a type parameter, as well as a label as a unique 
+identifier within the basis it belongs to. Because the type
+of the label is parameterized, `Bra` and `Ket` objects are 
+as compact as the object that serves as their label!
 
-Let's instantiate an array of eigenstates belonging to basis `:X`:
+__Examples__
+
+It's easy to construct `Ket`s using the above constructors:
 
 	julia> using Quantum
-
-	julia> sv = [State(i,:X) for i=1:5]
-	5-element Array{State{Ket,Int64},1}:
-	 | 1:X ⟩
-	 | 2:X ⟩
-	 | 3:X ⟩
-	 | 4:X ⟩
-	 | 5:X ⟩
-
-Taking the `ctranspose` of a state returns its dual:
-
-	julia> sv[1]
+	
+	julia> ket(:X,1)
 	| 1:X ⟩
 
-	julia> sv[1]'
+	julia> typeof(ans)
+	Ket{:X,Int64} (constructor with 1 method)
+
+	julia> ket(:S,"1")
+	| "1":S ⟩
+
+	julia> typeof(ans)
+	Ket{:S,ASCIIString} (constructor with 1 method)
+
+	julia> ket(42,["1", 1, :f])
+	| {"1",1,:f}:42 ⟩
+
+	julia> typeof(ans)
+	Ket{42,Array{Any,1}} (constructor with 1 method)
+
+As you can see, both `Symbol`s and `Int`s can be used as basis identifiers, and
+anything can be used as a label. `Bra`s are constructed in a similar manner:
+
+	julia> bra(:X,1)
 	⟨ 1:X |
 
-	julia> sv[1]'==State(1,:X,Bra)
-	true
+	julia> typeof(ans)
+	Bra{:X,Int64} (constructor with 1 method)
 
-The inner product of a `Bra` state and a `Ket` state
-of the same basis is a Kronecker delta function based 
-on the states' labels:
+###1.2 Tensor Product States
 
-	julia> sv[1]'*sv[1]
-	1
-
-	julia> sv[2]'*sv[1]
-	0
-
-The inner product of a `Bra` state and a `Ket` state
-of different bases returns an `InnerProduct` object, 
-which has its own section later on in this tutorial:
-
-	julia> sv[1]'*State(1,:Y)
-	⟨ 1:X |  1:Y ⟩
-
-Similarly, the outer product of a `Ket` state and a `Bra`
-state returns an `OuterProduct` object, whose behavior is
-discussed in the `DiracMatrix` section:
-
-	julia> sv[1]*State(1,:Y)'
-	| 1:X ⟩⟨ 1:Y |
-
-Finally, the product of two states with the same `kind` 
-returns a `TensorState` of that `kind`:
-
-	julia> sv[1]*State(1,:Y)
-	| 1:X, 1:Y ⟩
-
-	julia> sv[1]'*State(1,:Y)'
-	⟨ 1:X, 1:Y |
-
-For convenience, Quantum.jl provides a function called `statearr` which
-takes in the following arguments and maps a `State` constructor to each 
-of the elements of the Array accordingly:
-
-	statearr{K<:BraKet, T}(arr::Array{T}, basislabel::Symbol, kind::Type{K}=Ket)
-
-	julia> statearr([i+j for i=1:10,j=1:10], :X, Bra)
-	10x10 Array{State{Bra,Int64},2}:
-	 ⟨ 2:X |   ⟨ 3:X |   ⟨ 4:X |   ⟨ 5:X |   …  ⟨ 9:X |   ⟨ 10:X |  ⟨ 11:X |
-	 ⟨ 3:X |   ⟨ 4:X |   ⟨ 5:X |   ⟨ 6:X |      ⟨ 10:X |  ⟨ 11:X |  ⟨ 12:X |
-	 ⟨ 4:X |   ⟨ 5:X |   ⟨ 6:X |   ⟨ 7:X |      ⟨ 11:X |  ⟨ 12:X |  ⟨ 13:X |
-	 ⟨ 5:X |   ⟨ 6:X |   ⟨ 7:X |   ⟨ 8:X |      ⟨ 12:X |  ⟨ 13:X |  ⟨ 14:X |
-	 ⟨ 6:X |   ⟨ 7:X |   ⟨ 8:X |   ⟨ 9:X |      ⟨ 13:X |  ⟨ 14:X |  ⟨ 15:X |
-	 ⟨ 7:X |   ⟨ 8:X |   ⟨ 9:X |   ⟨ 10:X |  …  ⟨ 14:X |  ⟨ 15:X |  ⟨ 16:X |
-	 ⟨ 8:X |   ⟨ 9:X |   ⟨ 10:X |  ⟨ 11:X |     ⟨ 15:X |  ⟨ 16:X |  ⟨ 17:X |
-	 ⟨ 9:X |   ⟨ 10:X |  ⟨ 11:X |  ⟨ 12:X |     ⟨ 16:X |  ⟨ 17:X |  ⟨ 18:X |
-	 ⟨ 10:X |  ⟨ 11:X |  ⟨ 12:X |  ⟨ 13:X |     ⟨ 17:X |  ⟨ 18:X |  ⟨ 19:X |
-	 ⟨ 11:X |  ⟨ 12:X |  ⟨ 13:X |  ⟨ 14:X |     ⟨ 18:X |  ⟨ 19:X |  ⟨ 20:X |
-
-3. TensorState 
---- 
 __Description__
 
-A `TensorState` object is the result of a tensor products between `State`s.
-__Definition__
+__Examples__
 
-	immutable TensorState{K<:BraKet} <: AbstractState{K}
-	  states::Vector
-	  TensorState{S<:State{K}}(v::Vector{S}) = new(v)
-	  TensorState(v::Vector) = new(convert(Vector{State{K}},v))  
-	end
+###1.3 Other Operations on states
 
-__Constructors__
-
-	TensorState{K<:BraKet}(labels::Vector, basislabel::Symbol, kind::Type{K}=Ket) = TensorState{kind}(statearr(labels, basislabel, kind))
-
-__Methods and Examples__
-
-The constructor above is provided for convenience and for it's similarity to 
-the `State` constructor. Most of the time, however, one would construct `TensorState`s
-using multiplication (`sv` refers to the `Vector{State{Ket,Int64}}` constructed in the 
-previous section):
-
-	julia> ts=sv[1]*State("Bob", :B)*sv[3]
-	 | 1:X, "Bob":B, 3:X ⟩
+Now that we know how to construct states, let's explore how they operate.
+Here is a list of some of the functions that involve states:
 	
-One can take the `ctranspose` of `TensorState`s as well:
+	label(s::State)
+		returns the label of a state
+	bsym(s::State)
+		returns the basis symbol associated with the state
+	ctranspose(s::State)
+		returns the dual of a state
+	isdual(a::State, b::State)
+		checks to see whether `a` is the dual of `b`
+	labeldelta(a::State, b::State)
+		returns 1 if label(a)==label(b), or 0 otherwise
+	inner{B<:Bra, K<:Ket}(a::State{B}, b::State{K})
+		computes the inner product of `a` and `b`
+	kron(a::State, b::State)
+		computes the kronecker product of `a` and `b`
+	*(a::State, b::State)
+		vector multiplication between `a` and `b`
 
-	julia> ts'
-	⟨ 1:X, "Bob":B, 3:X |
+These aren't all of the functions that states support, 
+but for now let's explore the different kind of products
+between two states. 
 
-The `separate` command returns the a vector of the components of a `TensorState`:
 
-	julia> separate(ts)
-	3-element Array{State{Ket,T},1}:
-	 | 1:X ⟩
-	 | "Bob":B ⟩
-	 | 3:X ⟩
 
-To get specific components, you can index into a `TensorState` as you would a
-`Vector`:
 
-	julia> ts[1]
-	| 1:X ⟩
+<!--
+##2. Collections of states: Bases and TensorBases
 
-	julia> ts[2]
-	| "Bob":B ⟩
+Let's try creating an array of states.
 
-	julia> ts[1:2]
-	2-element Array{State{Ket,T},1}:
-	 | 1:X ⟩
-	 | "Bob":B ⟩
+	julia> [ket(:F,i) for i=1:5]
+	5-element Array{Ket{b,Int64},1}:
+	 | 1:F ⟩
+	 | 2:F ⟩
+	 | 3:F ⟩
+	 | 4:F ⟩
+	 | 5:F ⟩
 
-	julia> ts[:]
-	3-element Array{State{Ket,T},1}:
-	 | 1:X ⟩
-	 | "Bob":B ⟩
-	 | 3:X ⟩
+As you can see, Julia's type inference system doesn't specify a basis for the element type
+of the array, despite the fact that all elements share the same basis. This can be 
+a performance issue for large collections of states. In that case, one would want to 
+use an explicit constructor to make sure the compiler can inference types correctly:
+
+	julia> @time [ket(1,i) for i=1:100000]; #convenience constructor ket()
+	elapsed time: 0.036017889 seconds (7183712 bytes allocated)
+
+	julia> @time [Ket{1,Int64}(i) for i=1:100000]; #explicit constructor Ket{b,T}
+	elapsed time: 6.5534e-5 seconds (800048 bytes allocated)
+
+#####################################################################
 
 Taking the inner product of `TensorState`s and `State`s can be ambiguous 
 without specifying which component states are acting on each other. 
