@@ -10,7 +10,7 @@ Quantum.jl is built on a system of eigenstates - objects which
 are either of type `Bra` or `Ket`, and are parameterized
 by a primitive that explicitly specifies a basis to which 
 the object belongs. Here are the type definitions and 
-constructors for `Bra`s and Ket`s:
+constructors for `Bra`s and `Ket`s:
 
 	abstract State{S} <: Dirac
 
@@ -92,9 +92,9 @@ Here is a list of some of the functions that involve states:
 	*(a::State, b::State)
 		vector multiplication between `a` and `b`
 
-These aren't all of the functions that states support, 
-but for now let's explore the different kind of products
-between two states. 
+These aren't all of the functions that states support (additive
+operations, in particular, are covered in the section on DiracVectors), 
+but for now we'll examine the different kind of products between two states. 
 
 
 
