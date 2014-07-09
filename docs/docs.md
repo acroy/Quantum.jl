@@ -162,7 +162,7 @@ As you might imagine, there are many other operations involving
 states - some, like addition, we'll touch on later in this 
 documentation. Others can be found in [Quantum.jl's API](/docs/api.md).
 
-__`kron`__
+`__kron__`
 
 
 
