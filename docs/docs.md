@@ -158,9 +158,10 @@ by using the `ctranspose` function (`'`):
 	julia> t''==t
 	true
 
-###1.3 Other Operations on States
+###1.3 Other Products between States
 
-Now that we know how to construct states, let's explore how they operate.
+Now that we know how to construct states and tensor product 
+states, let's explore how they operate on each other.
 Here is a list of some binary operations on states:
 	
 	inner{B<:Bra, K<:Ket}(a::State{B}, b::State{K})
@@ -179,8 +180,8 @@ to how they work with actual vectors - which makes sense, since
 `Bra`s and `Ket`s are just abstract row and column vectors in the
 first place.
 
-For the examples that follow, we'll construct the following states
-using `svec`, a convenience function provided by Quantum.jl:
+For use in the examples that follow, we'll construct the following 
+states using `svec`, a convenience function provided by Quantum.jl:
 
 	julia> xv=svec(:X, [1:3])
 	3-element Array{Ket{:X,Int64},1}:
