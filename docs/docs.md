@@ -243,7 +243,7 @@ Thus, ⟨ a | a, b ⟩ is interpreted as ⟨ a | a ⟩| b ⟩-> 1 | b ⟩:
 `DiracVector`s are the result of multiplying a coefficient
 by a state (the coefficients, here, are both ⟨ 1:X | 1:X ⟩, which have resolved to 1). 
 
-Something like ⟨ a, b | c, d ⟩ resolves as 
+Following this logic, the operation ⟨ a, b | c, d ⟩ resolves as 
 ⟨ b |⟨ a | c, d ⟩ ->  ⟨ b |⟨ a | c ⟩| d ⟩ -> ⟨ a | c ⟩⟨ b | d ⟩.
 This results in the expected behavior when taking the
 inner product of two `Tensor` states from the same bases: 
