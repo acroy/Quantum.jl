@@ -50,6 +50,7 @@ module Quantum
 		    findn,
 		    findnz,
 		    nnz,
+		    countnz,
 		    ndims,
 		    norm,
 		    summary,
@@ -123,5 +124,7 @@ module Quantum
 		   feye,
 		   commutator,
 		   ptrace,
-		   scalar
+		   scalar,
+		   actop,
+		   filternz
 end

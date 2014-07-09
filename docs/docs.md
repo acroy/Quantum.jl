@@ -2,6 +2,18 @@
 Quantum.jl Documentation
 ===
 
+##0. Abstract Types
+
+The abstract type `Dirac` serves as the parent type for
+all qunatum objects - in other words, objects represented 
+with Dirac notation in Quantum.jl.
+
+In addition, the abstract type `AbstractScalar` has been 
+defined as the parent type for `Dirac` objects that behave 
+like numbers, such as inner products and arithmetic expressions
+involving inner products (see `ScalarExpr` and `InnerProduct` types
+for more information).
+
 ##1. States and Their Operations
 ###1.1 Eigenkets and Eigenbras
 __Description__
@@ -87,7 +99,7 @@ which is below:
 		Tensor{B<:Bra}(v::Vector{B}) = new(v)
 	end 
 
-As you can see, "kind" orienation homogeneity is enforced via the inner constructors,
+As you can see, "kind" homogeneity is enforced via the inner constructors,
 and a `Tensor` object is parameterized by the element type of the `Vector` that
 stores its factors. 
 
@@ -152,7 +164,7 @@ Now that we know how to construct states, let's explore how they operate.
 Here is a list of some binary operations on states:
 	
 	inner{B<:Bra, K<:Ket}(a::State{B}, b::State{K})
-		computes the inner product of `a` and `b`
+		computes the discrete inner product of `a` and `b`
 	kron(a::State, b::State)
 		computes the kronecker product of `a` and `b`
 	*(a::State, b::State)
@@ -162,9 +174,193 @@ As you might imagine, there are many other operations involving
 states - some, like addition, we'll touch on later in this 
 documentation. Others can be found in [Quantum.jl's API](/docs/api.md).
 
+In general, products with `State` objects work exactly analogously 
+to how they work with actual vectors - which makes sense, since 
+`Bra`s and `Ket`s are just abstract row and column vectors in the
+first place.
+
+For the examples that follow, we'll construct the following states
+using `svec`, a convenience function provided by Quantum.jl:
+
+	julia> xv=svec(:X, [1:3])
+	3-element Array{Ket{:X,Int64},1}:
+	 | 1:X ⟩
+	 | 2:X ⟩
+	 | 3:X ⟩
+
+	julia> sv=svec(:S, ["$i" for i=1:3])
+	3-element Array{Ket{:S,ASCIIString},1}:
+	 | "1":S ⟩
+	 | "2":S ⟩
+	 | "3":S ⟩
+
+	julia> tv=Tensor{Ket}[tensor(xv[i], sv[i]) for i=1:3]
+	3-element Array{Tensor{Ket{b,T}},1}:
+	 | 1:X, "1":S ⟩
+	 | 2:X, "2":S ⟩
+	 | 3:X, "3":S ⟩
+
+__inner__
+
+Taking the inner product between a `State{B<:Bra}` and
+a `State{K<:Ket}` results in a number if both are of 
+the same basis (1 if they are duals of each other, 0 if they 
+are not). If not, it resolves using Quantum.jl's built-in 
+`InnerProduct`, `ScalarExpr` and `DiracVector` objects, which 
+are all discussed in more detail in their respective sections 
+later in this documentation.
+
+	julia> inner(sv[1]',sv[2])
+	0
+
+	julia> inner(sv[1]',sv[1])
+	1
+
+	julia> inner(sv[1]',xv[1])
+	⟨ "1":S |  1:X ⟩
+
+	julia> typeof(ans)
+	InnerProduct{Bra{:S,ASCIIString},Ket{:X,Int64}} (constructor with 1 method)
+
+Inner products involving `Tensor` states can be ambiguous 
+without specifying which factor states are acting on each other. 
+For example, the operation ⟨ a | a, b ⟩ is ambiguous; calculating it
+as ⟨ a | a ⟩| b ⟩ or ⟨ a | b ⟩ | a ⟩ yields two different results. 
+
+By default, Quantum.jl will apply `Bra` states to the `Ket` states
+one at a time, from left to right, resolving the product as it goes. 
+Thus, ⟨ a | a, b ⟩ is interpreted as ⟨ a | a ⟩| b ⟩-> 1 | b ⟩:
+
+	julia> inner(xv[1]',tv[1]) # ⟨ 1:X | 1:X, "1":S ⟩->⟨ 1:X | 1:X ⟩| "1":S ⟩
+	1x1 DiracVector{Ket{:S,ASCIIString},Int64}
+	 1  | "1":S ⟩
+
+	julia> inner(tv[1]',xv[1]) # ⟨ 1:X, "1":S | 1:X ⟩->⟨ "1":S |⟨ 1:X | 1:X ⟩
+	1x1 DiracVector{Bra{:S,ASCIIString},Int64}
+	  ⟨ "1":S |
+	 1
+
+`DiracVector`s are the result of multiplying a coefficient
+by a state (the coefficients, here, are both ⟨ 1:X | 1:X ⟩, which have resolved to 1). 
+
+Something like ⟨ a, b | c, d ⟩ resolves as 
+⟨ b |(⟨ a | c, d ⟩) ->  ⟨ b |⟨ a | c ⟩| d ⟩ -> ⟨ a | c ⟩⟨ b | d ⟩.
+This results in the expected behavior when taking the
+inner product of two `Tensor` states from the same bases: 
+
+	julia> inner(tv[1]',tv[1]) #⟨ 1:X, "1":S | 1:X, "1":S ⟩
+	1
+	julia> inner(tv[1]',tv[2]) #⟨ 1:X, "1":S | 2:X, "2":S ⟩
+	0
+
+...and the following behavior for `Tensor` states of unequal 
+basis:
+
+	julia> tb = tensor(bra(:A, "a"), bra(:B,"b"))
+	⟨ "a":A, "b":B |
+
+	julia> tk = tensor(ket(:C, "c"), ket(:D, "d"))
+	| "c":C, "d":D ⟩
+
+	julia> inner(tb,tk)
+	ScalarExpr(:(⟨ "a":A |  "c":C ⟩ * ⟨ "b":B |  "d":D ⟩))
+
+The `ScalarExpr` object returned above is Quantum.jl's mechanism 
+for dealing with arithmetic operations involving `InnerProduct`s, 
+which represent complex numbers (once again, more information
+on the `ScalarExpr` and `InnerProduct` types can be found in their
+respective section below).
+
+Often times in quantum mechanics, one would like to specify 
+the index of action for states acting on tensor product states, 
+such as ⟨ a_2 | a_1, b_2 ⟩->⟨ a_2 | b_2 ⟩| a_1 ⟩
+
+To accomplish this, Quantum.jl allows the user to pass 
+position arguments to `inner` in order to specify which 
+states are acting on which.
+
+For example, recalling that a scalar times a state yields a `DiracVector{typeof(state), typeof(scalar)}`:
+
+	julia> inner(xv[1]', tv[1], 2) # ⟨ (1:X)_2 | (1:X)_1, ("1":S)_2 ⟩
+	1x1 DiracVector{Ket{:X,Int64},InnerProduct{Bra{:X,Int64},Ket{:S,ASCIIString}}}
+	 ⟨ 1:X |  "1":S ⟩  | 1:X ⟩
+
+In cases where one is taking the inner product between a `Tensor` state and a single
+state, the index argument is always referring to the factor of the `Tensor` state
+that the single state is to act upon:
+
+	julia> inner(tv[1]', xv[1], 2) # ⟨ (1:X)_1, ("1":S)_2 | (1:X)_2 ⟩
+	1x1 DiracVector{Bra{:X,Int64},InnerProduct{Bra{:S,ASCIIString},Ket{:X,Int64}}}
+	 ⟨ 1:X |
+	 ⟨ "1":S |  1:X ⟩
+
+In the case of taking the inner product of two `Tensor` states, one
+can specify both the index argument, and which state the index argument
+is referring to by passing `Ket` or `Bra` as the fourth argument (the 
+index targets the `Ket` state by default):
+
+	julia> inner(tb, tk, 2) # (⟨ "a":A, "b":B |)_2 | ("c":C)_1, ("d":D)_2 ⟩->⟨ "a":A, "b":B | "d":D ⟩ | "c":C ⟩
+	ScalarExpr(:(⟨ "a":A | "d":D ⟩ * ⟨ "b":B | "c":C ⟩))
+
+	julia> inner(tb, tk, 2) == inner(tb, tk, 2, Ket) #Ket is targeted by default
+	true
+
+	julia> inner(tb, tk, 2, Bra) # ⟨ ("a":A)_1, ("b":B)_2 | (| ("c":C), ("d":D) ⟩)_2->⟨ "a":A | ⟨ "b":B | "c":C, "d":D ⟩
+	ScalarExpr(:(⟨ "b":B | "c":C ⟩ * ⟨ "a":A | "d":D ⟩))
+
 __kron__
 
+Taking the kronecker product of two states results in 
+a `Tensor` state if the states are of the same kind, and
+an `OuterProduct` object if not (`OuterProduct`s will be
+covered more thoroughly in the DiracMatrix section):
 
+	julia> kron(tv[1], tv[2]')
+	| 1:X, "1":S ⟩⟨ 2:X, "2":S |
+
+	julia> kron(tv[1], xv[2]')
+	| 1:X, "1":S ⟩⟨ 2:X |
+
+	julia> kron(sv[1], xv[2]')
+	| "1":S ⟩⟨ 2:X |
+
+	julia> kron(sv[1]', xv[2])
+	| 2:X ⟩⟨ "1":S |
+
+	julia> kron(sv[1], xv[2])
+	| "1":S, 2:X ⟩
+
+	julia> kron(tv[1]', tv[2]')
+	⟨ 1:X, "1":S, 2:X, "2":S |
+
+__*__
+
+The `*` operator refers to standard vector multiplication. Thus,
+*(a::State{B<:Bra}, b::State{K<:Ket}) will return an `InnerProduct`,
+and *(a::State{K<:Ket}, b::State{B<:Bra}) will return an `OuterProduct`:
+
+	julia> xv[1]'*xv[1]
+	1
+
+	julia> xv[1]'*xv[2]
+	0
+
+	julia> xv[1]'*sv[1]
+	⟨ 1:X | "1":S ⟩
+
+	julia> xv[1]*sv[1]'
+	| 1:X ⟩⟨ "1":S |
+
+Attempting to use `*` to do a tensor product will result in an error - for
+that operation, you should use `tensor` or `kron` instead:
+
+	julia> xv[1]*sv[1]
+	ERROR: Multiplication Ket{:X,Int64}*Ket{:S,ASCIIString} is undefined. Perhaps you meant to use kron(Ket{:X,Int64}, Ket{:S,ASCIIString})?
+	 in error at error.jl:21
+	 in * at /Users/jarrettrevels/data/repos/quantum/src/misc.jl:23
+
+	julia> kron(xv[1], sv[1])
+	| 1:X, "1":S ⟩
 
 <!--
 ##2. Collections of states: Bases and TensorBases
@@ -200,7 +396,7 @@ as ⟨ a | a ⟩| b ⟩ or ⟨ a | b ⟩ | a ⟩ yields two different results.
 By default, Quantum.jl will always match component states to each other
 by position, applying left to right. Thus, ⟨ a | a, b ⟩ is interpreted as 
 ⟨ a | a ⟩| b ⟩, and something like ⟨ a, c | a, b ⟩ is interpreted as 
-⟨ c |(⟨ a | a, b ⟩) ->  ⟨ c | b ⟩:
+⟨ c |(⟨ a | a, b ⟩) ->  ⟨ c |⟨ a | a ⟩| b ⟩ -> ⟨ c | b ⟩:
 
 	julia> ts'*ts
 	1

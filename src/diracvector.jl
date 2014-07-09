@@ -49,9 +49,14 @@ setindex!{K<:Ket}(d::DiracVector{K}, y, x) = setindex!(d.coeffs, y, x, 1)
 setindex!{B<:Bra}(d::DiracVector{B}, y, x) = setindex!(d.coeffs, y, 1, x)
 setindex!(d::DiracVector, y, x...) = setindex!(d.coeffs, y, x...)
 
-for op=(:endof, :ndims, :eltype, :length, :find, :findn, :findnz, :nnz, :ndims)
+for op=(:endof, :ndims, :eltype, :length, :find, :findn, :findnz, :nnz, :ndims, :countnz)
 	@eval ($op)(d::DiracVector) = ($op)(d.coeffs)
 end
+
+consnz_dvec{K<:Ket}(d::DiracVector{K}, nz_info) = dvec(nz_info[3], basis(d.basis[nz_info[1]]))
+consnz_dvec{B<:Bra}(d::DiracVector{B}, nz_info) = dvec(nz_info[3], basis(d.basis[nz_info[2]]))
+
+filternz(d::DiracVector) = consnz_dvec(d, findnz(d))
 
 #####################################
 #Dict-like Functions#################

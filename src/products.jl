@@ -36,7 +36,7 @@ isdual(a::InnerProduct, b::InnerProduct) = isdual(a.ket, b.bra) && isdual(b.ket,
 #####################################
 
 show(io::IO, o::OuterProduct) = print(io, "$(repr(o.ket))$(repr(o.bra))");
-show(io::IO, i::InnerProduct) = print(io, "$(repr(i.bra)) $(repr(i.ket)[2:end])");
+show(io::IO, i::InnerProduct) = print(io, "$(repr(i.bra))$(repr(i.ket)[2:end])");
 
 #####################################
 #Arithmetic Operations###############

@@ -46,6 +46,8 @@ end
 tensor{K<:Ket, B<:Bra}(a::State{K},b::State{B}) = error("KindMismatch: cannot perform tensor($a, $b)")
 tensor{K<:Ket, B<:Bra}(b::State{B},a::State{K}) = error("KindMismatch: cannot perform tensor($b, $a)")
 
+Tensor(args...) = tensor(args...)
+
 #####################################
 #Misc Functions######################
 #####################################
@@ -156,6 +158,9 @@ show{B<:Bra}(io::IO, s::State{B}) = print(io, "$lang $(reprlabel(s)) |")
 
 inner(x::Bra, y::Ket) = InnerProduct(x, y)
 inner{b}(x::Bra{b}, y::Ket{b}) = labeldelta(x,y)
+inner{b,T1,T2}(x::Tensor{Bra{b,T1}}, y::Tensor{Ket{b,T2}}) = labeldelta(x,y)
+inner{b,T}(x::Bra{b}, y::Tensor{Ket{b,T}}) = labeldelta(x,y[1]) * tensor(y.states[2:end])
+inner{b,T}(x::Tensor{Bra{b,T}}, y::Ket{b}) = tensor(y.states[2:end]) * labeldelta(x[1],y)
 
 inner{K<:Ket}(a::Bra, b::Tensor{K}, i::Int) = inner(a, b[i])*tensor(vcat(b[1:i-1], b[i+1:end])...)
 inner{B<:Bra}(a::Tensor{B}, b::Ket, i::Int) = tensor(vcat(a[1:i-1], a[i+1:end])...)*inner(a[i], b)

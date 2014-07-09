@@ -49,7 +49,7 @@ isdual(a::DiracMatrix, b::DiracMatrix) = a.coeffs'==b.coeffs && isdual(a.rowb,b.
 #Array-like Functions################
 #####################################
 size(dm::DiracMatrix, args...) = size(dm.coeffs, args...)
-for op=(:endof, :eltype, :length, :find, :findn, :findnz, :nnz,:ndims)
+for op=(:endof, :eltype, :length, :find, :findn, :findnz, :nnz, :ndims, :countnz)
 	@eval ($op)(dm::DiracMatrix) = ($op)(dm.coeffs)
 end
 ctranspose(dm::DiracMatrix) = dmat(dm.coeffs', dm.colb', dm.rowb')
@@ -203,13 +203,6 @@ kron(o::OuterProduct, dm::DiracMatrix) = dmat(dm.coeffs, tensor(o.ket, dm.rowb),
 kron(dm::DiracMatrix, o::OuterProduct) = dmat(dm.coeffs, tensor(dm.rowb, o.ket), tensor(dm.colb, o.bra)) 
 
 
-#the below addition functions have yet to 
-#be optimized in the slightest...
-#preallocation of memory and splitting
-#up into component functions will 
-#help quite a bit, as well as 
-#dispatching on basis symbols
-#in order to break up the if-else train
 function add_out!(dm, o)
 	dm[getpos(dm, o)...] = 1+get(dm, o)
 	return dm
@@ -331,3 +324,6 @@ function ptrace(op::DiracMatrix, ind::Int)
 	coeffs = [reduce(+,[op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.rowb)[ind])]) for j=1:length(trrow), k=1:length(trcol)] 
 	return dmat(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), trrow, trcol) #use vcat()/hcat() trick to convert to most primitive common type
 end
+
+actop{K<:Ket}(dm::DiracMatrix, s::Tensor{K}, i::Integer) = kron(vcat(s[1:i-1], dm*s[i], s[i+1:end])...)
+actop{B<:Bra}(dm::DiracMatrix, s::Tensor{B}, i::Integer) = kron(vcat(s[1:i-1], s[i]*dm, s[i+1:end])...)
