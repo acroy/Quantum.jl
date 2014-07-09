@@ -200,7 +200,7 @@ using `svec`, a convenience function provided by Quantum.jl:
 	 | 2:X, "2":S ⟩
 	 | 3:X, "3":S ⟩
 
-__inner__
+__Inner Product (inner)__
 
 Taking the inner product between a `State{B<:Bra}` and
 a `State{K<:Ket}` results in a number if both are of 
@@ -308,7 +308,7 @@ index targets the `Ket` state by default):
 	julia> inner(tb, tk, 2, Bra) # ⟨ ("a":A)_1, ("b":B)_2 | (| ("c":C), ("d":D) ⟩)_2->⟨ "a":A | ⟨ "b":B | "c":C, "d":D ⟩
 	ScalarExpr(:(⟨ "b":B | "c":C ⟩ * ⟨ "a":A | "d":D ⟩))
 
-__kron__
+__Kronecker Product (kron)__
 
 Taking the kronecker product of two states results in 
 a `Tensor` state if the states are of the same kind, and
@@ -333,7 +333,7 @@ covered more thoroughly in the DiracMatrix section):
 	julia> kron(tv[1]', tv[2]')
 	⟨ 1:X, "1":S, 2:X, "2":S |
 
-__*__
+__Vector Multiplication (*)__
 
 The `*` operator refers to standard vector multiplication. Thus,
 `*(a::State{B<:Bra}, b::State{K<:Ket})` will return an `InnerProduct`,
