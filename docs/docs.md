@@ -64,27 +64,93 @@ anything can be used as a label. `Bra`s are constructed in a similar manner:
 	julia> typeof(ans)
 	Bra{:X,Int64} (constructor with 1 method)
 
+To get the dual of an eigenstate, use the `ctranspose` function (the 
+`'` operator):
+
+	julia> bra(:X,1)'
+	| 1:X ⟩
+
+	julia> bra(:X,1)''==bra(:X,1)
+	true
+
 ###1.2 Tensor Product States
 
 __Description__
 
+States of the same "kind" (i.e. multiple `Bra`s, or multiple `Ket`s) 
+can serve as factors of a tensor product state, the definition of 
+which is below:
+
+	immutable Tensor{S<:Union(Bra, Ket)} <: State{S}
+		states::Vector{S}
+		Tensor{K<:Ket}(v::Vector{K}) = new(v)
+		Tensor{B<:Bra}(v::Vector{B}) = new(v)
+	end 
+
+As you can see, "kind" orienation homogeneity is enforced via the inner constructors,
+and a `Tensor` object is parameterized by the element type of the `Vector` that
+stores its factors. 
+
 __Examples__
+
+To take the tensor product of multiple states, use the `tensor` function:
+
+	julia> k,s = ket(:K,1), ket(:S,"a")
+	(| 1:K ⟩,| "a":S ⟩)
+
+	julia> t = tensor(k,k,k)
+	| 1:K, 1:K, 1:K ⟩
+
+	julia> typeof(ans)
+	Tensor{Ket{:K,Int64}} (constructor with 2 methods)
+
+	julia> tensor(s,t)
+	| "a":S, 1:K, 1:K, 1:K ⟩
+
+	julia> tensor(t,s)
+	| 1:K, 1:K, 1:K, "a":S ⟩
+
+	julia> typeof(ans)
+	Tensor{Ket{b,T}} (constructor with 2 methods)
+
+The same thing can be done with `Bra`s:
+
+	julia> t = tensor(k',k')
+	⟨ 1:K, 1:K |
+
+	julia> typeof(ans)
+	Tensor{Bra{:K,Int64}} (constructor with 2 methods)
+
+	julia> tensor(t, s')
+	⟨ 1:K, 1:K, "a":S |
+
+	julia> typeof(ans)
+	Tensor{Bra{b,T}} (constructor with 2 methods)
+
+Mixing `Bra`s and `Ket`s will throw an error:
+
+	julia> tensor(k,k')
+	ERROR: KindMismatch: cannot perform tensor(| 1:K ⟩, ⟨ 1:K |)
+	 in error at error.jl:21
+	 in tensor at /Users/jarrettrevels/data/repos/quantum/src/state.jl:46
+
+Finally, one can obtain the dual of a `Tensor` state
+by using the `ctranspose` function (`'`):
+
+	julia> t=tensor(k,s)
+	| 1:K, "a":S ⟩
+
+	julia> t'
+	⟨ 1:K, "a":S |
+
+	julia> t''==t
+	true
 
 ###1.3 Other Operations on states
 
 Now that we know how to construct states, let's explore how they operate.
-Here is a list of some of the functions that involve states:
+Here is a list of some binary operations on states:
 	
-	label(s::State)
-		returns the label of a state
-	bsym(s::State)
-		returns the basis symbol associated with the state
-	ctranspose(s::State)
-		returns the dual of a state
-	isdual(a::State, b::State)
-		checks to see whether `a` is the dual of `b`
-	labeldelta(a::State, b::State)
-		returns 1 if label(a)==label(b), or 0 otherwise
 	inner{B<:Bra, K<:Ket}(a::State{B}, b::State{K})
 		computes the inner product of `a` and `b`
 	kron(a::State, b::State)
@@ -92,10 +158,9 @@ Here is a list of some of the functions that involve states:
 	*(a::State, b::State)
 		vector multiplication between `a` and `b`
 
-These aren't all of the functions that states support (additive
-operations, in particular, are covered in the section on DiracVectors), 
-but for now we'll examine the different kind of products between two states. 
-
+There are many other operations involving states - some, like
+addition, we'll touch on later in this documentation. Others
+can be found in [Quantum.jl's API](/docs/api.md)
 
 
 
