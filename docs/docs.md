@@ -244,7 +244,7 @@ Thus, ⟨ a | a, b ⟩ is interpreted as ⟨ a | a ⟩| b ⟩-> 1 | b ⟩:
 by a state (the coefficients, here, are both ⟨ 1:X | 1:X ⟩, which have resolved to 1). 
 
 Something like ⟨ a, b | c, d ⟩ resolves as 
-⟨ b |(⟨ a | c, d ⟩) ->  ⟨ b |⟨ a | c ⟩| d ⟩ -> ⟨ a | c ⟩⟨ b | d ⟩.
+⟨ b |⟨ a | c, d ⟩ ->  ⟨ b |⟨ a | c ⟩| d ⟩ -> ⟨ a | c ⟩⟨ b | d ⟩.
 This results in the expected behavior when taking the
 inner product of two `Tensor` states from the same bases: 
 
@@ -336,8 +336,8 @@ covered more thoroughly in the DiracMatrix section):
 __*__
 
 The `*` operator refers to standard vector multiplication. Thus,
-*(a::State{B<:Bra}, b::State{K<:Ket}) will return an `InnerProduct`,
-and *(a::State{K<:Ket}, b::State{B<:Bra}) will return an `OuterProduct`:
+`*(a::State{B<:Bra}, b::State{K<:Ket})` will return an `InnerProduct`,
+and `*(a::State{K<:Ket}, b::State{B<:Bra})` will return an `OuterProduct`:
 
 	julia> xv[1]'*xv[1]
 	1
