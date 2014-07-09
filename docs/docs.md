@@ -146,7 +146,7 @@ by using the `ctranspose` function (`'`):
 	julia> t''==t
 	true
 
-###1.3 Other Operations on states
+###1.3 Other Operations on States
 
 Now that we know how to construct states, let's explore how they operate.
 Here is a list of some binary operations on states:
@@ -158,9 +158,11 @@ Here is a list of some binary operations on states:
 	*(a::State, b::State)
 		vector multiplication between `a` and `b`
 
-There are many other operations involving states - some, like
-addition, we'll touch on later in this documentation. Others
-can be found in [Quantum.jl's API](/docs/api.md)
+As you might imagine, there are many other operations involving 
+states - some, like addition, we'll touch on later in this 
+documentation. Others can be found in [Quantum.jl's API](/docs/api.md).
+
+__`kron`__
 
 
 
