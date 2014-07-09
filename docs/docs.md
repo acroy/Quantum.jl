@@ -5,7 +5,7 @@ Quantum.jl Documentation
 ##0. Abstract Types
 
 The abstract type `Dirac` serves as the parent type for
-all qunatum objects - in other words, objects represented 
+all quantum objects - in other words, objects represented 
 with Dirac notation in Quantum.jl.
 
 In addition, the abstract type `AbstractScalar` has been 
