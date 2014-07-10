@@ -596,7 +596,7 @@ basis from the examples in section 2.1):
 	| 4:X, 4:X, 3:X ⟩
 	| 4:X, 4:X, 4:X ⟩
 
-Or, you can just pass `Tensor` objects to the `basis` function:
+Or, you can just pass `Tensor` states to the `basis` function:
 
 	julia> tb_partial=basis(tb[1], tb[10], tb[100])
 	TensorBasis{Ket{:X,Int64},Basis{Ket{:X,Int64}}}, 3 states:
