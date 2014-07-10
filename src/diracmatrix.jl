@@ -214,25 +214,25 @@ add_out{K,B,T<:InnerProduct}(dm::DiracMatrix{K,B,T}, o) = add_out!(1*dm, o) #con
 function add_bra(dm::DiracMatrix, o::OuterProduct)
 	newcol = zeros(size(dm,1))
 	newcol[get(dm.rowb, o.ket)] = 1 
-	return dmat(hcat(dm.coeffs,newcol), dm.rowb, bjoin(dm.colb, o.bra))
+	return dmat(hcat(dm.coeffs,newcol), dm.rowb, bcat(dm.colb, o.bra))
 end
 
 function add_bra(o::OuterProduct, dm::DiracMatrix)
 	newcol = zeros(size(dm,1))
 	newcol[get(dm.rowb, o.ket)] = 1 
-	return dmat(hcat(newcol, dm.coeffs), dm.rowb, bjoin(o.bra, dm.colb))
+	return dmat(hcat(newcol, dm.coeffs), dm.rowb, bcat(o.bra, dm.colb))
 end
 
 function add_ket(dm::DiracMatrix, o::OuterProduct)
 	newrow = zeros(1,size(dm,2))
 	newrow[get(dm.colb, o.bra)] = 1 
-	return dmat(vcat(dm.coeffs,newrow), bjoin(dm.rowb, o.ket), dm.colb)
+	return dmat(vcat(dm.coeffs,newrow), bcat(dm.rowb, o.ket), dm.colb)
 end
 
 function add_ket(o::OuterProduct, dm::DiracMatrix)
 	newrow = zeros(1,size(dm,2))
 	newrow[get(dm.colb, o.bra)] = 1 
-	return dmat(vcat(newrow,dm.coeffs), bjoin(o.ket,dm.rowb), dm.colb)
+	return dmat(vcat(newrow,dm.coeffs), bcat(o.ket,dm.rowb), dm.colb)
 end
 
 function add_both!(dm::DiracMatrix, o::OuterProduct)
@@ -250,11 +250,11 @@ function add_both!(o::OuterProduct,dm::DiracMatrix,rb,cb,res)
 end
 
 add_both(dm::DiracMatrix, o::OuterProduct, rb, cb) = add_both!(dm, o, rb, cb, zeros(length(rb), length(cb)))
-add_both{K,B,T}(dm::DiracMatrix{K,B,T}, o::OuterProduct) = add_both(dm, o, bjoin(dm.rowb, o.ket), bjoin(dm.colb, o.bra))
+add_both{K,B,T}(dm::DiracMatrix{K,B,T}, o::OuterProduct) = add_both(dm, o, bcat(dm.rowb, o.ket), bcat(dm.colb, o.bra))
 add_both{K,B,T<:InnerProduct}(dm::DiracMatrix{K,B,T}, o::OuterProduct) = add_both(1*dm, o)
 
 add_both(o::OuterProduct, dm::DiracMatrix, rb, cb) = add_both!(o, dm, rb, cb, zeros(length(rb), length(cb)))
-add_both{K,B,T}(o::OuterProduct, dm::DiracMatrix{K,B,T}) = add_both(o, dm, bjoin(o.ket, dm.rowb), bjoin(o.bra, dm.colb))
+add_both{K,B,T}(o::OuterProduct, dm::DiracMatrix{K,B,T}) = add_both(o, dm, bcat(o.ket, dm.rowb), bcat(o.bra, dm.colb))
 add_both{K,B,T<:InnerProduct}(o::OuterProduct, dm::DiracMatrix{K,B,T}) = add_both(o,1*dm)
 
 function +{K<:Ket, B<:Bra}(op::DiracMatrix{K,B}, o::OuterProduct{K,B})

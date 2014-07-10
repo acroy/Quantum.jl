@@ -223,7 +223,7 @@ function +{K<:Ket}(d::DiracVector{K}, s::State{K})
 	if in(s, d.basis)
 		return addstate!(copy(d),s)
 	else
-		return dvec(vcat(d.coeffs, speye(1)), bjoin(d.basis,s))
+		return dvec(vcat(d.coeffs, speye(1)), bcat(d.basis,s))
 	end
 end
 
@@ -231,7 +231,7 @@ function +{B<:Bra}(d::DiracVector{B}, s::State{B})
 	if in(s, d.basis)
 		return addstate!(copy(d),s)
 	else
-		return dvec(hcat(d.coeffs, speye(1)), bjoin(d.basis,s))
+		return dvec(hcat(d.coeffs, speye(1)), bcat(d.basis,s))
 	end
 end
 
@@ -239,7 +239,7 @@ function +{K<:Ket}(s::State{K}, d::DiracVector{K})
 	if in(s, d.basis)
 		return addstate!(copy(d),s)
 	else
-		return dvec(vcat(speye(1), d.coeffs), bjoin(s,d.basis))
+		return dvec(vcat(speye(1), d.coeffs), bcat(s,d.basis))
 	end
 end
 
@@ -247,7 +247,7 @@ function +{B<:Bra}(s::State{B}, d::DiracVector{B})
 	if in(s, d.basis)
 		return addstate!(copy(d),s)
 	else
-		return dvec(hcat(speye(1),d.coeffs), bjoin(s,d.basis))
+		return dvec(hcat(speye(1),d.coeffs), bcat(s,d.basis))
 	end
 end
 

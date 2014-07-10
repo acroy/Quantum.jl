@@ -8,13 +8,19 @@ The abstract type `Dirac` serves as the parent type for
 all quantum objects - in other words, objects represented 
 with Dirac notation in Quantum.jl.
 
-In addition, the abstract type `AbstractScalar` has been 
-defined as the parent type for `Dirac` objects that behave 
-like numbers, such as inner products and arithmetic expressions
-involving inner products (see `ScalarExpr` and `InnerProduct` types
-for more information).
+The abstract type `AbstractScalar` has been defined as the parent 
+type for `Dirac` objects that behave like numbers, such as the 
+`ScalarExpr` and `InnerProduct` types.
 
-##1. States and Their Operations
+The abstract type `State` has been defined as the parent 
+type for `Dirac` objects that behave like abstract vectors, 
+such as the `Bra`, `Ket`, and `Tensor` types. 
+
+Finally, `AbstractOperator` is the parent type for `Dirac` objects
+that behave like operators, such as `DiracMatrix` and `OuterProduct`
+types.
+
+##1. States and Their Products
 ###1.1 Eigenkets and Eigenbras
 __Description__
 
@@ -145,6 +151,20 @@ Mixing `Bra`s and `Ket`s will throw an error:
 	ERROR: KindMismatch: cannot perform tensor(| 1:K ⟩, ⟨ 1:K |)
 	 in error at error.jl:21
 	 in tensor at /Users/jarrettrevels/data/repos/quantum/src/state.jl:46
+
+One can index into a `Tensor` state just like one would a vector:
+
+	julia> t = tensor(ket(:K,1),ket(:L,"2"),ket(:M, 3.0))
+	| 1:K, "2":L, 3.0:M ⟩
+
+	julia> t[2]
+	| "2":L ⟩
+
+	julia> t[1:end]
+	3-element Array{Ket{b,T},1}:
+	 | 1:K ⟩
+	 | "2":L ⟩
+	 | 3.0:M ⟩
 
 Finally, one can obtain the dual of a `Tensor` state
 by using the `ctranspose` function (`'`):
@@ -363,195 +383,247 @@ that operation, you should use `tensor` or `kron` instead:
 	julia> kron(xv[1], sv[1])
 	| 1:X, "1":S ⟩
 
-<!--
-##2. Collections of states: Bases and TensorBases
 
-Let's try creating an array of states.
+##2. `Basis` and `TensorBasis`
 
-	julia> [ket(:F,i) for i=1:5]
-	5-element Array{Ket{b,Int64},1}:
-	 | 1:F ⟩
-	 | 2:F ⟩
-	 | 3:F ⟩
-	 | 4:F ⟩
-	 | 5:F ⟩
+###2.1 `Basis`
 
-As you can see, Julia's type inference system doesn't specify a basis for the element type
-of the array, despite the fact that all elements share the same basis. This can be 
-a performance issue for large collections of states. In that case, one would want to 
-use an explicit constructor to make sure the compiler can inference types correctly:
+__Description__
+The linear representations provided by Quantum.jl rely on collections
+of `State` objects that form `Basis` objects. The sections on `DiracVector`
+and `DiracMatrix` types will make this apparent, but for now, let's get a 
+feel for working with `Basis` objects themselves. 
 
-	julia> @time [ket(1,i) for i=1:100000]; #convenience constructor ket()
-	elapsed time: 0.036017889 seconds (7183712 bytes allocated)
+A `Basis` object, as one might imagine, is a collection of eigenstates
+that form a truncated, finite dimensional basis. Stored in a `Basis` 
+object is a map that allows the indexing of representations by eigenstates 
+themselves. This map is useful for spectral analysis, state filtering, and 
+more. 
 
-	julia> @time [Ket{1,Int64}(i) for i=1:100000]; #explicit constructor Ket{b,T}
-	elapsed time: 6.5534e-5 seconds (800048 bytes allocated)
+A `Basis` is parameterized by the kind of states that inhabit it (`Bra{b,T}` or `Ket{b,T}`). 
+In order for Julia's type inference and multiple dispatch to be fully utilized, 
+*all states in a basis must be of the same concrete type.* This ensures two things:
 
-#####################################################################
+a) Eigenstates of a `Basis` all share a basis identifier. 
 
-Taking the inner product of `TensorState`s and `State`s can be ambiguous 
-without specifying which component states are acting on each other. 
-For example, the operation ⟨ a | a, b ⟩ is ambiguous; calculating it
-as ⟨ a | a ⟩| b ⟩ or ⟨ a | b ⟩ | a ⟩ yields two different results. 
+b) Eigenstates of a `Basis` all share the same label type. This greatly 
+improves performance, and also promotes robust design in terms of how
+one selects their quantum numbers. 
 
-By default, Quantum.jl will always match component states to each other
-by position, applying left to right. Thus, ⟨ a | a, b ⟩ is interpreted as 
-⟨ a | a ⟩| b ⟩, and something like ⟨ a, c | a, b ⟩ is interpreted as 
-⟨ c |(⟨ a | a, b ⟩) ->  ⟨ c |⟨ a | a ⟩| b ⟩ -> ⟨ c | b ⟩:
+The third and final constraint on the states contained in a `Basis` is 
+that the states must be unique. If they are not, Quantum.jl automatically
+filters out the unique states in the collection provided and uses those.
 
-	julia> ts'*ts
-	1
+__Examples__
 
-	#sv[2]' -> ⟨ 2:X |
-	julia> sv[2]'*ts
-	0
+One can use the `basis` function to construct `Basis` objects in much
+the same way as we used `svec` in section 1.3:
 
-	#ts' -> ⟨ 1:X, "Bob":B, 3:X |, prod(ts[1:2]) -> | 1:X, "Bob":B ⟩
-	julia> ts'*prod(ts[1:2])
-	⟨ 3:X |
+	julia> b=basis(:X, [0:4])
+	Basis{Ket{:X,Int64}}, 5 states:
+	| 0:X ⟩
+	| 1:X ⟩
+	| 2:X ⟩
+	| 3:X ⟩
+	| 4:X ⟩
 
-	#prod(ts[[1,3,2]]) -> | 1:X, 3:X, "Bob":B ⟩
-	julia> ts'*prod(ts[[1,3,2]])
-	ScalarExpr(:(⟨ "Bob":B |  3:X ⟩ * ⟨ 3:X |  "Bob":B ⟩))
+You can also construct a `Basis` by feeding the `basis` function
+with states, or a `Vector` of states:
 
-A `ScalarExpr` is an object that allows the user to transform `InnerProduct`s 
-like numbers; thus they can be multiplied together, as ⟨ "Bob":B |  3:X ⟩ and 
-⟨ 3:X |  "Bob":B ⟩ are above. `ScalarExpr`s are described (along with `InnerProduct`s) 
-in their own section later on. 
+	julia> basis(ket(:S,"a"), ket(:S,"b"), ket(:S,"c"))
+	Basis{Ket{:S,ASCIIString}}, 3 states:
+	| "a":S ⟩
+	| "b":S ⟩
+	| "c":S ⟩
 
-To take inner products in a more explicit manner, one can use the `inner` function. 
-The `inner` function takes a `Bra` state, `Ket` state, and an `Int` argument that
-specifies index of the components on which the states act:
-
-	#Default behavior
-	julia> sv[3]'*ts #⟨ 3:X | 1:X, "Bob":B, 3:X ⟩ -> ⟨ 3:X | 1:X ⟩*| "Bob":B, 3:X ⟩ -> 0*| "Bob":B, 3:X ⟩ 
-	0
-
-	#using inner to specify which `Ket` state the `Bra` is acting on 
-	julia> inner(sv[3]', ts, 3) #| 1:X, "Bob":B ⟩*⟨ 3:X | 3:X ⟩ -> | 1:X, "Bob":B ⟩*1
-	| 1:X, "Bob":B ⟩ 
+	julia> basis([ket(:S,"a"), ket(:S,"b"), ket(:S,"c")])
+	Basis{Ket{:S,ASCIIString}}, 3 states:
+	| "a":S ⟩
+	| "b":S ⟩
+	| "c":S ⟩
 	
-	#the integer argument always refers to an index of the TensorState being acted upon 
-	julia> inner(ts', sv[3], 3) #⟨ 1:X, "Bob":B |*⟨ 3:X | 3:X ⟩ -> ⟨ 1:X, "Bob":B |*1
-	⟨ 1:X, "Bob":B |
+Just like states, `Basis` objects are transformed into their duals using
+the `ctranspose` operator:
 
-If one is taking an inner product between two `TensorState`s, the target of the indexing 
-argument can be specified, and defaults to `Ket`:
+	julia> b'
+	Basis{Bra{:X,Int64}}, 5 states:
+	⟨ 0:X |
+	⟨ 1:X |
+	⟨ 2:X |
+	⟨ 3:X |
+	⟨ 4:X |
 
-	inner{K<:BraKet}(a::TensorState{Bra}, b::TensorState{Ket}, i::Int, target::Type{K}=Ket)
+Many functions that are defined on standard `Vector`s are defined on `Basis` objects:
 
+	julia> b[1]
+	| 0:X ⟩
 
-3. Basis
---- 
-__Description__ 
+	julia> b[1:3] #note that this returns a Vector instead of a Basis 
+	3-element Array{Ket{:X,Int64},1}:
+	 | 0:X ⟩
+	 | 1:X ⟩
+	 | 2:X ⟩
 
-A `Basis` is a mapping of labels onto the indices of a state vector
-representing a given Hilbert subspace. In other words, `Basis` provides a
-label for each position in a coefficient vector that represents a `State` in
-that `Basis`. A basis is a finite dimensional subspace of the Hilbert space that
-has been selected according to some arbitrary labeling or behavioral pattern,
-as defined by the user.  A graph theoretic approach to thinking about 
-bases would be to consider objects of the type `Basis` as maps used to traverse 
-a state representation graph, whose nodes are the states forming a given Hilbert
-subspace and whose edges are weighted by coefficient values.
+	julia> filter(x->label(x)%2==0, b)
+	Basis{Ket{:X,Int64}}, 3 states:
+	| 0:X ⟩
+	| 2:X ⟩
+	| 4:X ⟩
 
-Taking the tensor product of `Basis` objects results in a new object of type
-`TensorBasis`, which points to the original “separable” `Basis` objects in
-addition to storing the new multi-system basis that resulted from taking the
-tensor product. This allows for the optimization of operations on
-states and operators represented in a `TensorBasis` (for example, taking the partial
-trace of an `OperatorRep`).
+	julia> map(x->ket(:X,label(x)^2), b)
+	Basis{Ket{:X,Int64}}, 5 states:
+	| 0:X ⟩
+	| 1:X ⟩
+	| 4:X ⟩
+	| 9:X ⟩
+	| 16:X ⟩
 
-__Definition__
+One can use `bcat` to join together bases and states:
 
-	immutable Basis{K<:BraKet} <: AbstractBasis{K}
-		label
-		states::Vector{State{K}}
-		label_map::Dict{Vector, Int}
-	end
+	julia> bcat(b, ket(:X, 5))
+	Basis{Ket{:X,Int64}}, 6 states:
+	| 0:X ⟩
+	| 1:X ⟩
+	| 2:X ⟩
+	| 3:X ⟩
+	| 4:X ⟩
+	| 5:X ⟩
 
-	immutable TensorBasis{K<:BraKet} <: AbstractBasis{K}
-		bases::Vector{Basis{K}}
-		states::Vector{State{K}}
-		label_map::Dict{Vector, Int}
-	end
+	julia> bcat(ket(:X, 5), b)
+	Basis{Ket{:X,Int64}}, 6 states:
+	| 5:X ⟩
+	| 0:X ⟩
+	| 1:X ⟩
+	| 2:X ⟩
+	| 3:X ⟩
+	| 4:X ⟩
 
-__Constructors__
+	julia> bcat(basis(:X, [-4:-1]), b)
+	Basis{Ket{:X,Int64}}, 9 states:
+	| -4:X ⟩
+	| -3:X ⟩
+	| -2:X ⟩
+	| -1:X ⟩
+	| 0:X ⟩
+	| 1:X ⟩
+	| 2:X ⟩
+	| 3:X ⟩
+	| 4:X ⟩
 
-	Basis{K<:BraKet}(label, states::Vector{State{K}})
-	Basis{K<:BraKet}(label, states::State{K}...)
-	Basis(label, label_vec::Vector)	
+	julia> bcat(b, basis(:X, [0:7]))
+	Basis{Ket{:X,Int64}}, 11 states:
+	| 0:X ⟩
+	| 1:X ⟩
+	| 2:X ⟩
+	| 3:X ⟩
+	| 4:X ⟩
+	| 5:X ⟩
+	| 6:X ⟩
+	| 7:X ⟩
 
-	TensorBasis{K<:BraKet}(bases::Vector{Basis{K}}, states::Vector{State{K}})
+Note in the above example how concatenating two `Basis` objects resulted in a `Basis` 
+containing only the unique states of both. 
 
-__Methods and Examples__
+You can also use `Basis` objects as dicitonaries, where the keys are
+states and the values are their position in the collection:
 
-You can form a basis from a `Vector` of states, or a `Vector` of state labels:
+	julia> b
+	Basis{Ket{:X,Int64}}, 5 states:
+	| 0:X ⟩
+	| 1:X ⟩
+	| 2:X ⟩
+	| 3:X ⟩
+	| 4:X ⟩
 
-	julia> Basis("abc", separate(abc))
-	Basis{Ket} abc:
-	| :a ⟩
-	| :n ⟩
-	| 3 ⟩
+	julia> get(b, ket(:X, 3))
+	4
 
-	julia> qb = Basis("qb",[1,0])
-	Basis{Ket} qb:
-	| 1 ⟩
-	| 0 ⟩
+	julia> b[ans]
+	| 3:X ⟩
 
-It is also possible to take the tensor product of bases:
+	julia> get(b, ket(:S, "a"), "not there!")
+	"not there!"
 
-	julia> tb = qb*qb*qb
-	TensorBasis{Ket} qb ⊗ qb ⊗ qb:
-	| 1,1,1 ⟩
-	| 1,1,0 ⟩
-	| 1,0,1 ⟩
-	| 1,0,0 ⟩
-	| 0,1,1 ⟩
-	| 0,1,0 ⟩
-	| 0,0,1 ⟩
-	| 0,0,0 ⟩
+###2.2 `TensorBasis`
 
-Assignment and retrieval is possible in the normal manner:
+__Description__
 
-	julia> tb[1]
-	| 1,1,1 ⟩
+Multi-component descriptions of quantum systems often make use of a separable
+tensor product structure. We've already introduced the tensor product state
+type `Tensor`; Quantum.jl's tensor product basis type is the `TensorBasis`.
 
-You can use `filter` to extract subspaces of a basis via arbitrary selection
-rules (as defined by the function passed to `filter`):
+Taking the tensor product of `Basis` objects results in a `TensorBasis`,
+which points to the original “separable” `Basis` objects in addition to
+storing the `Tensor` states that resulted from taking the tensor product.
+This allows for the optimization of operations on states and operators
+represented in a `TensorBasis` (for example, taking the partial trace of a
+`DiracMatrix`).
 
-	julia> tb = filter(x->x[1]==1, tb)
-	TensorBasis{Ket} sub_(qb ⊗ qb ⊗ qb)_1 ⊗ sub_(qb ⊗ qb ⊗ qb)_2 ⊗ sub_(qb ⊗ qb ⊗ qb)_3:
-	| 1,1,1 ⟩
-	| 1,1,0 ⟩
-	| 1,0,1 ⟩
-	| 1,0,0 ⟩
+`TensorBasis` objects behave similarly to `Basis` objects, and the
+restrictions on `TensorBasis` objects are extensions of the restrictions of
+of their component bases. Each component `Basis` of a `TensorBasis` must,
+obviously, be a valid basis in and of itself, and the constraint on state
+uniqueness is similarly enforced for `TensorBasis` objects, as well.
 
-Note that the component bases were transformed by the filtering operation. We
-can see this explicitly using `separate`:
+__Examples__
+
+The easiest and most efficient way to construct a `TensorBasis` is 
+to pass `Basis` objects to the `tensor` function (using the `b`
+basis from the examples in section 2.1):
+
+	julia> tb = tensor(b,b,b)
+	TensorBasis{Ket{:X,Int64},Basis{Ket{:X,Int64}}}, 125 states:
+	| 0:X, 0:X, 0:X ⟩
+	| 0:X, 0:X, 1:X ⟩
+	| 0:X, 0:X, 2:X ⟩
+	| 0:X, 0:X, 3:X ⟩
+	| 0:X, 0:X, 4:X ⟩
+	| 0:X, 1:X, 0:X ⟩
+	| 0:X, 1:X, 1:X ⟩
+	| 0:X, 1:X, 2:X ⟩
+	| 0:X, 1:X, 3:X ⟩
+	| 0:X, 1:X, 4:X ⟩
+	⁞
+	| 4:X, 2:X, 4:X ⟩
+	| 4:X, 3:X, 0:X ⟩
+	| 4:X, 3:X, 1:X ⟩
+	| 4:X, 3:X, 2:X ⟩
+	| 4:X, 3:X, 3:X ⟩
+	| 4:X, 3:X, 4:X ⟩
+	| 4:X, 4:X, 0:X ⟩
+	| 4:X, 4:X, 1:X ⟩
+	| 4:X, 4:X, 2:X ⟩
+	| 4:X, 4:X, 3:X ⟩
+	| 4:X, 4:X, 4:X ⟩
+
+Or, you can just pass `Tensor` objects to the `basis` function:
+
+	julia> tb_partial=basis(tb[1], tb[10], tb[100])
+	TensorBasis{Ket{:X,Int64},Basis{Ket{:X,Int64}}}, 3 states:
+	| 0:X, 0:X, 0:X ⟩
+	| 0:X, 1:X, 4:X ⟩
+	| 3:X, 4:X, 4:X ⟩
+
+`TensorBasis` objects handle all the same functions as `Basis`
+objects (`bcat`, `map`, `filter`, etc.). In addition, a `TensorBasis`
+can be separated into its component bases using `separate`:
 
 	julia> separate(tb)
-	3-element Array{Basis{Ket},1}:
-	Basis{Ket} sub_(qb ⊗ qb ⊗ qb)_1:
-	| 1 ⟩
-	Basis{Ket} sub_(qb ⊗ qb ⊗ qb)_2:
-	| 1 ⟩
-	| 0 ⟩
-	Basis{Ket} sub_(qb ⊗ qb ⊗ qb)_3:
-	| 1 ⟩
-	| 0 ⟩
+	3-element Array{Basis{Ket{:X,Int64}},1}:
+	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 1:X ⟩,| 2:X ⟩,| 3:X ⟩,| 4:X ⟩]
+	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 1:X ⟩,| 2:X ⟩,| 3:X ⟩,| 4:X ⟩]
+	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 1:X ⟩,| 2:X ⟩,| 3:X ⟩,| 4:X ⟩]
 
-For the representation of `State{Bra}`s, you must have
-a basis in the dual space. Thus, the `ctranspose` function
-acts accordingly:
+	julia> separate(tb_partial)
+	3-element Array{Basis{Ket{:X,Int64}},1}:
+	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 3:X ⟩]
+	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 1:X ⟩,| 4:X ⟩]
+	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 4:X ⟩]
 
-	julia> tb'
-	TensorBasis{Bra} sub_(qb ⊗ qb ⊗ qb)_1 ⊗ sub_(qb ⊗ qb ⊗ qb)_2 ⊗ sub_(qb ⊗ qb ⊗ qb)_3:
-	⟨ 1,1,1 |
-	⟨ 1,1,0 |
-	⟨ 0,0,1 |
-	⟨ 0,0,0 |
+As you can see, the component bases for `tb_partial` had to 
+be inferred from the states provided. 
 
+<!--
 4. StateRep
 ---
 __Description__ 

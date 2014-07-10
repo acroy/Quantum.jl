@@ -107,7 +107,7 @@ module Quantum
 		   inner,
 		   samebasis,
 		   kind,
-		   bjoin,
+		   bcat,
 		   findstates,
 		   filtercoeffs,
 		   filterstates,

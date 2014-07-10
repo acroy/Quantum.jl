@@ -159,6 +159,9 @@ end
 
 get(b::AbstractBasis, s::State, notfound) = notfound
 get(b::AbstractBasis, s::State) = throw(KeyError(s))	
+
+getpos(b::AbstractBasis, args...) = get(b, ars...)
+
 in(s::State, b::AbstractBasis)= false	
 in(s, b::AbstractBasis)= error("in(s,b::AbstractBasis) is defined for s of type State, not $(typeof(s))")
 
@@ -177,18 +180,22 @@ function reprlabel(b::TensorBasis)
 	return str
 end
 
-showcompact(io::IO, b::AbstractBasis) = print(io, "$(typeof(b))")
+summary(io::IO, b::AbstractBasis)= print(io, "$(typeof(b))")
+
+showcompact(io::IO, b::AbstractBasis) = (summary(io, b); show(io, b.states))
 
 function show(io::IO, b::AbstractBasis)
-	showcompact(io, b)
+	summary(io, b)
 	println(", $(length(b)) states:")
 	if length(b)>20
 		for i=1:10
 			println(io, b.states[i])
 		end
 		println(vdots)
-		for i=length(b)-10:length(b)
-			println(io, b.states[i])
+		show(io, b.states[length(b)-10])
+		for i=length(b)-9:length(b)
+			print('\n')
+			show(io, b.states[i])
 		end
 	else
 		show(io, b.states[1])
@@ -218,11 +225,11 @@ function stateappend(d::Dict,s::State)
 	return resmap
 end
 
-function bjoin{S}(a::Basis{S}, b::Basis{S})
+function bcat{S}(a::Basis{S}, b::Basis{S})
 	consbasis(unique(vcat(a.states, b.states)))
 end
 
-function bjoin{S}(b::Basis{S}, s::S)
+function bcat{S}(b::Basis{S}, s::S)
 	if in(s, b)
 		return b
 	else
@@ -230,7 +237,7 @@ function bjoin{S}(b::Basis{S}, s::S)
 	end
 end
 
-function bjoin{S}(s::S, b::Basis{S})
+function bcat{S}(s::S, b::Basis{S})
 	if in(s, b)
 		return b
 	else
@@ -238,7 +245,7 @@ function bjoin{S}(s::S, b::Basis{S})
 	end
 end
 
-function bjoin{S}(b::TensorBasis{S}, s::Tensor{S})
+function bcat{S}(b::TensorBasis{S}, s::Tensor{S})
 	if in(s, b)
 		return b
 	else
@@ -247,7 +254,7 @@ function bjoin{S}(b::TensorBasis{S}, s::Tensor{S})
 	end
 end
 
-function bjoin{S}(s::Tensor{S},b::TensorBasis{S})
+function bcat{S}(s::Tensor{S},b::TensorBasis{S})
 	if in(s, b)
 		return b
 	else
@@ -256,14 +263,10 @@ function bjoin{S}(s::Tensor{S},b::TensorBasis{S})
 	end
 end
 
-bjoin{S}(a::TensorBasis{S}, b::TensorBasis{S}) = basis(vcat(a.states, b.states))
-
+bcat{S}(a::TensorBasis{S}, b::TensorBasis{S}) = basis(vcat(a.states, b.states))
 
 kron(a::AbstractBasis, b::AbstractBasis) = tensor(a,b)
 kron(a::AbstractBasis, b::State) = tensor(a,b)
 kron(a::State, b::AbstractBasis) = tensor(a,b)
-+(a::AbstractBasis, b::AbstractBasis) = bjoin(a,b)
-+(a::AbstractBasis, b::State) = bjoin(a,b)
-+(a::State, b::AbstractBasis) = bjoin(a,b)
 
 setdiff(a::AbstractBasis,b::AbstractBasis) = setdiff(a.states, b.states)
