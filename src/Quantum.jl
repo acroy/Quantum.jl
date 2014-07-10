@@ -64,6 +64,9 @@ module Quantum
 	#####################################
 	abstract Dirac
 	abstract AbstractScalar <: Dirac
+	abstract AbstractOperator <: Dirac
+	abstract State{S} <: Dirac
+
 	typealias DiracCoeff Union(Number, AbstractScalar)
 
 	#####################################

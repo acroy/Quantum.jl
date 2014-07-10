@@ -2,7 +2,7 @@
 #InnerProduct/OuterProduct###########
 #####################################
 
-immutable OuterProduct{K<:Ket,B<:Bra} <: Dirac
+immutable OuterProduct{K<:Ket,B<:Bra} <: AbstractOperator
 	ket::State{K}
 	bra::State{B}
 end

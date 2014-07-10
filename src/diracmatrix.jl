@@ -2,7 +2,7 @@
 #DiracMatrix#########################
 #####################################
 
-type DiracMatrix{K<:Ket, B<:Bra, T} <: Dirac
+type DiracMatrix{K<:Ket, B<:Bra, T} <: AbstractOperator
 	coeffs::SparseMatrixCSC{T, Int}
 	rowb::AbstractBasis{K}
 	colb::AbstractBasis{B}
@@ -325,5 +325,5 @@ function ptrace(op::DiracMatrix, ind::Int)
 	return dmat(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), trrow, trcol) #use vcat()/hcat() trick to convert to most primitive common type
 end
 
-actop{K<:Ket}(dm::DiracMatrix, s::Tensor{K}, i::Integer) = kron(vcat(s[1:i-1], dm*s[i], s[i+1:end])...)
-actop{B<:Bra}(dm::DiracMatrix, s::Tensor{B}, i::Integer) = kron(vcat(s[1:i-1], s[i]*dm, s[i+1:end])...)
+actop{K<:Ket}(op::AbstractOperator, s::Tensor{K}, i::Integer) = kron(vcat(s[1:i-1], op*s[i], s[i+1:end])...)
+actop{B<:Bra}(op::AbstractOperator, s::Tensor{B}, i::Integer) = kron(vcat(s[1:i-1], s[i]*op, s[i+1:end])...)
