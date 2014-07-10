@@ -22,9 +22,6 @@ immutable Tensor{S<:Single} <: State{S}
 	Tensor{B<:Bra}(v::Vector{B}) = new(v)
 end 
 
-ket(bsym::Array, label::Array) = (@assert length(bsym)==length(label); tensor([ket(bsym[i], label[i]) for i=1:length(label)]...))
-bra(bsym::Array, label::Array) = (@assert length(bsym)==length(label); tensor([bra(bsym[i], label[i]) for i=1:length(label)]...))
-
 tensor() = error("no method tensor()")
 tensor(s::State) = s 
 tensor(s::State...) = tensor(collect(s)) 
