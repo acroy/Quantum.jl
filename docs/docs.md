@@ -624,7 +624,7 @@ As you can see, the component bases for `tb_partial` had to
 be inferred from the states provided. These bases each contain 
 the minimum number of states such that their tensor 
 product contains the states that make up the original
-`TensorBasis` (in this case: `| 0:X, 0:X, 0:X ⟩`, 
+`TensorBasis` (in the case of `tb_partial`: `| 0:X, 0:X, 0:X ⟩`, 
 `| 0:X, 1:X, 4:X ⟩`, `| 3:X, 4:X, 4:X ⟩`).
 
 <!--
