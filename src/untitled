@@ -1,4 +1,0 @@
-tensor{A<:($t), B<:($t)}(a::A, b::B) = Tensor{($t)}([a,b])
-tensor{A<:($t), B<:($t)}(a::A, b::Tensor{B}) = Tensor{($t)}([a,separate(b)])
-tensor{A<:($t), B<:($t)}(a::Tensor{A}, b::B) = Tensor{($t)}([separate(a),b])
-tensor{A<:($t), B<:($t)}(a::Tensor{A}, b::Tensor{B}) = Tensor{($t)}([separate(a),separate(b)])
