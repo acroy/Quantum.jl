@@ -124,12 +124,6 @@ end
 find(f::Function, dm::DiracMatrix) = find(f, dm.coeffs)
 findstates(f::Function, dm::DiracMatrix) = find(f, [dm.rowb[i]*dm.colb[j] for i=1:length(dm.rowb), j=1:length(dm.colb)]) #f takes OuterProduct as argument
 map(f::Function, dm::DiracMatrix) = dmat(map(f, dm.coeffs), dm.rowb, dm.colb)
-
-function map!(f::Function, dm::DiracMatrix)
-	dm.coeffs = map(f, dm.coeffs)
-	return dm
-end
-
 qeval(f::Function, dm::DiracMatrix) = map(x->qeval(f, x), dm)
 
 #####################################

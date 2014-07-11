@@ -15,11 +15,10 @@ hashbasis{S<:Single}(sv::Vector{S}, statemap::Dict) = Basis(sv, statemap, hash(s
 consbasis{S<:Single}(sv::Vector{S}) = hashbasis(sv, statemapper(sv))
 consbasis(bsym::Symbol,labelvec::Array) = consbasis(svec(bsym,labelvec))
 
-function makebasis{S<:Single}(sv::Vector{S})
-	@assert bsym(eltype(sv))!=Any "all states must have same bsym to construct Basis"
-	@assert labeltype(eltype(sv))!=Any "all states must have same labeltype to construct Basis"	
-	consbasis(sv)
-end
+#ensures basis states share a concrete type
+makebasis{b,T}(sv::Vector{Ket{b,T}}) = consbasis(sv)
+makebasis{b,T}(sv::Vector{Bra{b,T}}) = consbasis(sv)
+makebasis{S<:Single}(sv::Vector{S}) = error("cannot construct basis: all states must have same label type and same basis identifier")
 
 basis{S<:Single}(states::Vector{S}) = makebasis(unique(states))
 basis{S<:Single}(states::Array{S}) = basis(vec(states))

@@ -43,7 +43,6 @@ module Quantum
 		    abs,
 		    exp,
 		    map,
-		    map!,
 		    filter,
 		    find,
 		    ndims,

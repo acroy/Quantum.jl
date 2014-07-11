@@ -16,5 +16,8 @@ d = DiracVector([1:5], xb)
 @test d'*xb[1] == 1
 @test norm(normalize(d)) < 1+1e-8 && norm(normalize(d)) > 1-1e-8
 @test reduce(+,[i*xb[i]' for i=1:length(xb)]) == d'
+@test (1/sqrt(2)*xb[1]) + (1/sqrt(2)*xb[2]) == dvec([1/sqrt(2), 1/sqrt(2)], basis(xb[1], xb[2]))
+@test ket(:X,1)+ket(:X,1)+ket(:X,1) = dvec([3], basis(xb[1]))
+@test ket(:X,1)+(bra(:S,"1")*ket(:X, 1)) * ket(:X,1)==dvec([1+1*bra(:S,"1")*ket(:X,1)], basis(ket(:X,1)))
 
 end

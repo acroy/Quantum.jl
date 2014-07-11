@@ -12,6 +12,10 @@ immutable InnerProduct{B<:Bra, K<:Ket} <: AbstractScalar
 	ket::State{K}
 end
 
+promote_rule{N<:Number, I<:InnerProduct}(::Type{I}, ::Type{N}) = ScalarExpr
+promote_rule{N<:Number, I<:InnerProduct, T}(::Type{Array{I,T}}, ::Type{Array{N,T}}) = Array{ScalarExpr,T}
+promote_rule{N<:Number, I<:InnerProduct, T}(::Type{SparseMatrixCSC{I,T}}, ::Type{SparseMatrixCSC{N,T}}) = SparseMatrixCSC{ScalarExpr,T}
+
 #####################################
 #Misc Functions######################
 #####################################

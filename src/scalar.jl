@@ -11,6 +11,8 @@ isequal(a::ScalarExpr, b::ScalarExpr) = isequal(a.ex, b.ex)
 
 convert{N<:Union(InnerProduct, Number)}(::Type{ScalarExpr}, i::N) = ScalarExpr(:(1*$i))
 promote_rule{N<:Union(InnerProduct, Number)}(::Type{ScalarExpr}, ::Type{N}) = ScalarExpr
+promote_rule{N<:Union(InnerProduct, Number), T}(::Type{Array{ScalarExpr,T}}, ::Type{Array{N,T}}) = Array{ScalarExpr,T}
+promote_rule{N<:Union(InnerProduct, Number), T}(::Type{SparseMatrixCSC{ScalarExpr,T}}, ::Type{SparseMatrixCSC{N,T}}) = SparseMatrixCSC{ScalarExpr,T}
 
 scalar(ex::Expr) = ScalarExpr(ex)
 scalar(x) = convert(ScalarExpr, x)

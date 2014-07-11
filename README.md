@@ -66,9 +66,10 @@ Features
 	- Documentation
 	- registration of Quantum.jl as Julia package
 	- More Tests
-	- Optimization of mixed basis calculations
 
 ###Post-Release Goals/Ideas:
+	- More mixed-basis functionality for addition of Dirac objects
+	- A functional `Operator` type
 	- Interface with other similar libraries (eg. QuTiP)
 	- Continuous space support
 	- HDF5 support using HDF5.jl (https://github.com/timholy/HDF5.jl)

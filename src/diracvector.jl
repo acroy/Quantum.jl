@@ -21,6 +21,9 @@ DiracVector{S,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{S}) = DiracVec
 DiracVector(coeffs, s::State...) = DiracVector(coeffs, basis(collect(s)))
 dvec = DiracVector
 
+convert{S,T}(::Type{DiracVector{S,T}}, dv::DiracVector{S}) = dvec(convert(SparseMatrixCSC{T}, dv.coeffs), dv.basis)
+convert{S,T}(::Type{DiracVector{S,T}}, dv::DiracVector{S,T}) = dv
+
 #####################################
 #Access Functions####################
 #####################################
@@ -132,11 +135,6 @@ findstates(f::Function, d::DiracVector) = find(f, d.basis)
 
 map(f::Function, d::DiracVector)=dvec(map(f, d.coeffs), d.basis)
 
-function map!(f::Function, d::DiracVector)
-	map!(f, d.coeffs)
-	return d
-end
-
 function loadcoeffs!(coeffs, d, newbasis)
 	for i=1:length(newbasis)
 		coeffs[i] = get(d, newbasis[i])
@@ -193,9 +191,6 @@ for t=(:Bra, :Ket)
 	kron{A<:($t), B<:($t)}(a::DiracVector{A}, b::DiracVector{B}) = tensor(a,b)
 	kron{A<:($t), B<:($t)}(a::DiracVector{A}, b::State{B}) = tensor(a,b)
 	kron{A<:($t), B<:($t)}(a::State{B}, b::DiracVector{A}) = tensor(a,b)
-	*{A<:($t), B<:($t)}(a::DiracVector{A}, b::DiracVector{B}) = error("vector multiplication undefined between two $(A)s. Perhaps you meant to use elementwise multiplication (.*)?")
-	*{A<:($t), B<:($t)}(a::DiracVector{A}, b::State{B}) = error("vector multiplication undefined between two $(A)s.")
-	*{A<:($t), B<:($t)}(a::State{A}, b::DiracVector{B}) = error("vector multiplication undefined between two $(A)s.")
 	end
 end
 
@@ -203,6 +198,10 @@ kron{K<:Ket, B<:Bra}(a::DiracVector{K}, b::State{B}) = dmat(a.coeffs, a.basis, b
 kron{K<:Ket, B<:Bra}(a::State{K}, b::DiracVector{B}) = dmat(b.coeffs, basis(a), b.basis)
 kron{K<:Ket, B<:Bra}(a::DiracVector{K}, b::DiracVector{B}) = dmat(a.coeffs*b.coeffs, a.basis, b.basis)
 kron{K<:Ket, B<:Bra}(a::DiracVector{B}, b::DiracVector{K}) = kron(b,a)
+
+*{K<:Ket, B<:Bra}(a::DiracVector{K}, b::DiracVector{B}) = kron(a,b)
+*{K<:Ket, B<:Bra}(a::State{K}, b::DiracVector{B}) = kron(a,b)
+*{K<:Ket, B<:Bra}(a::DiracVector{K}, b::State{B}) = kron(a,b)
 
 *{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = inner(a,b)
 *{B<:Bra, K<:Ket}(a::DiracVector{B}, b::State{K}) = inner(a,b)
@@ -214,9 +213,10 @@ kron(s::State, c::DiracCoeff) = kron(c,s)
 *(s::State, c::DiracCoeff) = kron(c,s)
 -(s::State) = kron(-1,s)
 
+
 function addstate!(d,s)
-	res[getpos(d,s)] = 1+get(res, s)
-	return res
+	d[getpos(d,s)] = 1+get(d, s)
+	return d
 end
 
 function +{K<:Ket}(d::DiracVector{K}, s::State{K})
@@ -256,12 +256,12 @@ function add_dvec!(d::DiracVector, y::DiracVector)
 		d = d+y.basis[i]
 		d[getpos(d, y.basis[i])] = get(d, y.basis[i]) + y[i] - 1
 	end
-	return res
+	return d
 end
 
 for t=(:Bra,:Ket)
 	@eval begin 
-	function +{b,T1,T2}(x::DiracVector{($t){b,T1}}, y::DiracVector{($t){b,T2}})
+	function +{S<:($t)}(x::DiracVector{S}, y::DiracVector{S})
 		if x.basis==y.basis
 			return dvec(x.coeffs+y.coeffs, x.basis)
 		else
@@ -271,6 +271,15 @@ for t=(:Bra,:Ket)
 	-{S1<:($t),S2<:($t)}(d::DiracVector{S1}, s::State{S2}) = d+(-s)
 	-{S1<:($t),S2<:($t)}(s::State{S1}, d::DiracVector{S2}) = s+(-d)
 	-{S1<:($t),S2<:($t)}(a::DiracVector{S1}, b::DiracVector{S2}) = a+(-b)
+	end
+	for op=(:+,:-,:kron)
+		@eval begin 
+		($op){S<:($t),I<:InnerProduct}(a::DiracVector{S,I}, b::State{S}) = ($op)(convert(DiracVector{S, ScalarExpr}, a), b)
+		($op){S<:($t),I<:InnerProduct}(a::State{S}, b::DiracVector{S,I}) = ($op)(a, convert(DiracVector{S, ScalarExpr}, b))
+		($op){S<:($t),I<:InnerProduct}(a::DiracVector{S,I}, b::DiracVector{S,I}) = ($op)(convert(DiracVector{S, ScalarExpr}, a), convert(DiracVector{S, ScalarExpr}, b))
+		($op){S<:($t),I<:InnerProduct, N<:Union(ScalarExpr,Number)}(a::DiracVector{S,I}, b::DiracVector{S,N}) = ($op)(convert(DiracVector{S, ScalarExpr}, a), b)
+		($op){S<:($t),I<:InnerProduct, N<:Union(ScalarExpr,Number)}(a::DiracVector{S,N}, b::DiracVector{S,I}) = ($op)(a, convert(DiracVector{S, ScalarExpr}, b))
+		end
 	end
 end
 

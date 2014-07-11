@@ -627,6 +627,225 @@ product contains the states that make up the original
 `TensorBasis` (in the case of `tb_partial`: `| 0:X, 0:X, 0:X ⟩`, 
 `| 0:X, 1:X, 4:X ⟩`, `| 3:X, 4:X, 4:X ⟩`).
 
+##3. State Representations: `DiracVector`
+
+###3.1 Introduction 
+__Description__ 
+
+A `DiracVector` is the representation of a state in a
+basis. It stores the basis alongside a corresponding 
+sparse vector of coefficients. 
+
+The `DiracVector{S<:State, T}` inherits the state parameter of 
+its associated basis, and is also parameterized by the element
+type of its coeffcient array. 
+
+It is enforced that a `DiracVector` with a `Ket` basis has
+a column vector of coefficients, while a `DiracVector` with a
+`Bra` basis has a row vector of coefficients. 
+
+__Example__
+
+A natural way to construct a `DiracVector` is to
+simply add states together (recall from section 
+1.3 that a coefficient times a state will yield
+a `DiracVector`):
+
+	julia> dv=1/sqrt(2)*ket(:X,1) + 1/sqrt(2)*ket(:X,2)
+	2x1 DiracVector{Ket{:X,Int64},Float64}
+	 0.707107  | 1:X ⟩
+	 0.707107  | 2:X ⟩
+
+Note that Quantum.jl does not automatically normalize `DiracVector`s.
+This is to avoid unexpected behaviors programatically, and because 
+testing for normalization is often a handy test for making sure one's 
+math is correct. 
+
+Quantum.jl instead provides a `normalize` method:
+
+	julia> ket(:X,1) + ket(:X,2)
+	2x1 DiracVector{Ket{:X,Int64},Int64}
+	 1  | 1:X ⟩
+	 1  | 2:X ⟩
+
+	julia> dv=normalize(ans)
+	2x1 DiracVector{Ket{:X,Int64},Float64}
+	 0.707107  | 1:X ⟩
+	 0.707107  | 2:X ⟩ 
+
+All normal linear algebraic arithmetic should work 
+appropriately with `DiracVector`s, as well as taking
+tensor products and inner products:
+
+	julia> dv' # ctranspose of dv
+	1x2 DiracVector{Bra{:X,Int64},Float64}
+	  ⟨ 1:X |   ⟨ 2:X |
+	 0.707107  0.707107
+
+	 julia> dv+dv
+	2x1 DiracVector{Ket{:X,Int64},Float64}
+	 1.41421  | 1:X ⟩
+	 1.41421  | 2:X ⟩
+
+	julia> dv-dv
+	2x1 DiracVector{Ket{:X,Int64},Float64}
+	 0.0  | 1:X ⟩
+	 0.0  | 2:X ⟩
+
+	julia> bra(:X,2)*dv # ⟨ 2:X | dv ⟩
+	0.7071067811865475
+
+	julia> bra(:S,"a")*dv # ⟨ "a":S | dv ⟩
+	ScalarExpr(:(0.7071067811865475 * ⟨ "a":S | 1:X ⟩ + 0.7071067811865475 * ⟨ "a":S | 2:X ⟩))
+
+	julia> kron(dv,dv)
+	4x1 DiracVector{Ket{:X,Int64},Float64}
+	 0.5  | 1:X, 1:X ⟩
+	 0.5  | 1:X, 2:X ⟩
+	 0.5  | 2:X, 1:X ⟩
+	 0.5  | 2:X, 2:X ⟩
+
+	julia> kron(dv, dv') # | dv ⟩⟨ dv |
+	2x2 DiracMatrix{Ket{:X,Int64},Bra{:X,Int64},Float64}
+	          ⟨ 1:X |   ⟨ 2:X |
+	  | 1:X ⟩  0.5       0.5
+	  | 2:X ⟩  0.5       0.5
+
+	julia> kron(dv,ket(:X,1))
+	2x1 DiracVector{Ket{:X,Int64},Float64}
+	 0.707107  | 1:X, 1:X ⟩
+	 0.707107  | 2:X, 1:X ⟩
+
+	julia> dv'*dv # ⟨ dv | dv ⟩
+	0.9999999999999998
+
+	julia> normalize(dv+ket(:X,3))
+	3x1 DiracVector{Ket{:X,Int64},Float64}
+	 0.5       | 1:X ⟩
+	 0.5       | 2:X ⟩
+	 0.707107  | 3:X ⟩
+
+	julia> normalize(dv-ket(:X,3))
+	3x1 DiracVector{Ket{:X,Int64},Float64}
+	  0.5       | 1:X ⟩
+	  0.5       | 2:X ⟩
+	 -0.707107  | 3:X ⟩
+
+	julia> ket(:X,1)+ket(:X,1)+ket(:X,1)
+	1x1 DiracVector{Ket{:X,Int64},Int64}
+	 3  | 1:X ⟩
+
+One cannot add states that aren't allowed
+to be part of the same basis:
+
+	julia> ket(:X,1)+ket(:S,"1")
+	ERROR: cannot construct basis: all states must have same label type and same basis identifier
+	 in basis at /Users/jarrettrevels/data/repos/quantum/src/basis.jl:23
+	 in + at /Users/jarrettrevels/data/repos/quantum/src/diracvector.jl:278
+
+	julia> ket(:X,1)+ket(:X,"1")
+	ERROR: cannot construct basis: all states must have same label type and same basis identifier
+	 in basis at /Users/jarrettrevels/data/repos/quantum/src/basis.jl:23
+	 in + at /Users/jarrettrevels/data/repos/quantum/src/diracvector.jl:278
+
+Since the element type of a `DiracVector` is `T<:Any`, 
+it is possible to use anything as a coefficient, including
+`InnerProduct`s and `ScalarExpr`s:
+
+	julia> (bra(:S,"1")*ket(:X, 1)) * ket(:X,1)
+	1x1 DiracVector{Ket{:X,Int64},InnerProduct{Bra{:S,ASCIIString},Ket{:X,Int64}}}
+	 ⟨ "1":S | 1:X ⟩  | 1:X ⟩
+
+	julia> ans+ans
+	1x1 DiracVector{Ket{:X,Int64},ScalarExpr}
+	 ScalarExpr(:(1 * ⟨ "1":S | 1:X ⟩ + 1 * ⟨ "1":S | 1:X ⟩))  | 1:X ⟩
+
+	julia> kron(ans,ans)
+	1x1 DiracVector{Ket{:X,Int64},ScalarExpr}
+	 ScalarExpr(:((1 * ⟨ "1":S | 1:X ⟩ + 1 * ⟨ "1":S | 1:X ⟩) * (1 * ⟨ "1":S | 1:X ⟩ + 1 * ⟨ "1":S | 1:X ⟩))) | 1:X, 1:X ⟩
+
+###3.2  Array-like/Dict-like Operations on `DiracVector`s
+
+As one might expect, repeatedly adding states one at a time
+is generally not the most efficient way to go about things. 
+
+The function `dvec` is provided to allow preallocation of
+a `DiracVector`'s basis and coefficient array:
+
+	julia> dv=dvec(Array(Float64, 4), basis(:X, [1:4]))
+	4x1 DiracVector{Ket{:X,Int64},Float64}
+	 6.94464e-310  | 1:X ⟩
+	 6.94464e-310  | 2:X ⟩
+	 6.94463e-310  | 3:X ⟩
+	 0.0           | 4:X ⟩
+
+Many array-like functions are supported, including `getindex` and
+`setindex!` (for the sake of example, we won't bother with
+normalization):
+
+	julia> dv[1:4] = [1:4];
+
+	julia> dv
+	4x1 DiracVector{Ket{:X,Int64},Float64}
+	 1.0  | 1:X ⟩
+	 2.0  | 2:X ⟩
+	 3.0  | 3:X ⟩
+	 4.0  | 4:X ⟩
+
+Another is `map`:
+
+	julia> map(x->x^2, dv)
+	4x1 DiracVector{Ket{:X,Int64},Float64}
+	  1.0  | 1:X ⟩
+	  4.0  | 2:X ⟩
+	  9.0  | 3:X ⟩
+	 16.0  | 4:X ⟩
+
+Three filter methods are provided as well; `filterstates`,
+`filtercoeffs`, and `filternz`. The first uses the predicate
+to filter by states, the second uses the predicate to 
+filter by coeffs, and the third merely filters out zeros
+and the states associated with those zeros:
+
+	julia> filtercoeffs(x->x%2==0, dv)
+	2x1 DiracVector{Ket{:X,Int64},Float64}
+	 2.0  | 2:X ⟩
+	 4.0  | 4:X ⟩
+
+	julia> filterstates(s->label(s)==3 || label(s)==1, dv)
+	2x1 DiracVector{Ket{:X,Int64},Float64}
+	 1.0  | 1:X ⟩
+	 3.0  | 3:X ⟩
+
+	julia> dv[1:3] = 0;
+
+	julia> dv
+	4x1 DiracVector{Ket{:X,Int64},Float64}
+	 0.0  | 1:X ⟩
+	 0.0  | 2:X ⟩
+	 0.0  | 3:X ⟩
+	 4.0  | 4:X ⟩
+
+	julia> filternz(dv)
+	1x1 DiracVector{Ket{:X,Int64},Float64}
+	 4.0  | 4:X ⟩
+
+Using `get`, you can retrieve the coefficient
+associated with a state by doing the following:
+
+	julia> get(dv, ket(:X,4))
+	4.0
+
+	julia> get(dv, ket(:X,3))
+	0.0
+
+	julia> get(dv, ket(:S,"a"))
+	ERROR: key not found: | "a":S ⟩
+	 in get at /Users/jarrettrevels/data/repos/quantum/src/diracvector.jl:76
+
+	julia> get(dv, ket(:S,"a"), "not there!")
+	"not there!"
+
 <!--
 4. StateRep
 ---
