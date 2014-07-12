@@ -46,13 +46,21 @@ show(io::IO, i::InnerProduct) = print(io, "$(repr(i.bra))$(repr(i.ket)[2:end])")
 #Arithmetic Operations###############
 #####################################
 
-kron{K<:Ket}(o::OuterProduct, s::State{K}) = dvec([inner(o.bra,s)], basis(o.ket))
+*{K<:Ket}(o::OuterProduct, s::State{K}) = dvec([inner(o.bra,s)], basis(o.ket))
+*{B<:Bra}(s::State{B}, o::OuterProduct) = dvec([inner(s,o.ket)], basis(o.bra))
+
 kron{B<:Bra}(o::OuterProduct, s::State{B}) = OuterProduct(o.ket, tensor(o.bra,s))
-kron{B<:Bra}(s::State{B}, o::OuterProduct) = dvec([inner(s,o.ket)], basis(o.bra))
+kron{B<:Bra}(s::State{B}, o::OuterProduct) = OuterProduct(o.ket, tensor(s,o.bra))
+kron{K<:Ket}(o::OuterProduct, s::State{K}) = OuterProduct(tensor(o.ket,s), o.bra)
 kron{K<:Ket}(s::State{K}, o::OuterProduct) = OuterProduct(tensor(s,o.ket), o.bra)
-kron(c::DiracCoeff,o::OuterProduct) = dmat([c], basis(o.ket), basis(o.bra))
+kron(c::DiracCoeff, o::OuterProduct) = dmat([c], basis(o.ket), basis(o.bra))
 kron(o::OuterProduct, c::DiracCoeff) = kron(c,o)
-*(c::DiracCoeff,o::OuterProduct) = kron(c,o)
+
+kron(a::OuterProduct, b::OuterProduct) = OuterProduct(tensor(a.ket, b.ket), tensor(a.bra, b.bra))
+
+*(a::OuterProduct, b::OuterProduct) = dmat([a.bra*b.ket], basis(a.ket), basis(b.bra))
+
+*(c::DiracCoeff, o::OuterProduct) = kron(c,o)
 *(o::OuterProduct, c::DiracCoeff) = kron(c,o)
 -(o::OuterProduct) = kron(-1,o)
 

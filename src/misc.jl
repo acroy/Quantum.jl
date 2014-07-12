@@ -1,5 +1,6 @@
 
 zero{A<:AbstractScalar}(::Type{A}) = scalar(0)
+
 #necessary for SparseMatrixCSC{Any} to function properly;
 #the fact that Any is often inferenced when ScalarExpr
 #should be inferenced is a Bad Thing. As a result, in the future

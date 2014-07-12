@@ -156,7 +156,7 @@ show{B<:Bra}(io::IO, s::State{B}) = print(io, "$lang $(reprlabel(s)) |")
 #####################################
 
 inner(x::Bra, y::Ket) = InnerProduct(x, y)
-inner{b}(x::Bra{b}, y::Ket{b}) = labeldelta(x,y)
+inner{b,T1,T2}(x::Bra{b,T1}, y::Ket{b,T2}) = labeldelta(x,y)
 inner{b,T1,T2}(x::Tensor{Bra{b,T1}}, y::Tensor{Ket{b,T2}}) = labeldelta(x,y)
 inner{b,T}(x::Bra{b}, y::Tensor{Ket{b,T}}) = labeldelta(x,y[1]) * tensor(y.states[2:end])
 inner{b,T}(x::Tensor{Bra{b,T}}, y::Ket{b}) = tensor(y.states[2:end]) * labeldelta(x[1],y)

@@ -111,7 +111,7 @@ function show(io::IO, dm::DiracMatrix)
 		table[1,j+1] = dm.colb[j]
 	end
 	table[1,1] = 0
-	table[2:end, 2:end] = full(dm.coeffs)
+	table[2:end, 2:end] = dm.coeffs
 	temp_io = IOBuffer()
 	show(temp_io, table)
 	io_str = takebuf_string(temp_io)
@@ -169,11 +169,12 @@ end
 consmult{K<:Ket}(dm::DiracMatrix, s::State{K}) = multbystate!(dm, s, samebasis(dm.colb,s) ? zeros(length(dm.rowb)) : zeros(Any,length(dm.rowb)))
 consmult{B<:Bra}(dm::DiracMatrix, s::State{B}) = multbystate!(dm, s, samebasis(dm.rowb,s) ? zeros(1,length(dm.colb)) : zeros(Any,1,length(dm.colb)))
 
-#currently the below consmults are slow and 
+#currently the below consmults are slow;
 #should be replaced by a something 
 #more in line with the above single
-#state versions that preallocate memory
-#more effectively
+#state versions, which preallocates
+#memory and then fills the array using
+#a separate function
 consmult{K<:Ket}(dm::DiracMatrix, d::DiracVector{K}) = reduce(+,[dm.rowb[i]*reduce(+,[dm[i,j]*(dm.colb[j]*d) for j=1:length(dm.colb)]) for i=1:length(dm.rowb)])
 consmult{B<:Bra}(dm::DiracMatrix, d::DiracVector{B}) = reduce(+,[dm.colb[j]*reduce(+,[dm[i,j]*(d*op.rowb[i]) for j=1:length(dm.rowb)]) for i=1:length(dm.colb)])
 consmult(a::DiracMatrix, b::DiracMatrix) = reduce(+,[(a[i,j]*b[m,n]*(a.colb[j]*b.rowb[m]))*(a.rowb[i]*b.colb[n]) for n=1:size(b,2), m=1:size(b,1), j=1:size(a,2), i=1:size(a,1)])
@@ -183,6 +184,8 @@ consmult(a::DiracMatrix, b::DiracMatrix) = reduce(+,[(a[i,j]*b[m,n]*(a.colb[j]*b
 *{K<:Ket}(dm::DiracMatrix, dv::DiracVector{K}) = isdual(dm.colb, dv.basis) ? dvec(dm.coeffs*dv.coeffs, dm.rowb) : consmult(dm,dv)
 *{B<:Bra}(dv::DiracVector{B},dm::DiracMatrix) = isdual(dm.rowb, dv.basis) ? dvec(dm.coeffs*dv.coeffs, dm.colb) : consmult(dm,dv)
 *(a::DiracMatrix, b::DiracMatrix) = isdual(a.colb, b.rowb) ? dmat(a.coeffs*b.coeffs, a.rowb, b.colb) : consmult(a,b)
+*(dm::DiracMatrix, o::OuterProduct) = (dm*o.ket)*o.bra
+*(o::OuterProduct, dm::DiracMatrix) = o.ket*(o.bra*dm)
 
 kron(a::DiracMatrix, b::DiracMatrix) = dmat(kron(a.coeffs, b.coeffs), tensor(a.rowb, b.rowb), tensor(a.colb, b.colb)) 
 kron{K<:Ket}(dm::DiracMatrix, dv::DiracVector{K}) = dmat(kron(dm.coeffs, dv.coeffs), tensor(dm.rowb, dv.basis), dm.colb)
@@ -280,8 +283,8 @@ function +{K<:Ket, B<:Bra}(o::OuterProduct{K,B}, op::DiracMatrix{K,B})
 end
 
 function add_dmat!(a::DiracMatrix, b::DiracMatrix)
-	for i=1:findn(b)[1]
-		for j=1:findn(b)[2]
+	for i in findn(b)[1]
+		for j in findn(b)[2]
 			a=a+(b.rowb[i]*b.colb[j])
 			a[getpos(a, b.rowb[i], b.colb[j])...] = get(a, b.rowb[i], b.colb[j])+b[i,j]-1
 		end
@@ -315,8 +318,9 @@ function ptrace(op::DiracMatrix, ind::Int)
 	len = length(trcol)
 	#the line below should be optimized by pre-allocating the array and 
 	#writing an in-place function to fill it
-	coeffs = [reduce(+,[op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.rowb)[ind])]) for j=1:length(trrow), k=1:length(trcol)] 
-	return dmat(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), trrow, trcol) #use vcat()/hcat() trick to convert to most primitive common type
+	coeffs = [reduce(+,[op[(((i-1)*len)+k), (((i-1)*len)+j)] for i=1:length(separate(op.rowb)[ind])]) for j=1:len, k=1:len] 
+	# return dmat(vcat([hcat(coeffs[i, :]...) for i=1:size(coeffs, 1)]...), trrow, trcol) #use vcat()/hcat() trick to convert to most primitive common type
+	return dmat(coeffs, trrow, trcol)
 end
 
 actop{K<:Ket}(op::AbstractOperator, s::Tensor{K}, i::Integer) = kron(vcat(s[1:i-1], op*s[i], s[i+1:end])...)

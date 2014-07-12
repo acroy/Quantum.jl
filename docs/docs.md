@@ -55,11 +55,11 @@ It's easy to construct `Ket`s using the above constructors:
 
 	julia> using Quantum
 	
-	julia> ket(:X,1)
-	| 1:X ⟩
+	julia> ket(:N,1)
+	| 1:N ⟩
 
 	julia> typeof(ans)
-	Ket{:X,Int64} (constructor with 1 method)
+	Ket{:N,Int64} (constructor with 1 method)
 
 	julia> ket(:S,"1")
 	| "1":S ⟩
@@ -76,19 +76,19 @@ It's easy to construct `Ket`s using the above constructors:
 As you can see, both `Symbol`s and `Int`s can be used as basis identifiers, and
 anything can be used as a label. `Bra`s are constructed in a similar manner:
 
-	julia> bra(:X,1)
-	⟨ 1:X |
+	julia> bra(:N,1)
+	⟨ 1:N |
 
 	julia> typeof(ans)
-	Bra{:X,Int64} (constructor with 1 method)
+	Bra{:N,Int64} (constructor with 1 method)
 
 To get the dual of an eigenstate, use the `ctranspose` function (the 
 `'` operator):
 
-	julia> bra(:X,1)'
-	| 1:X ⟩
+	julia> bra(:N,1)'
+	| 1:N ⟩
 
-	julia> bra(:X,1)''==bra(:X,1)
+	julia> bra(:N,1)''==bra(:N,1)
 	true
 
 ###1.2 Tensor Product States
@@ -203,11 +203,11 @@ first place.
 For use in the examples that follow, we'll construct the following 
 states using `svec`, a convenience function provided by Quantum.jl:
 
-	julia> xv=svec(:X, [1:3])
-	3-element Array{Ket{:X,Int64},1}:
-	 | 1:X ⟩
-	 | 2:X ⟩
-	 | 3:X ⟩
+	julia> xv=svec(:N, [1:3])
+	3-element Array{Ket{:N,Int64},1}:
+	 | 1:N ⟩
+	 | 2:N ⟩
+	 | 3:N ⟩
 
 	julia> sv=svec(:S, ["$i" for i=1:3])
 	3-element Array{Ket{:S,ASCIIString},1}:
@@ -217,9 +217,9 @@ states using `svec`, a convenience function provided by Quantum.jl:
 
 	julia> tv=Tensor{Ket}[tensor(xv[i], sv[i]) for i=1:3]
 	3-element Array{Tensor{Ket{b,T}},1}:
-	 | 1:X, "1":S ⟩
-	 | 2:X, "2":S ⟩
-	 | 3:X, "3":S ⟩
+	 | 1:N, "1":S ⟩
+	 | 2:N, "2":S ⟩
+	 | 3:N, "3":S ⟩
 
 __Inner Product (`inner`)__
 
@@ -238,10 +238,10 @@ later in this documentation.
 	1
 
 	julia> inner(sv[1]',xv[1])
-	⟨ "1":S |  1:X ⟩
+	⟨ "1":S |  1:N ⟩
 
 	julia> typeof(ans)
-	InnerProduct{Bra{:S,ASCIIString},Ket{:X,Int64}} (constructor with 1 method)
+	InnerProduct{Bra{:S,ASCIIString},Ket{:N,Int64}} (constructor with 1 method)
 
 Inner products involving `Tensor` states can be ambiguous 
 without specifying which factor states are acting on each other. 
@@ -252,26 +252,26 @@ By default, Quantum.jl will apply `Bra` states to the `Ket` states
 one at a time, from left to right, resolving the product as it goes. 
 Thus, ⟨ a | a, b ⟩ is interpreted as ⟨ a | a ⟩| b ⟩-> 1 | b ⟩:
 
-	julia> inner(xv[1]',tv[1]) # ⟨ 1:X | 1:X, "1":S ⟩->⟨ 1:X | 1:X ⟩| "1":S ⟩
+	julia> inner(xv[1]',tv[1]) # ⟨ 1:N | 1:N, "1":S ⟩->⟨ 1:N | 1:N ⟩| "1":S ⟩
 	1x1 DiracVector{Ket{:S,ASCIIString},Int64}
 	 1  | "1":S ⟩
 
-	julia> inner(tv[1]',xv[1]) # ⟨ 1:X, "1":S | 1:X ⟩->⟨ "1":S |⟨ 1:X | 1:X ⟩
+	julia> inner(tv[1]',xv[1]) # ⟨ 1:N, "1":S | 1:N ⟩->⟨ "1":S |⟨ 1:N | 1:N ⟩
 	1x1 DiracVector{Bra{:S,ASCIIString},Int64}
 	  ⟨ "1":S |
 	 1
 
 `DiracVector`s are the result of multiplying a coefficient
-by a state (the coefficients, here, are both ⟨ 1:X | 1:X ⟩, which have resolved to 1). 
+by a state (the coefficients, here, are both ⟨ 1:N | 1:N ⟩, which have resolved to 1). 
 
 Following this logic, the operation ⟨ a, b | c, d ⟩ resolves as 
 ⟨ b |⟨ a | c, d ⟩ ->  ⟨ b |⟨ a | c ⟩| d ⟩ -> ⟨ a | c ⟩⟨ b | d ⟩.
 This results in the expected behavior when taking the
 inner product of two `Tensor` states from the same bases: 
 
-	julia> inner(tv[1]',tv[1]) #⟨ 1:X, "1":S | 1:X, "1":S ⟩
+	julia> inner(tv[1]',tv[1]) #⟨ 1:N, "1":S | 1:N, "1":S ⟩
 	1
-	julia> inner(tv[1]',tv[2]) #⟨ 1:X, "1":S | 2:X, "2":S ⟩
+	julia> inner(tv[1]',tv[2]) #⟨ 1:N, "1":S | 2:N, "2":S ⟩
 	0
 
 ...and the following behavior for `Tensor` states of unequal 
@@ -302,18 +302,18 @@ states are acting on which.
 
 For example, recalling that a scalar times a state yields a `DiracVector{typeof(state), typeof(scalar)}`:
 
-	julia> inner(xv[1]', tv[1], 2) # ⟨ (1:X)_2 | (1:X)_1, ("1":S)_2 ⟩
-	1x1 DiracVector{Ket{:X,Int64},InnerProduct{Bra{:X,Int64},Ket{:S,ASCIIString}}}
-	 ⟨ 1:X |  "1":S ⟩  | 1:X ⟩
+	julia> inner(xv[1]', tv[1], 2) # ⟨ (1:N)_2 | (1:N)_1, ("1":S)_2 ⟩
+	1x1 DiracVector{Ket{:N,Int64},InnerProduct{Bra{:N,Int64},Ket{:S,ASCIIString}}}
+	 ⟨ 1:N |  "1":S ⟩  | 1:N ⟩
 
 In cases where one is taking the inner product between a `Tensor` state and a single
 state, the index argument is always referring to the factor of the `Tensor` state
 that the single state is to act upon:
 
-	julia> inner(tv[1]', xv[1], 2) # ⟨ (1:X)_1, ("1":S)_2 | (1:X)_2 ⟩
-	1x1 DiracVector{Bra{:X,Int64},InnerProduct{Bra{:S,ASCIIString},Ket{:X,Int64}}}
-	 ⟨ 1:X |
-	 ⟨ "1":S |  1:X ⟩
+	julia> inner(tv[1]', xv[1], 2) # ⟨ (1:N)_1, ("1":S)_2 | (1:N)_2 ⟩
+	1x1 DiracVector{Bra{:N,Int64},InnerProduct{Bra{:S,ASCIIString},Ket{:N,Int64}}}
+	 ⟨ 1:N |
+	 ⟨ "1":S |  1:N ⟩
 
 In the case of taking the inner product of two `Tensor` states, one
 can specify both the index argument, and which state the index argument
@@ -337,22 +337,22 @@ an `OuterProduct` object if not (`OuterProduct`s will be
 covered more thoroughly in the DiracMatrix section):
 
 	julia> kron(tv[1], tv[2]')
-	| 1:X, "1":S ⟩⟨ 2:X, "2":S |
+	| 1:N, "1":S ⟩⟨ 2:N, "2":S |
 
 	julia> kron(tv[1], xv[2]')
-	| 1:X, "1":S ⟩⟨ 2:X |
+	| 1:N, "1":S ⟩⟨ 2:N |
 
 	julia> kron(sv[1], xv[2]')
-	| "1":S ⟩⟨ 2:X |
+	| "1":S ⟩⟨ 2:N |
 
 	julia> kron(sv[1]', xv[2])
-	| 2:X ⟩⟨ "1":S |
+	| 2:N ⟩⟨ "1":S |
 
 	julia> kron(sv[1], xv[2])
-	| "1":S, 2:X ⟩
+	| "1":S, 2:N ⟩
 
 	julia> kron(tv[1]', tv[2]')
-	⟨ 1:X, "1":S, 2:X, "2":S |
+	⟨ 1:N, "1":S, 2:N, "2":S |
 
 __Vector Multiplication (`*`)__
 
@@ -367,21 +367,21 @@ and `*(a::State{K<:Ket}, b::State{B<:Bra})` will return an `OuterProduct`:
 	0
 
 	julia> xv[1]'*sv[1]
-	⟨ 1:X | "1":S ⟩
+	⟨ 1:N | "1":S ⟩
 
 	julia> xv[1]*sv[1]'
-	| 1:X ⟩⟨ "1":S |
+	| 1:N ⟩⟨ "1":S |
 
 Attempting to use `*` to do a tensor product will result in an error - for
 that operation, you should use `tensor` or `kron` instead:
 
 	julia> xv[1]*sv[1]
-	ERROR: Multiplication Ket{:X,Int64}*Ket{:S,ASCIIString} is undefined. Perhaps you meant to use kron(Ket{:X,Int64}, Ket{:S,ASCIIString})?
+	ERROR: Multiplication Ket{:N,Int64}*Ket{:S,ASCIIString} is undefined. Perhaps you meant to use kron(Ket{:N,Int64}, Ket{:S,ASCIIString})?
 	 in error at error.jl:21
 	 in * at /Users/jarrettrevels/data/repos/quantum/src/misc.jl:23
 
 	julia> kron(xv[1], sv[1])
-	| 1:X, "1":S ⟩
+	| 1:N, "1":S ⟩
 
 
 ##2. `Basis` and `TensorBasis`
@@ -419,13 +419,13 @@ __Examples__
 One can use the `basis` function to construct `Basis` objects in much
 the same way as we used `svec` in section 1.3:
 
-	julia> b=basis(:X, [0:4])
-	Basis{Ket{:X,Int64}}, 5 states:
-	| 0:X ⟩
-	| 1:X ⟩
-	| 2:X ⟩
-	| 3:X ⟩
-	| 4:X ⟩
+	julia> b=basis(:N, [0:4])
+	Basis{Ket{:N,Int64}}, 5 states:
+	| 0:N ⟩
+	| 1:N ⟩
+	| 2:N ⟩
+	| 3:N ⟩
+	| 4:N ⟩
 
 You can also construct a `Basis` by feeding the `basis` function
 with states, or a `Vector` of states:
@@ -446,80 +446,80 @@ Just like states, `Basis` objects are transformed into their duals using
 the `ctranspose` operator:
 
 	julia> b'
-	Basis{Bra{:X,Int64}}, 5 states:
-	⟨ 0:X |
-	⟨ 1:X |
-	⟨ 2:X |
-	⟨ 3:X |
-	⟨ 4:X |
+	Basis{Bra{:N,Int64}}, 5 states:
+	⟨ 0:N |
+	⟨ 1:N |
+	⟨ 2:N |
+	⟨ 3:N |
+	⟨ 4:N |
 
 Many functions that are defined on standard `Vector`s are defined on `Basis` objects:
 
 	julia> b[1]
-	| 0:X ⟩
+	| 0:N ⟩
 
 	julia> b[1:3] #note that this returns a Vector instead of a Basis 
-	3-element Array{Ket{:X,Int64},1}:
-	 | 0:X ⟩
-	 | 1:X ⟩
-	 | 2:X ⟩
+	3-element Array{Ket{:N,Int64},1}:
+	 | 0:N ⟩
+	 | 1:N ⟩
+	 | 2:N ⟩
 
 	julia> filter(x->label(x)%2==0, b)
-	Basis{Ket{:X,Int64}}, 3 states:
-	| 0:X ⟩
-	| 2:X ⟩
-	| 4:X ⟩
+	Basis{Ket{:N,Int64}}, 3 states:
+	| 0:N ⟩
+	| 2:N ⟩
+	| 4:N ⟩
 
-	julia> map(x->ket(:X,label(x)^2), b)
-	Basis{Ket{:X,Int64}}, 5 states:
-	| 0:X ⟩
-	| 1:X ⟩
-	| 4:X ⟩
-	| 9:X ⟩
-	| 16:X ⟩
+	julia> map(x->ket(:N,label(x)^2), b)
+	Basis{Ket{:N,Int64}}, 5 states:
+	| 0:N ⟩
+	| 1:N ⟩
+	| 4:N ⟩
+	| 9:N ⟩
+	| 16:N ⟩
 
 One can use `bcat` to join together bases and states:
 
-	julia> bcat(b, ket(:X, 5))
-	Basis{Ket{:X,Int64}}, 6 states:
-	| 0:X ⟩
-	| 1:X ⟩
-	| 2:X ⟩
-	| 3:X ⟩
-	| 4:X ⟩
-	| 5:X ⟩
+	julia> bcat(b, ket(:N, 5))
+	Basis{Ket{:N,Int64}}, 6 states:
+	| 0:N ⟩
+	| 1:N ⟩
+	| 2:N ⟩
+	| 3:N ⟩
+	| 4:N ⟩
+	| 5:N ⟩
 
-	julia> bcat(ket(:X, 5), b)
-	Basis{Ket{:X,Int64}}, 6 states:
-	| 5:X ⟩
-	| 0:X ⟩
-	| 1:X ⟩
-	| 2:X ⟩
-	| 3:X ⟩
-	| 4:X ⟩
+	julia> bcat(ket(:N, 5), b)
+	Basis{Ket{:N,Int64}}, 6 states:
+	| 5:N ⟩
+	| 0:N ⟩
+	| 1:N ⟩
+	| 2:N ⟩
+	| 3:N ⟩
+	| 4:N ⟩
 
-	julia> bcat(basis(:X, [-4:-1]), b)
-	Basis{Ket{:X,Int64}}, 9 states:
-	| -4:X ⟩
-	| -3:X ⟩
-	| -2:X ⟩
-	| -1:X ⟩
-	| 0:X ⟩
-	| 1:X ⟩
-	| 2:X ⟩
-	| 3:X ⟩
-	| 4:X ⟩
+	julia> bcat(basis(:N, [-4:-1]), b)
+	Basis{Ket{:N,Int64}}, 9 states:
+	| -4:N ⟩
+	| -3:N ⟩
+	| -2:N ⟩
+	| -1:N ⟩
+	| 0:N ⟩
+	| 1:N ⟩
+	| 2:N ⟩
+	| 3:N ⟩
+	| 4:N ⟩
 
-	julia> bcat(b, basis(:X, [0:7]))
-	Basis{Ket{:X,Int64}}, 11 states:
-	| 0:X ⟩
-	| 1:X ⟩
-	| 2:X ⟩
-	| 3:X ⟩
-	| 4:X ⟩
-	| 5:X ⟩
-	| 6:X ⟩
-	| 7:X ⟩
+	julia> bcat(b, basis(:N, [0:7]))
+	Basis{Ket{:N,Int64}}, 11 states:
+	| 0:N ⟩
+	| 1:N ⟩
+	| 2:N ⟩
+	| 3:N ⟩
+	| 4:N ⟩
+	| 5:N ⟩
+	| 6:N ⟩
+	| 7:N ⟩
 
 Note in the above example how concatenating two `Basis` objects resulted in a `Basis` 
 containing only the unique states of both. 
@@ -528,18 +528,18 @@ You can also use `Basis` objects as dicitonaries, where the keys are
 states and the values are their position in the collection:
 
 	julia> b
-	Basis{Ket{:X,Int64}}, 5 states:
-	| 0:X ⟩
-	| 1:X ⟩
-	| 2:X ⟩
-	| 3:X ⟩
-	| 4:X ⟩
+	Basis{Ket{:N,Int64}}, 5 states:
+	| 0:N ⟩
+	| 1:N ⟩
+	| 2:N ⟩
+	| 3:N ⟩
+	| 4:N ⟩
 
-	julia> get(b, ket(:X, 3))
+	julia> get(b, ket(:N, 3))
 	4
 
 	julia> b[ans]
-	| 3:X ⟩
+	| 3:N ⟩
 
 	julia> get(b, ket(:S, "a"), "not there!")
 	"not there!"
@@ -572,60 +572,60 @@ to pass `Basis` objects to the `tensor` function (using the `b`
 basis from the examples in section 2.1):
 
 	julia> tb = tensor(b,b,b)
-	TensorBasis{Ket{:X,Int64},Basis{Ket{:X,Int64}}}, 125 states:
-	| 0:X, 0:X, 0:X ⟩
-	| 0:X, 0:X, 1:X ⟩
-	| 0:X, 0:X, 2:X ⟩
-	| 0:X, 0:X, 3:X ⟩
-	| 0:X, 0:X, 4:X ⟩
-	| 0:X, 1:X, 0:X ⟩
-	| 0:X, 1:X, 1:X ⟩
-	| 0:X, 1:X, 2:X ⟩
-	| 0:X, 1:X, 3:X ⟩
-	| 0:X, 1:X, 4:X ⟩
+	TensorBasis{Ket{:N,Int64},Basis{Ket{:N,Int64}}}, 125 states:
+	| 0:N, 0:N, 0:N ⟩
+	| 0:N, 0:N, 1:N ⟩
+	| 0:N, 0:N, 2:N ⟩
+	| 0:N, 0:N, 3:N ⟩
+	| 0:N, 0:N, 4:N ⟩
+	| 0:N, 1:N, 0:N ⟩
+	| 0:N, 1:N, 1:N ⟩
+	| 0:N, 1:N, 2:N ⟩
+	| 0:N, 1:N, 3:N ⟩
+	| 0:N, 1:N, 4:N ⟩
 	⁞
-	| 4:X, 2:X, 4:X ⟩
-	| 4:X, 3:X, 0:X ⟩
-	| 4:X, 3:X, 1:X ⟩
-	| 4:X, 3:X, 2:X ⟩
-	| 4:X, 3:X, 3:X ⟩
-	| 4:X, 3:X, 4:X ⟩
-	| 4:X, 4:X, 0:X ⟩
-	| 4:X, 4:X, 1:X ⟩
-	| 4:X, 4:X, 2:X ⟩
-	| 4:X, 4:X, 3:X ⟩
-	| 4:X, 4:X, 4:X ⟩
+	| 4:N, 2:N, 4:N ⟩
+	| 4:N, 3:N, 0:N ⟩
+	| 4:N, 3:N, 1:N ⟩
+	| 4:N, 3:N, 2:N ⟩
+	| 4:N, 3:N, 3:N ⟩
+	| 4:N, 3:N, 4:N ⟩
+	| 4:N, 4:N, 0:N ⟩
+	| 4:N, 4:N, 1:N ⟩
+	| 4:N, 4:N, 2:N ⟩
+	| 4:N, 4:N, 3:N ⟩
+	| 4:N, 4:N, 4:N ⟩
 
 Or, you can just pass `Tensor` states to the `basis` function:
 
 	julia> tb_partial=basis(tb[1], tb[10], tb[100])
-	TensorBasis{Ket{:X,Int64},Basis{Ket{:X,Int64}}}, 3 states:
-	| 0:X, 0:X, 0:X ⟩
-	| 0:X, 1:X, 4:X ⟩
-	| 3:X, 4:X, 4:X ⟩
+	TensorBasis{Ket{:N,Int64},Basis{Ket{:N,Int64}}}, 3 states:
+	| 0:N, 0:N, 0:N ⟩
+	| 0:N, 1:N, 4:N ⟩
+	| 3:N, 4:N, 4:N ⟩
 
 `TensorBasis` objects handle all the same functions as `Basis`
 objects (`bcat`, `map`, `filter`, etc.). In addition, a `TensorBasis`
 can be separated into its component bases using `separate`:
 
 	julia> separate(tb)
-	3-element Array{Basis{Ket{:X,Int64}},1}:
-	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 1:X ⟩,| 2:X ⟩,| 3:X ⟩,| 4:X ⟩]
-	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 1:X ⟩,| 2:X ⟩,| 3:X ⟩,| 4:X ⟩]
-	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 1:X ⟩,| 2:X ⟩,| 3:X ⟩,| 4:X ⟩]
+	3-element Array{Basis{Ket{:N,Int64}},1}:
+	 Basis{Ket{:N,Int64}}[| 0:N ⟩,| 1:N ⟩,| 2:N ⟩,| 3:N ⟩,| 4:N ⟩]
+	 Basis{Ket{:N,Int64}}[| 0:N ⟩,| 1:N ⟩,| 2:N ⟩,| 3:N ⟩,| 4:N ⟩]
+	 Basis{Ket{:N,Int64}}[| 0:N ⟩,| 1:N ⟩,| 2:N ⟩,| 3:N ⟩,| 4:N ⟩]
 
 	julia> separate(tb_partial)
-	3-element Array{Basis{Ket{:X,Int64}},1}:
-	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 3:X ⟩]
-	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 1:X ⟩,| 4:X ⟩]
-	 Basis{Ket{:X,Int64}}[| 0:X ⟩,| 4:X ⟩]
+	3-element Array{Basis{Ket{:N,Int64}},1}:
+	 Basis{Ket{:N,Int64}}[| 0:N ⟩,| 3:N ⟩]
+	 Basis{Ket{:N,Int64}}[| 0:N ⟩,| 1:N ⟩,| 4:N ⟩]
+	 Basis{Ket{:N,Int64}}[| 0:N ⟩,| 4:N ⟩]
 
 As you can see, the component bases for `tb_partial` had to 
 be inferred from the states provided. These bases each contain 
 the minimum number of states such that their tensor 
 product contains the states that make up the original
-`TensorBasis` (in the case of `tb_partial`: `| 0:X, 0:X, 0:X ⟩`, 
-`| 0:X, 1:X, 4:X ⟩`, `| 3:X, 4:X, 4:X ⟩`).
+`TensorBasis` (in the case of `tb_partial`: `| 0:N, 0:N, 0:N ⟩`, 
+`| 0:N, 1:N, 4:N ⟩`, `| 3:N, 4:N, 4:N ⟩`).
 
 ##3. State Representations: `DiracVector`
 
@@ -657,10 +657,10 @@ simply add states together (recall from section
 1.3 that a coefficient times a state will yield
 a `DiracVector`):
 
-	julia> dv=1/sqrt(2)*ket(:X,1) + 1/sqrt(2)*ket(:X,2)
-	2x1 DiracVector{Ket{:X,Int64},Float64}
-	 0.707107  | 1:X ⟩
-	 0.707107  | 2:X ⟩
+	julia> dv=1/sqrt(2)*ket(:N,1) + 1/sqrt(2)*ket(:N,2)
+	2x1 DiracVector{Ket{:N,Int64},Float64}
+	 0.707107  | 1:N ⟩
+	 0.707107  | 2:N ⟩
 
 Note that Quantum.jl does not automatically normalize `DiracVector`s.
 This is to avoid unexpected behaviors programatically, and because 
@@ -669,87 +669,87 @@ math is correct.
 
 Quantum.jl instead provides a `normalize` method:
 
-	julia> ket(:X,1) + ket(:X,2)
-	2x1 DiracVector{Ket{:X,Int64},Int64}
-	 1  | 1:X ⟩
-	 1  | 2:X ⟩
+	julia> ket(:N,1) + ket(:N,2)
+	2x1 DiracVector{Ket{:N,Int64},Int64}
+	 1  | 1:N ⟩
+	 1  | 2:N ⟩
 
 	julia> dv=normalize(ans)
-	2x1 DiracVector{Ket{:X,Int64},Float64}
-	 0.707107  | 1:X ⟩
-	 0.707107  | 2:X ⟩ 
+	2x1 DiracVector{Ket{:N,Int64},Float64}
+	 0.707107  | 1:N ⟩
+	 0.707107  | 2:N ⟩ 
 
 All normal linear algebraic arithmetic should work 
 appropriately with `DiracVector`s, as well as taking
 tensor products and inner products:
 
 	julia> dv' # ctranspose of dv
-	1x2 DiracVector{Bra{:X,Int64},Float64}
-	  ⟨ 1:X |   ⟨ 2:X |
+	1x2 DiracVector{Bra{:N,Int64},Float64}
+	  ⟨ 1:N |   ⟨ 2:N |
 	 0.707107  0.707107
 
 	 julia> dv+dv
-	2x1 DiracVector{Ket{:X,Int64},Float64}
-	 1.41421  | 1:X ⟩
-	 1.41421  | 2:X ⟩
+	2x1 DiracVector{Ket{:N,Int64},Float64}
+	 1.41421  | 1:N ⟩
+	 1.41421  | 2:N ⟩
 
 	julia> dv-dv
-	2x1 DiracVector{Ket{:X,Int64},Float64}
-	 0.0  | 1:X ⟩
-	 0.0  | 2:X ⟩
+	2x1 DiracVector{Ket{:N,Int64},Float64}
+	 0.0  | 1:N ⟩
+	 0.0  | 2:N ⟩
 
-	julia> bra(:X,2)*dv # ⟨ 2:X | dv ⟩
+	julia> bra(:N,2)*dv # ⟨ 2:N | dv ⟩
 	0.7071067811865475
 
 	julia> bra(:S,"a")*dv # ⟨ "a":S | dv ⟩
-	ScalarExpr(:(0.7071067811865475 * ⟨ "a":S | 1:X ⟩ + 0.7071067811865475 * ⟨ "a":S | 2:X ⟩))
+	ScalarExpr(:(0.7071067811865475 * ⟨ "a":S | 1:N ⟩ + 0.7071067811865475 * ⟨ "a":S | 2:N ⟩))
 
 	julia> kron(dv,dv)
-	4x1 DiracVector{Ket{:X,Int64},Float64}
-	 0.5  | 1:X, 1:X ⟩
-	 0.5  | 1:X, 2:X ⟩
-	 0.5  | 2:X, 1:X ⟩
-	 0.5  | 2:X, 2:X ⟩
+	4x1 DiracVector{Ket{:N,Int64},Float64}
+	 0.5  | 1:N, 1:N ⟩
+	 0.5  | 1:N, 2:N ⟩
+	 0.5  | 2:N, 1:N ⟩
+	 0.5  | 2:N, 2:N ⟩
 
 	julia> kron(dv, dv') # | dv ⟩⟨ dv |
-	2x2 DiracMatrix{Ket{:X,Int64},Bra{:X,Int64},Float64}
-	          ⟨ 1:X |   ⟨ 2:X |
-	  | 1:X ⟩  0.5       0.5
-	  | 2:X ⟩  0.5       0.5
+	2x2 DiracMatrix{Ket{:N,Int64},Bra{:N,Int64},Float64}
+	          ⟨ 1:N |   ⟨ 2:N |
+	  | 1:N ⟩  0.5       0.5
+	  | 2:N ⟩  0.5       0.5
 
-	julia> kron(dv,ket(:X,1))
-	2x1 DiracVector{Ket{:X,Int64},Float64}
-	 0.707107  | 1:X, 1:X ⟩
-	 0.707107  | 2:X, 1:X ⟩
+	julia> kron(dv,ket(:N,1))
+	2x1 DiracVector{Ket{:N,Int64},Float64}
+	 0.707107  | 1:N, 1:N ⟩
+	 0.707107  | 2:N, 1:N ⟩
 
 	julia> dv'*dv # ⟨ dv | dv ⟩
 	0.9999999999999998
 
-	julia> normalize(dv+ket(:X,3))
-	3x1 DiracVector{Ket{:X,Int64},Float64}
-	 0.5       | 1:X ⟩
-	 0.5       | 2:X ⟩
-	 0.707107  | 3:X ⟩
+	julia> normalize(dv+ket(:N,3))
+	3x1 DiracVector{Ket{:N,Int64},Float64}
+	 0.5       | 1:N ⟩
+	 0.5       | 2:N ⟩
+	 0.707107  | 3:N ⟩
 
-	julia> normalize(dv-ket(:X,3))
-	3x1 DiracVector{Ket{:X,Int64},Float64}
-	  0.5       | 1:X ⟩
-	  0.5       | 2:X ⟩
-	 -0.707107  | 3:X ⟩
+	julia> normalize(dv-ket(:N,3))
+	3x1 DiracVector{Ket{:N,Int64},Float64}
+	  0.5       | 1:N ⟩
+	  0.5       | 2:N ⟩
+	 -0.707107  | 3:N ⟩
 
-	julia> ket(:X,1)+ket(:X,1)+ket(:X,1)
-	1x1 DiracVector{Ket{:X,Int64},Int64}
-	 3  | 1:X ⟩
+	julia> ket(:N,1)+ket(:N,1)+ket(:N,1)
+	1x1 DiracVector{Ket{:N,Int64},Int64}
+	 3  | 1:N ⟩
 
 One cannot add states that aren't allowed
 to be part of the same basis:
 
-	julia> ket(:X,1)+ket(:S,"1")
+	julia> ket(:N,1)+ket(:S,"1")
 	ERROR: cannot construct basis: all states must have same label type and same basis identifier
 	 in basis at /Users/jarrettrevels/data/repos/quantum/src/basis.jl:23
 	 in + at /Users/jarrettrevels/data/repos/quantum/src/diracvector.jl:278
 
-	julia> ket(:X,1)+ket(:X,"1")
+	julia> ket(:N,1)+ket(:N,"1")
 	ERROR: cannot construct basis: all states must have same label type and same basis identifier
 	 in basis at /Users/jarrettrevels/data/repos/quantum/src/basis.jl:23
 	 in + at /Users/jarrettrevels/data/repos/quantum/src/diracvector.jl:278
@@ -758,17 +758,17 @@ Since the element type of a `DiracVector` is `T<:Any`,
 it is possible to use anything as a coefficient, including
 `InnerProduct`s and `ScalarExpr`s:
 
-	julia> (bra(:S,"1")*ket(:X, 1)) * ket(:X,1)
-	1x1 DiracVector{Ket{:X,Int64},InnerProduct{Bra{:S,ASCIIString},Ket{:X,Int64}}}
-	 ⟨ "1":S | 1:X ⟩  | 1:X ⟩
+	julia> (bra(:S,"1")*ket(:N, 1)) * ket(:N,1)
+	1x1 DiracVector{Ket{:N,Int64},InnerProduct{Bra{:S,ASCIIString},Ket{:N,Int64}}}
+	 ⟨ "1":S | 1:N ⟩  | 1:N ⟩
 
 	julia> ans+ans
-	1x1 DiracVector{Ket{:X,Int64},ScalarExpr}
-	 ScalarExpr(:(1 * ⟨ "1":S | 1:X ⟩ + 1 * ⟨ "1":S | 1:X ⟩))  | 1:X ⟩
+	1x1 DiracVector{Ket{:N,Int64},ScalarExpr}
+	 ScalarExpr(:(1 * ⟨ "1":S | 1:N ⟩ + 1 * ⟨ "1":S | 1:N ⟩))  | 1:N ⟩
 
 	julia> kron(ans,ans)
-	1x1 DiracVector{Ket{:X,Int64},ScalarExpr}
-	 ScalarExpr(:((1 * ⟨ "1":S | 1:X ⟩ + 1 * ⟨ "1":S | 1:X ⟩) * (1 * ⟨ "1":S | 1:X ⟩ + 1 * ⟨ "1":S | 1:X ⟩))) | 1:X, 1:X ⟩
+	1x1 DiracVector{Ket{:N,Int64},ScalarExpr}
+	 ScalarExpr(:((1 * ⟨ "1":S | 1:N ⟩ + 1 * ⟨ "1":S | 1:N ⟩) * (1 * ⟨ "1":S | 1:N ⟩ + 1 * ⟨ "1":S | 1:N ⟩))) | 1:N, 1:N ⟩
 
 ###3.2  Array-like/Dict-like Operations on `DiracVector`s
 
@@ -778,12 +778,12 @@ is generally not the most efficient way to go about things.
 The function `dvec` is provided to allow preallocation of
 a `DiracVector`'s basis and coefficient array.
 
-	julia> dv=dvec(Array(Float64, 4), basis(:X, [1:4]))
-	4x1 DiracVector{Ket{:X,Int64},Float64}
-	 6.94464e-310  | 1:X ⟩
-	 6.94464e-310  | 2:X ⟩
-	 6.94463e-310  | 3:X ⟩
-	 0.0           | 4:X ⟩
+	julia> dv=dvec(Array(Float64, 4), basis(:N, [1:4]))
+	4x1 DiracVector{Ket{:N,Int64},Float64}
+	 6.94464e-310  | 1:N ⟩
+	 6.94464e-310  | 2:N ⟩
+	 6.94463e-310  | 3:N ⟩
+	 0.0           | 4:N ⟩
 
 The empty `Array{Float64}` instantiated above could have been any kind of 
 column vector of length 4; Quantum.jl automatically converts a DiracVector's 
@@ -796,20 +796,20 @@ we won't bother with normalization):
 	julia> dv[1:4] = [1:4];
 
 	julia> dv
-	4x1 DiracVector{Ket{:X,Int64},Float64}
-	 1.0  | 1:X ⟩
-	 2.0  | 2:X ⟩
-	 3.0  | 3:X ⟩
-	 4.0  | 4:X ⟩
+	4x1 DiracVector{Ket{:N,Int64},Float64}
+	 1.0  | 1:N ⟩
+	 2.0  | 2:N ⟩
+	 3.0  | 3:N ⟩
+	 4.0  | 4:N ⟩
 
 Another is `map`:
 
 	julia> map(x->x^2, dv)
-	4x1 DiracVector{Ket{:X,Int64},Float64}
-	  1.0  | 1:X ⟩
-	  4.0  | 2:X ⟩
-	  9.0  | 3:X ⟩
-	 16.0  | 4:X ⟩
+	4x1 DiracVector{Ket{:N,Int64},Float64}
+	  1.0  | 1:N ⟩
+	  4.0  | 2:N ⟩
+	  9.0  | 3:N ⟩
+	 16.0  | 4:N ⟩
 
 Three filter methods are provided as well; `filterstates`,
 `filtercoeffs`, and `filternz`. The first uses the predicate
@@ -818,35 +818,35 @@ filter by coeffs, and the third merely filters out zeros
 and the states associated with those zeros:
 
 	julia> filtercoeffs(x->x%2==0, dv)
-	2x1 DiracVector{Ket{:X,Int64},Float64}
-	 2.0  | 2:X ⟩
-	 4.0  | 4:X ⟩
+	2x1 DiracVector{Ket{:N,Int64},Float64}
+	 2.0  | 2:N ⟩
+	 4.0  | 4:N ⟩
 
 	julia> filterstates(s->label(s)==3 || label(s)==1, dv)
-	2x1 DiracVector{Ket{:X,Int64},Float64}
-	 1.0  | 1:X ⟩
-	 3.0  | 3:X ⟩
+	2x1 DiracVector{Ket{:N,Int64},Float64}
+	 1.0  | 1:N ⟩
+	 3.0  | 3:N ⟩
 
 	julia> dv[1:3] = 0;
 
 	julia> dv
-	4x1 DiracVector{Ket{:X,Int64},Float64}
-	 0.0  | 1:X ⟩
-	 0.0  | 2:X ⟩
-	 0.0  | 3:X ⟩
-	 4.0  | 4:X ⟩
+	4x1 DiracVector{Ket{:N,Int64},Float64}
+	 0.0  | 1:N ⟩
+	 0.0  | 2:N ⟩
+	 0.0  | 3:N ⟩
+	 4.0  | 4:N ⟩
 
 	julia> filternz(dv)
-	1x1 DiracVector{Ket{:X,Int64},Float64}
-	 4.0  | 4:X ⟩
+	1x1 DiracVector{Ket{:N,Int64},Float64}
+	 4.0  | 4:N ⟩
 
 Using `get`, you can retrieve the coefficient
 associated with a state by doing the following:
 
-	julia> get(dv, ket(:X,4))
+	julia> get(dv, ket(:N,4))
 	4.0
 
-	julia> get(dv, ket(:X,3))
+	julia> get(dv, ket(:N,3))
 	0.0
 
 	julia> get(dv, ket(:S,"a"))
@@ -856,12 +856,78 @@ associated with a state by doing the following:
 	julia> get(dv, ket(:S,"a"), "not there!")
 	"not there!"
 
-##4. Operator Representations: `DiracMatrix`
+##4. Operators and Density Matrices
+
+###4.1 `OuterProduct`
+
+__Description__
+
+Taking the outer product of two states results in
+an `OuterProduct` object, which is essentially 
+Quantum.jl's projection operator. `OuterProduct`s 
+form the building blocks of operators represented 
+as `DiracMatrix` objects. 
+
+__Example__
+
+Like states, `OuterProduct`s have a consistent
+behavior for taking products, conjugate transposes,
+and performing linear algebraic arithmetic:
+
+	julia> o = ket(:N,1)*bra(:S,"a")
+	| 1:N ⟩⟨ "a":S |
+
+	julia> o'
+	| "a":S ⟩⟨ 1:N |
+
+	julia> o*ket(:S,"a") #| 1:N ⟩⟨ "a":S | "a":S ⟩
+	1x1 DiracVector{Ket{:N,Int64},Int64}
+	 1  | 1:N ⟩
+
+	julia> bra(:N,1)*o #⟨ 1:N | 1:N ⟩⟨ "a":S |
+	1x1 DiracVector{Bra{:S,ASCIIString},Int64}
+	  ⟨ "a":S |
+	 1
+
+	julia> bra(:G,:g)*o ⟨ :g:G | 1:N ⟩⟨ "a":S |
+	1x1 DiracVector{Bra{:S,ASCIIString},InnerProduct{Bra{:G,Symbol},Ket{:N,Int64}}}
+	 ⟨ "a":S |
+	 ⟨ :g:G | 1:N ⟩
+
+	julia> o*o
+	1x1 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},InnerProduct{Bra{:S,ASCIIString},Ket{:N,Int64}}}
+	         ⟨ "a":S |
+	  | 1:N ⟩  ⟨ "a":S | 1:N ⟩
+
+	julia> o-ket(:N,2)*bra(:S,"b")
+	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	          ⟨ "a":S |    ⟨ "b":S |
+	  | 1:N ⟩  1.0          0.0
+	  | 2:N ⟩  0.0         -1.0
+
+	julia> ans-o
+	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	          ⟨ "a":S |    ⟨ "b":S |
+	  | 1:N ⟩  0.0          0.0
+	  | 2:N ⟩  0.0         -1.0
+
+	julia> kron(o,ket(:G,:g))
+	| 1:N, :g:G ⟩⟨ "a":S |
+
+	julia> kron(o,bra(:G,:g))
+	| 1:N ⟩⟨ "a":S, :g:G |
+
+	julia> kron(o,ket(:G,:g)*bra(:H,234.0232))
+	| 1:N, :g:G ⟩⟨ "a":S, 234.0232:H |
+
+	julia> kron(ket(:G,:g)*bra(:H,234.0232),o)
+	| :g:G, 1:N ⟩⟨ 234.0232:H, "a":S |
+
+###4.2 `DiracMatrix`
 
 The `DiracMatrix` serves the same purpose for the
 representation of operators that the `DiracVector` 
 serves for the representation of states. 
-
 
 <!--
 5. OperatorRep 
