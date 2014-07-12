@@ -889,7 +889,7 @@ and performing linear algebraic arithmetic:
 	  ⟨ "a":S |
 	 1
 
-	julia> bra(:G,:g)*o ⟨ :g:G | 1:N ⟩⟨ "a":S |
+	julia> bra(:G,:g)*o #⟨ :g:G | 1:N ⟩⟨ "a":S |
 	1x1 DiracVector{Bra{:S,ASCIIString},InnerProduct{Bra{:G,Symbol},Ket{:N,Int64}}}
 	 ⟨ "a":S |
 	 ⟨ :g:G | 1:N ⟩
