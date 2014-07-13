@@ -2,6 +2,15 @@
 Quantum.jl Documentation
 ===
 
+The purpose of this documentation is to provide summaries and examples that
+describe the core parts of Quantum.jl. In effect, it's mainly focused on
+giving an overview of the types the package defines, how they behave in
+relation to other Julia functions and types, and how they interact with each
+other.
+
+For more explicit information on the functions provided by Quantum.jl not
+covered in this file, see [Quantum.jl's API](/docs/api.md).
+
 ##0. Abstract Types
 
 The abstract type `Dirac` serves as the parent type for
@@ -925,9 +934,166 @@ and performing linear algebraic arithmetic:
 
 ###4.2 `DiracMatrix`
 
-The `DiracMatrix` serves the same purpose for the
-representation of operators that the `DiracVector` 
-serves for the representation of states. 
+__Description__
+
+A `DiracMatrix` serves as a representation of 
+an operator in a basis of `OuterProduct`s, just 
+like a `DiracVector` serves as a representation 
+of a general state in a basis of eigenstates.
+
+A `DiracMatrix` explicitly stores its "ket" basis,
+"bra" basis, and a coefficient array. 
+
+__Example__
+
+Constructing a `DiracMatrix` can be done simply 
+by adding `OuterProducts`:
+
+julia> dm=ket(:N,1)*bra(:S,"a")+ket(:N,2)*bra(:S,"b")
+2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+          ⟨ "a":S |   ⟨ "b":S |
+  | 1:N ⟩  1.0         0.0
+  | 2:N ⟩  0.0         1.0
+
+These outer products must all map from one single basis to 
+another (i.e. no basis mixing is allowed):
+
+	julia> ket(:N,1)*bra(:S,"a")+ket(:N,2)*bra(:G,:g)
+	ERROR: no method +(OuterProduct{Ket{:N,Int64},Bra{:S,ASCIIString}}, OuterProduct{Ket{:N,Int64},Bra{:G,Symbol}})
+
+	julia> ket(:N,1)*bra(:S,"a")+ket(:N,2)*bra(:S,123)
+	ERROR: no method +(OuterProduct{Ket{:N,Int64},Bra{:S,ASCIIString}}, OuterProduct{Ket{:N,Int64},Bra{:S,Int64}})
+
+Just like `DiracVector`s, standard linear algebraic arithmetic involving
+other `Dirac` objects is built-in:
+
+	julia> dm+dm
+	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	          ⟨ "a":S |   ⟨ "b":S |
+	  | 1:N ⟩  2.0         0.0
+	  | 2:N ⟩  0.0         2.0
+
+	julia> dm+-dm
+	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	          ⟨ "a":S |   ⟨ "b":S |
+	  | 1:N ⟩  0.0         0.0
+	  | 2:N ⟩  0.0         0.0
+
+	julia> dm-dm
+	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	          ⟨ "a":S |   ⟨ "b":S |
+	  | 1:N ⟩  0.0         0.0
+	  | 2:N ⟩  0.0         0.0
+
+	julia> dm+ket(:N,3)*bra(:S,"c")
+	3x3 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	          ⟨ "a":S |   ⟨ "b":S |   ⟨ "c":S |
+	  | 1:N ⟩  1.0         0.0         0.0
+	  | 2:N ⟩  0.0         1.0         0.0
+	  | 3:N ⟩  0.0         0.0         1.0
+
+	julia> ket(:N,0)*bra(:S,"z")+dm
+	3x3 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	          ⟨ "z":S |   ⟨ "a":S |   ⟨ "b":S |
+	  | 0:N ⟩  1.0         0.0         0.0
+	  | 1:N ⟩  0.0         1.0         0.0
+	  | 2:N ⟩  0.0         0.0         1.0
+
+...`kron` works as well:
+
+	julia> kron(ket(:N,0)*bra(:S,"z"),dm)
+	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	               ⟨ "z":S, "a":S |   ⟨ "z":S, "b":S |
+	  | 0:N, 1:N ⟩  1.0                0.0
+	  | 0:N, 2:N ⟩  0.0                1.0
+
+	julia> kron(dm,ket(:N,3)*bra(:S,"c"))
+	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	               ⟨ "a":S, "c":S |   ⟨ "b":S, "c":S |
+	  | 1:N, 3:N ⟩  1.0                0.0
+	  | 2:N, 3:N ⟩  0.0                1.0
+
+	julia> kron(dm,dm)
+	4x4 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	               ⟨ "a":S, "a":S |   ⟨ "a":S, "b":S |  …   ⟨ "b":S, "b":S |
+	  | 1:N, 1:N ⟩  1.0                0.0                   0.0
+	  | 1:N, 2:N ⟩  0.0                1.0                   0.0
+	  | 2:N, 1:N ⟩  0.0                0.0                   0.0
+	  | 2:N, 2:N ⟩  0.0                0.0                   1.0
+
+	julia> kron(dm, ket(:L,1.2))
+	2x2 DiracMatrix{Ket{b,T},Bra{:S,ASCIIString},Float64}
+	                 ⟨ "a":S |   ⟨ "b":S |
+	  | 1.2:L, 1:N ⟩  1.0         0.0
+	  | 1.2:L, 2:N ⟩  0.0         1.0
+
+	julia> kron(dm, bra(:L,1.2))
+	2x2 DiracMatrix{Ket{:N,Int64},Bra{b,T},Float64}
+	          ⟨ 1.2:L, "a":S |   ⟨ 1.2:L, "b":S |
+	  | 1:N ⟩  1.0                0.0
+	  | 2:N ⟩  0.0                1.0
+
+...as does `*`:
+
+	julia> dm*ket(:S,"a")
+	2x1 DiracVector{Ket{:N,Int64},Float64}
+	 1.0  | 1:N ⟩
+	 0.0  | 2:N ⟩
+
+	julia> bra(:N,2)*dm
+	1x2 DiracVector{Bra{:S,ASCIIString},Float64}
+	  ⟨ "a":S |   ⟨ "b":S |
+	 0.0         1.0
+
+	julia> bra(:N,2)*dm*ket(:S,"b")
+	1.0
+
+	julia> bra(:N,1)*dm*ket(:S,"a")
+	1.0
+
+	julia> dm*(ket(:S,"a")*bra(:G,:g))
+	2x1 DiracMatrix{Ket{:N,Int64},Bra{:G,Symbol},Float64}
+	          ⟨ :g:G |
+	  | 1:N ⟩  1.0
+	  | 2:N ⟩  0.0
+
+	julia> (ket(:G,:g)*bra(:N,2))*dm
+	1x2 DiracMatrix{Ket{:G,Symbol},Bra{:S,ASCIIString},Float64}
+	           ⟨ "a":S |   ⟨ "b":S |
+	  | :g:G ⟩  0.0         1.0
+
+Mixed basis products resolve themselves appropriately using `InnerProduct`s
+and `ScalarExpr`s:
+
+	julia> dm*(ket(:A,"a")*bra(:B,"b"))
+	2x1 DiracMatrix{Ket{:N,Int64},Bra{:B,ASCIIString},Any}
+	         ⟨ "b":B |
+	  | 1:N ⟩  ScalarExpr(:(1 * ⟨ "a":S | "a":A ⟩ + 1 * 0))
+	  | 2:N ⟩  ScalarExpr(:(1 * 0 + 1 * ⟨ "b":S | "a":A ⟩))
+
+Quantum.jl offers the function `dmat` for non-arithmetic construction
+of a `DiracMatrix` (it's basically the same as `dvec` for a `DiracMatrix`):
+
+	julia> dmat(eye(3), basis(:N, [1:3]), basis(:S, ["a,","b","c"])')
+	3x3 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	          ⟨ "a,":S |   ⟨ "b":S |   ⟨ "c":S |
+	  | 1:N ⟩  1.0          0.0         0.0
+	  | 2:N ⟩  0.0          1.0         0.0
+	  | 3:N ⟩  0.0          0.0         1.0
+
+Note in the `dmat` call above that the first basis argument is a `Ket` basis, while 
+the second basis argument is a `Bra` basis. 
+
+When provided with a single basis argument, `dmat` works on the assumption that 
+the "row" basis and "column" basis are duals of each other:
+
+	julia> dmat(eye(3), basis(:N, [1:3]))
+	3x3 DiracMatrix{Ket{:N,Int64},Bra{:N,Int64},Float64}
+	          ⟨ 1:N |   ⟨ 2:N |   ⟨ 3:N |
+	  | 1:N ⟩  1.0       0.0       0.0
+	  | 2:N ⟩  0.0       1.0       0.0
+	  | 3:N ⟩  0.0       0.0       1.0
+
 
 <!--
 5. OperatorRep 
