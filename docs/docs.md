@@ -986,13 +986,13 @@ other `Dirac` objects is built-in:
 	  | 2:N ⟩  0.0         1.0         0.0
 	  | 3:N ⟩  0.0         0.0         1.0
 
-	julia> ket(:N,0)*bra(:S,"z")+dm
+	julia> ket(:N,0)*bra(:S,"z")-dm
 	3x3 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
-	          ⟨ "z":S |   ⟨ "a":S |   ⟨ "b":S |
-	  | 0:N ⟩  1.0         0.0         0.0
-	  | 1:N ⟩  0.0         1.0         0.0
-	  | 2:N ⟩  0.0         0.0         1.0
-
+	          ⟨ "z":S |    ⟨ "a":S |    ⟨ "b":S |
+	  | 0:N ⟩  1.0          0.0          0.0
+	  | 1:N ⟩  0.0         -1.0          0.0
+	  | 2:N ⟩  0.0          0.0         -1.0
+	  
 ...`kron` works as well:
 
 	julia> kron(ket(:N,0)*bra(:S,"z"),dm)

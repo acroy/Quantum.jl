@@ -303,6 +303,7 @@ end
 -(op::DiracMatrix) = -1*op
 -(a::DiracMatrix, b::DiracMatrix) = a+(-b)
 -(a::DiracMatrix, b::OuterProduct) = a+(-b)
+-(a::OuterProduct, b::DiracMatrix) = a+(-b)
 
 exp(op::DiracMatrix) = dmat(exp(op.coeffs), op.rowb, op.colb)
 ^(op::DiracMatrix, i::Integer) = dmat(^(op.coeffs, i), op.rowb, op.colb)
