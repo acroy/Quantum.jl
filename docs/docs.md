@@ -973,12 +973,6 @@ other `Dirac` objects is built-in:
 	  | 1:N ⟩  2.0         0.0
 	  | 2:N ⟩  0.0         2.0
 
-	julia> dm+-dm
-	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
-	          ⟨ "a":S |   ⟨ "b":S |
-	  | 1:N ⟩  0.0         0.0
-	  | 2:N ⟩  0.0         0.0
-
 	julia> dm-dm
 	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
 	          ⟨ "a":S |   ⟨ "b":S |
