@@ -949,11 +949,11 @@ __Example__
 Constructing a `DiracMatrix` can be done simply 
 by adding `OuterProducts`:
 
-julia> dm=ket(:N,1)*bra(:S,"a")+ket(:N,2)*bra(:S,"b")
-2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
-          ⟨ "a":S |   ⟨ "b":S |
-  | 1:N ⟩  1.0         0.0
-  | 2:N ⟩  0.0         1.0
+	julia> dm=ket(:N,1)*bra(:S,"a")+ket(:N,2)*bra(:S,"b")
+	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
+	          ⟨ "a":S |   ⟨ "b":S |
+	  | 1:N ⟩  1.0         0.0
+	  | 2:N ⟩  0.0         1.0
 
 These outer products must all map from one single basis to 
 another (i.e. no basis mixing is allowed):
