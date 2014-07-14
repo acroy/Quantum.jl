@@ -48,7 +48,6 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-*CURRENTLY A WORK IN PROGRESS*
 Quantum.jl Documentation
 ===
 
@@ -686,9 +685,9 @@ product contains the states that make up the original
 `TensorBasis` (in the case of `tb_partial`: `| 0:N, 0:N, 0:N ⟩`, 
 `| 0:N, 1:N, 4:N ⟩`, `| 3:N, 4:N, 4:N ⟩`).
 
-##3. State Representations: `DiracVector`
+##3. State Representations
 
-###3.1 Introduction 
+###3.1 `DiracVector`
 #####Description 
 
 A `DiracVector` is the representation of a state in a
