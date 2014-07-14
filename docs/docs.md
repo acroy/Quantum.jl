@@ -1373,8 +1373,8 @@ calculations involving numbers and `InnerProduct`s:
 
 __Supported Arithmetic using `ScalarExpr`__
 
-It is fairly easy to add support for simple functions; if
-you desire support to be added for a function not on the 
+It is fairly easy to add `ScalarExpr` support for simple functions. 
+If you desire support to be added for a function not on the 
 below list, feel free to submit an issue or pull request.
 
 List of supported arithmetic operations on `ScalarExpr`:
@@ -1390,4 +1390,204 @@ List of supported arithmetic operations on `ScalarExpr`:
 
 __`qeval` with `DiracVector` and `DiracMatrix`__
 
+Consider the following:
+	
+	julia> dm
+	3x3 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Int64}
+	          ⟨ "a,":S |   ⟨ "b":S |   ⟨ "c":S |
+	  | 1:N ⟩  1            4           7
+	  | 2:N ⟩  2            5           8
+	  | 3:N ⟩  3            6           9
 
+Multiplying `dm` by itself is a mixed-basis calculation, and will result in `ScalarExpr`s 
+(as you can see, formatting for long `ScalarExpr`s isn't exactly pretty):
+
+	julia> dm*dm # | :N_i ⟩⟨ :S_j | :N_i ⟩⟨ :S_j |
+	3x3 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},ScalarExpr}
+	         …  ⟨ "c":S |
+	  | 1:N ⟩     ScalarExpr(:(((1 + (((1 + (((1 + (((1 + (((1 + (((1 + (((1 + (((1 + ((1 * 1.0 + 7 * ⟨ "a,":S | 1:N ⟩) - 1)) + 8 * ⟨ "a,":S | 2:N ⟩) - 1)) + 9 * ⟨ "a,":S | 3:N ⟩) - 1)) + 28 * ⟨ "b":S | 1:N ⟩) - 1)) + 32 * ⟨ "b":S | 2:N ⟩) - 1)) + 36 * ⟨ "b":S | 3:N ⟩) - 1)) + 49 * ⟨ "c":S | 1:N ⟩) - 1)) + 56 * ⟨ "c":S | 2:N ⟩) - 1)) + 63 * ⟨ "c":S | 3:N ⟩) - 1))
+	  | 2:N ⟩     ScalarExpr(:(((1 + (((1 + (((1 + (((1 + (((1 + (((1 + (((1 + (((1 + (((1 + 1 * 0.0) + 14 * ⟨ "a,":S | 1:N ⟩) - 1)) + 16 * ⟨ "a,":S | 2:N ⟩) - 1)) + 18 * ⟨ "a,":S | 3:N ⟩) - 1)) + 35 * ⟨ "b":S | 1:N ⟩) - 1)) + 40 * ⟨ "b":S | 2:N ⟩) - 1)) + 45 * ⟨ "b":S | 3:N ⟩) - 1)) + 56 * ⟨ "c":S | 1:N ⟩) - 1)) + 64 * ⟨ "c":S | 2:N ⟩) - 1)) + 72 * ⟨ "c":S | 3:N ⟩) - 1))
+	  | 3:N ⟩     ScalarExpr(:(((1 + (((1 + (((1 + (((1 + (((1 + (((1 + (((1 + (((1 + (((1 + 1 * 0.0) + 21 * ⟨ "a,":S | 1:N ⟩) - 1)) + 24 * ⟨ "a,":S | 2:N ⟩) - 1)) + 27 * ⟨ "a,":S | 3:N ⟩) - 1)) + 42 * ⟨ "b":S | 1:N ⟩) - 1)) + 48 * ⟨ "b":S | 2:N ⟩) - 1)) + 54 * ⟨ "b":S | 3:N ⟩) - 1)) + 63 * ⟨ "c":S | 1:N ⟩) - 1)) + 72 * ⟨ "c":S | 2:N ⟩) - 1)) + 81 * ⟨ "c":S | 3:N ⟩) - 1))
+
+We can use `qeval` to evaluate the above mess numerically (once again, I'm choosing to evaluate all inner products to a single number for
+illustrative purposes):
+
+	julia> qeval((b,k)->1, ans)
+	3x3 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Int64}
+	            ⟨ "a,":S |     ⟨ "b":S |     ⟨ "c":S |
+	  | 1:N ⟩   72            180           288
+	  | 2:N ⟩   90            225           360
+	  | 3:N ⟩  108            270           432
+
+The same kind of thing could be done with a `DiracVector` if one were so inclined:
+
+	julia> dv = dvec([1:5], basis(:N, [1:5]))
+	5x1 DiracVector{Ket{:N,Int64},Int64}
+	 1  | 1:N ⟩
+	 2  | 2:N ⟩
+	 3  | 3:N ⟩
+	 4  | 4:N ⟩
+	 5  | 5:N ⟩
+
+	julia> (bra(:K,"k")*dv)*dv # ⟨ "k":K | dv:N ⟩| dv:N ⟩
+	5x1 DiracVector{Ket{:N,Int64},ScalarExpr}
+	 ScalarExpr(:((((1 * ⟨ "k":K | 1:N ⟩ + 2 * ⟨ "k":K | 2:N ⟩) + 3 * ⟨ "k":K | 3:N ⟩) + 4 * ⟨ "k":K | 4:N ⟩) + 5 * ⟨ "k":K | 5:N ⟩))        …  | 1:N ⟩
+	 ScalarExpr(:(((((1 * ⟨ "k":K | 1:N ⟩ + 2 * ⟨ "k":K | 2:N ⟩) + 3 * ⟨ "k":K | 3:N ⟩) + 4 * ⟨ "k":K | 4:N ⟩) + 5 * ⟨ "k":K | 5:N ⟩) * 2))     | 2:N ⟩
+	 ScalarExpr(:(((((1 * ⟨ "k":K | 1:N ⟩ + 2 * ⟨ "k":K | 2:N ⟩) + 3 * ⟨ "k":K | 3:N ⟩) + 4 * ⟨ "k":K | 4:N ⟩) + 5 * ⟨ "k":K | 5:N ⟩) * 3))     | 3:N ⟩
+	 ScalarExpr(:(((((1 * ⟨ "k":K | 1:N ⟩ + 2 * ⟨ "k":K | 2:N ⟩) + 3 * ⟨ "k":K | 3:N ⟩) + 4 * ⟨ "k":K | 4:N ⟩) + 5 * ⟨ "k":K | 5:N ⟩) * 4))     | 4:N ⟩
+	 ScalarExpr(:(((((1 * ⟨ "k":K | 1:N ⟩ + 2 * ⟨ "k":K | 2:N ⟩) + 3 * ⟨ "k":K | 3:N ⟩) + 4 * ⟨ "k":K | 4:N ⟩) + 5 * ⟨ "k":K | 5:N ⟩) * 5))     | 5:N ⟩
+
+	julia> qeval((b,k)->1, ans)
+	5x1 DiracVector{Ket{:N,Int64},Int64}
+	 15  | 1:N ⟩
+	 30  | 2:N ⟩
+	 45  | 3:N ⟩
+	 60  | 4:N ⟩
+	 75  | 5:N ⟩
+
+##6. Fock Space Functions
+
+For convenience, Quantum.jl provides a variety of functions associated with 
+constructing and manipulating bases of Fock states. 
+
+The first is `fbasis`:
+
+	julia> fbasis(5) #5 levels, single particle
+	Basis{Ket{:F,Int64}}, 5 states: 
+	| 0:F ⟩
+	| 1:F ⟩
+	| 2:F ⟩
+	| 3:F ⟩
+	| 4:F ⟩
+
+	julia> fbasis(5,5) #5 levels, 5 particles
+	TensorBasis{Ket{:F,Int64},Basis{Ket{:F,Int64}}}, 3125 states:
+	| 0:F, 0:F, 0:F, 0:F, 0:F ⟩
+	| 0:F, 0:F, 0:F, 0:F, 1:F ⟩
+	| 0:F, 0:F, 0:F, 0:F, 2:F ⟩
+	| 0:F, 0:F, 0:F, 0:F, 3:F ⟩
+	| 0:F, 0:F, 0:F, 0:F, 4:F ⟩
+	| 0:F, 0:F, 0:F, 1:F, 0:F ⟩
+	| 0:F, 0:F, 0:F, 1:F, 1:F ⟩
+	| 0:F, 0:F, 0:F, 1:F, 2:F ⟩
+	| 0:F, 0:F, 0:F, 1:F, 3:F ⟩
+	| 0:F, 0:F, 0:F, 1:F, 4:F ⟩
+	⁞
+	| 4:F, 4:F, 4:F, 2:F, 4:F ⟩
+	| 4:F, 4:F, 4:F, 3:F, 0:F ⟩
+	| 4:F, 4:F, 4:F, 3:F, 1:F ⟩
+	| 4:F, 4:F, 4:F, 3:F, 2:F ⟩
+	| 4:F, 4:F, 4:F, 3:F, 3:F ⟩
+	| 4:F, 4:F, 4:F, 3:F, 4:F ⟩
+	| 4:F, 4:F, 4:F, 4:F, 0:F ⟩
+	| 4:F, 4:F, 4:F, 4:F, 1:F ⟩
+	| 4:F, 4:F, 4:F, 4:F, 2:F ⟩
+	| 4:F, 4:F, 4:F, 4:F, 3:F ⟩
+	| 4:F, 4:F, 4:F, 4:F, 4:F ⟩
+
+Next is `fvec`:
+
+	julia> fvec(5) #5 levels, | 0:F ⟩
+	5x1 DiracVector{Ket{:F,Int64},Float64}
+	 1.0  | 0:F ⟩
+	 0.0  | 1:F ⟩
+	 0.0  | 2:F ⟩
+	 0.0  | 3:F ⟩
+	 0.0  | 4:F ⟩
+
+	julia> fvec(5,1) #5 levels, | 1:F ⟩
+	5x1 DiracVector{Ket{:F,Int64},Float64}
+	 0.0  | 0:F ⟩
+	 1.0  | 1:F ⟩
+	 0.0  | 2:F ⟩
+	 0.0  | 3:F ⟩
+	 0.0  | 4:F ⟩
+
+	julia> fvec(5,2) #5 levels, | 2:F ⟩
+	5x1 DiracVector{Ket{:F,Int64},Float64}
+	 0.0  | 0:F ⟩
+	 0.0  | 1:F ⟩
+	 1.0  | 2:F ⟩
+	 0.0  | 3:F ⟩
+	 0.0  | 4:F ⟩
+
+You can make creation and annihilation operators using
+`fcreate` and `fdestroy`:
+
+	julia> fcreate(3) #3 levels
+	3x3 DiracMatrix{Ket{:F,Int64},Bra{:F,Int64},Float64}
+	          ⟨ 0:F |   ⟨ 1:F |   ⟨ 2:F |
+	  | 0:F ⟩  0.0       0.0       0.0
+	  | 1:F ⟩  1.0       0.0       0.0
+	  | 2:F ⟩  0.0       1.41421   0.0
+
+	julia> fcreate(3,3,2) #3 levels, 3 particles, acting on particle 2
+	27x27 DiracMatrix{Ket{:F,Int64},Bra{:F,Int64},Float64}
+	                    ⟨ 0:F, 0:F, 0:F |  …   ⟨ 2:F, 2:F, 2:F |
+	  | 0:F, 0:F, 0:F ⟩  0.0                    0.0
+	  | 0:F, 0:F, 1:F ⟩  0.0                    0.0
+	  | 0:F, 0:F, 2:F ⟩  0.0                    0.0
+	  | 0:F, 1:F, 0:F ⟩  1.0                    0.0
+	  | 0:F, 1:F, 1:F ⟩  0.0                 …  0.0
+	  | 0:F, 1:F, 2:F ⟩  0.0                    0.0
+	  | 0:F, 2:F, 0:F ⟩  0.0                    0.0
+	  | 0:F, 2:F, 1:F ⟩  0.0                    0.0
+	  | 0:F, 2:F, 2:F ⟩  0.0                    0.0
+	 ⋮                                       ⋱
+	  | 1:F, 2:F, 2:F ⟩  0.0                    0.0
+	  | 2:F, 0:F, 0:F ⟩  0.0                    0.0
+	  | 2:F, 0:F, 1:F ⟩  0.0                 …  0.0
+	  | 2:F, 0:F, 2:F ⟩  0.0                    0.0
+	  | 2:F, 1:F, 0:F ⟩  0.0                    0.0
+	  | 2:F, 1:F, 1:F ⟩  0.0                    0.0
+	  | 2:F, 1:F, 2:F ⟩  0.0                    0.0
+	  | 2:F, 2:F, 0:F ⟩  0.0                 …  0.0
+	  | 2:F, 2:F, 1:F ⟩  0.0                    0.0
+	  | 2:F, 2:F, 2:F ⟩  0.0                    0.0
+
+	julia> fdestroy(3)  #3 levels
+	3x3 DiracMatrix{Ket{:F,Int64},Bra{:F,Int64},Float64}
+	          ⟨ 0:F |   ⟨ 1:F |   ⟨ 2:F |
+	  | 0:F ⟩  0.0       1.0       0.0
+	  | 1:F ⟩  0.0       0.0       1.41421
+	  | 2:F ⟩  0.0       0.0       0.0
+
+	julia> fdestroy(3,3,3) #3 levels, 3 particles, acting on particle 3
+	27x27 DiracMatrix{Ket{:F,Int64},Bra{:F,Int64},Float64}
+	                    ⟨ 0:F, 0:F, 0:F |  …   ⟨ 2:F, 2:F, 2:F |
+	  | 0:F, 0:F, 0:F ⟩  0.0                    0.0
+	  | 0:F, 0:F, 1:F ⟩  0.0                    0.0
+	  | 0:F, 0:F, 2:F ⟩  0.0                    0.0
+	  | 0:F, 1:F, 0:F ⟩  0.0                    0.0
+	  | 0:F, 1:F, 1:F ⟩  0.0                 …  0.0
+	  | 0:F, 1:F, 2:F ⟩  0.0                    0.0
+	  | 0:F, 2:F, 0:F ⟩  0.0                    0.0
+	  | 0:F, 2:F, 1:F ⟩  0.0                    0.0
+	  | 0:F, 2:F, 2:F ⟩  0.0                    0.0
+	 ⋮                                       ⋱
+	  | 1:F, 2:F, 2:F ⟩  0.0                    0.0
+	  | 2:F, 0:F, 0:F ⟩  0.0                    0.0
+	  | 2:F, 0:F, 1:F ⟩  0.0                 …  0.0
+	  | 2:F, 0:F, 2:F ⟩  0.0                    0.0
+	  | 2:F, 1:F, 0:F ⟩  0.0                    0.0
+	  | 2:F, 1:F, 1:F ⟩  0.0                    0.0
+	  | 2:F, 1:F, 2:F ⟩  0.0                    0.0
+	  | 2:F, 2:F, 0:F ⟩  0.0                 …  0.0
+	  | 2:F, 2:F, 1:F ⟩  0.0                    1.41421
+	  | 2:F, 2:F, 2:F ⟩  0.0                    0.0
+
+The identity and number operators are also provided:
+
+	julia> feye(3)
+	3x3 DiracMatrix{Ket{:F,Int64},Bra{:F,Int64},Float64}
+	          ⟨ 0:F |   ⟨ 1:F |   ⟨ 2:F |
+	  | 0:F ⟩  1.0       0.0       0.0
+	  | 1:F ⟩  0.0       1.0       0.0
+	  | 2:F ⟩  0.0       0.0       1.0
+
+	julia> fnum(3)
+	3x3 DiracMatrix{Ket{:F,Int64},Bra{:F,Int64},Float64}
+	          ⟨ 0:F |   ⟨ 1:F |   ⟨ 2:F |
+	  | 0:F ⟩  0.0       0.0       0.0
+	  | 1:F ⟩  0.0       1.0       0.0
+	  | 2:F ⟩  0.0       0.0       2.0

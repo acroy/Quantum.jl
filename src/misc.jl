@@ -8,8 +8,8 @@ qsparse(arr::Array{Union(Int, InnerProduct)}) = sparse(convert(Array{ScalarExpr}
 orient_error(a,b) = error("Multiplication $(typeof(a))*$(typeof(b)) is undefined. Perhaps you meant to use kron($(typeof(a)), $(typeof(b)))?")
 
 samebasis(a::Dirac, b::Dirac)= bsym(a)==bsym(b)
-samebasis(a::Symbol, b::Dirac)= a==bsym(b)
-samebasis(a::Dirac, b::Symbol)= samebasis(b, a)
+samebasis(a, b::Dirac) = a==bsym(b)
+samebasis(a::Dirac, b) = samebasis(b, a)
 
 for t=(:DiracMatrix, :DiracVector, :State, :OuterProduct)
 	@eval +(n::Number, d::($t)) = error("cannot add number and $(string($t))")
