@@ -116,6 +116,7 @@ function /(a::DiracCoeff, b::DiracCoeff)
 end
 
 conj(s::ScalarExpr)	= length(s.ex.args)==2 && s.ex.args[1]==:conj ? ScalarExpr(s.ex.args[2]) :  ScalarExpr(:(conj($(qexpr(s)))))
+ctranspose(s::ScalarExpr) = conj(s)
 
 for op=(:*,:-,:+,:/,:^) #define for elementwise operators
 	elop = symbol(string(:.) * string(op))

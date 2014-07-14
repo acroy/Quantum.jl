@@ -2,7 +2,7 @@
 #DiracMatrix#########################
 #####################################
 
-type DiracMatrix{K<:Ket, B<:Bra, T} <: AbstractOperator
+type DiracMatrix{K<:Ket, B<:Bra, T<:Union(Number, ScalarExpr)} <: AbstractOperator
 	coeffs::SparseMatrixCSC{T, Int}
 	rowb::AbstractBasis{K}
 	colb::AbstractBasis{B}
@@ -11,8 +11,9 @@ type DiracMatrix{K<:Ket, B<:Bra, T} <: AbstractOperator
 		return new(coeffs, rowb, colb)
 	end
 end
-DiracMatrix{K<:Ket, B<:Bra, T}(coeffs::SparseMatrixCSC{T}, rowb::AbstractBasis{K}, colb::AbstractBasis{B}) = DiracMatrix{K,B,T}(coeffs, rowb, colb) 
-DiracMatrix{K<:Ket, B<:Bra, T}(coeffs::Array{T}, rowb::AbstractBasis{K}, colb::AbstractBasis{B}) = DiracMatrix{K,B,T}(sparse(coeffs), rowb, colb) 
+DiracMatrix{K<:Ket, B<:Bra, T<:Union(Number, ScalarExpr)}(coeffs::SparseMatrixCSC{T}, rowb::AbstractBasis{K}, colb::AbstractBasis{B}) = DiracMatrix{K,B,T}(coeffs, rowb, colb) 
+DiracMatrix{K<:Ket, B<:Bra}(coeffs::SparseMatrixCSC, rowb::AbstractBasis{K}, colb::AbstractBasis{B}) = DiracMatrix{K,B,ScalarExpr}(convert(SparseMatrixCSC{ScalarExpr},coeffs), rowb, colb)
+DiracMatrix{K<:Ket, B<:Bra}(coeffs::Array, rowb::AbstractBasis{K}, colb::AbstractBasis{B}) = DiracMatrix(qsparse(coeffs), rowb, colb) 
 DiracMatrix{K<:Ket}(coeffs::AbstractArray, b::AbstractBasis{K}) = dmat(coeffs, b, b') 
 DiracMatrix{B<:Bra}(coeffs::AbstractArray, b::AbstractBasis{B}) = dmat(coeffs, b', b) 
 
@@ -52,6 +53,12 @@ size(dm::DiracMatrix, args...) = size(dm.coeffs, args...)
 for op=(:endof, :eltype, :length, :find, :findn, :findnz, :nnz, :ndims, :countnz)
 	@eval ($op)(dm::DiracMatrix) = ($op)(dm.coeffs)
 end
+
+in(o::OuterProduct, dm::DiracMatrix) = in(o.ket, dm.rowb) && in(o.bra, dm.colb)
+in{K<:Ket}(s::State{K}, dm::DiracMatrix) = in(s, dm.rowb)
+in{B<:Bra}(s::State{B}, dm::DiracMatrix) = in(s, dm.colb)
+in(n, dm::DiracMatrix) = in(n, dm.coeffs)
+
 ctranspose(dm::DiracMatrix) = dmat(dm.coeffs', dm.colb', dm.rowb')
 getindex(dm::DiracMatrix, x...) = dm.coeffs[x...]
 setindex!(dm::DiracMatrix, y, x...) = setindex!(dm.coeffs,y,x...)
@@ -66,24 +73,23 @@ getpos{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, o::OuterProduct{K,B}) = getpos(dm, 
 getpos(dm::DiracMatrix, arg) = throw(KeyError(arg)) 
 getpos(dm::DiracMatrix, args...) = throw(KeyError(args)) 
 
-get{K<:Ket}(dm::DiracMatrix{K}, s::State{K}) = dvec(dm[getpos(dm, s), :], dm.colb)
-get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, s::State{B}) = dvec(dm[:, getpos(dm, s)], dm.rowb)
-get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, k::State{K}, b::State{B}) = dm[getpos(dm, k), getpos(dm, b)]
-get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, o::OuterProduct{K,B}) = get(dm, o.ket, o.bra)
+get{K<:Ket}(dm::DiracMatrix, s::State{K}) = dvec(dm[getpos(dm, s), :], dm.colb)
+get{B<:Bra}(dm::DiracMatrix, s::State{B}) = dvec(dm[:, getpos(dm, s)], dm.rowb)
+get{K<:Ket, B<:Bra}(dm::DiracMatrix, k::State{K}, b::State{B}) = dm[getpos(dm, k), getpos(dm, b)]
+get(dm::DiracMatrix, o::OuterProduct) = get(dm, o.ket, o.bra)
 
-get{K<:Ket}(dm::DiracMatrix{K}, s::State{K}, notfound) = in(k, dm.rowb) ? get(dm, k) : notfound
-get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, s::State{B}, notfound) = in(b, dm.colb) ? get(dm, b) : notfound
-function get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, k::State{K}, b::State{B}, notfound)
-	if in(k, dm.rowb) && in(b, dm.colb)
+get{K<:Ket}(dm::DiracMatrix, s::State{K}, notfound) = in(k, dm.rowb) ? get(dm, k) : notfound
+get{B<:Bra}(dm::DiracMatrix, s::State{B}, notfound) = in(b, dm.colb) ? get(dm, b) : notfound
+
+function get{K<:Ket, B<:Bra}(dm::DiracMatrix, k::State{K}, b::State{B}, notfound)
+	if in(k, dm) && in(b, dm)
 		return get(dm, k, b)
 	else
 		return notfound
 	end	
 end
-get{K<:Ket, B<:Bra}(dm::DiracMatrix{K,B}, o::OuterProduct{K,B}, notfound) = get(dm, o.ket, o.bra, notfound)
 
-get(dm::DiracMatrix, arg) = throw(KeyError(arg)) 
-get(dm::DiracMatrix, args...) = throw(KeyError(args)) 
+get(dm::DiracMatrix, o::OuterProduct, notfound) = get(dm, o.ket, o.bra, notfound)
 
 #####################################
 #Show Functions######################
@@ -166,8 +172,8 @@ function multbystate!{B<:Bra}(dm::DiracMatrix, s::State{B}, dv::AbstractArray)
 	return dvec(dv, dm.colb)
 end
 
-consmult{K<:Ket}(dm::DiracMatrix, s::State{K}) = multbystate!(dm, s, samebasis(dm.colb,s) ? zeros(length(dm.rowb)) : zeros(Any,length(dm.rowb)))
-consmult{B<:Bra}(dm::DiracMatrix, s::State{B}) = multbystate!(dm, s, samebasis(dm.rowb,s) ? zeros(1,length(dm.colb)) : zeros(Any,1,length(dm.colb)))
+consmult{K<:Ket}(dm::DiracMatrix, s::State{K}) = multbystate!(dm, s, samebasis(dm.colb,s) ? zeros(length(dm.rowb)) : convert(Array{Any}, zeros(length(dm.rowb))))
+consmult{B<:Bra}(dm::DiracMatrix, s::State{B}) = multbystate!(dm, s, samebasis(dm.rowb,s) ? zeros(1,length(dm.colb)) : convert(Array{Any}, zeros(1,length(dm.rowb))))
 
 #currently the below consmults are slow;
 #should be replaced by a something 

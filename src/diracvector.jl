@@ -2,7 +2,7 @@
 #DiracVector#########################
 #####################################
 
-type DiracVector{S<:Single, T} <: Dirac
+type DiracVector{S<:Single, T<:Union(Number, ScalarExpr)} <: Dirac
 	coeffs::SparseMatrixCSC{T, Int} 
 	basis::AbstractBasis{S}
 	function DiracVector(coeffs, basis)
@@ -16,13 +16,16 @@ type DiracVector{S<:Single, T} <: Dirac
 	end
 end
 
-DiracVector{S,T}(coeffs::Array{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(sparse(coeffs), basis)
-DiracVector{S,T}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(coeffs, basis)
+DiracVector{S,T<:Union(Number, ScalarExpr)}(coeffs::SparseMatrixCSC{T}, basis::AbstractBasis{S}) = DiracVector{S,T}(coeffs, basis)
+DiracVector{S}(coeffs::SparseMatrixCSC, basis::AbstractBasis{S}) = DiracVector{S,ScalarExpr}(convert(SparseMatrixCSC{ScalarExpr},coeffs), basis)
+DiracVector{S}(coeffs::SparseMatrixCSC{Any}, basis::AbstractBasis{S}) = DiracVector{S,ScalarExpr}(convert(SparseMatrixCSC{ScalarExpr},coeffs), basis)
+
+DiracVector(coeffs::Array, basis::AbstractBasis) = DiracVector(qsparse(coeffs), basis)
+
 DiracVector(coeffs, s::State...) = DiracVector(coeffs, basis(collect(s)))
 dvec = DiracVector
 
 convert{S,T}(::Type{DiracVector{S,T}}, dv::DiracVector{S}) = dvec(convert(SparseMatrixCSC{T}, dv.coeffs), dv.basis)
-convert{S,T}(::Type{DiracVector{S,T}}, dv::DiracVector{S,T}) = dv
 
 #####################################
 #Access Functions####################
@@ -60,19 +63,14 @@ consnz_dvec{K<:Ket}(d::DiracVector{K}, nz_info) = dvec(nz_info[3], basis(d.basis
 consnz_dvec{B<:Bra}(d::DiracVector{B}, nz_info) = dvec(nz_info[3], basis(d.basis[nz_info[2]]))
 
 filternz(d::DiracVector) = consnz_dvec(d, findnz(d))
+in(s::State, d::DiracVector) = in(s,d.basis)
+in(n, dm::DiracVector) = in(n, dm.coeffs)
 
 #####################################
 #Dict-like Functions#################
 #####################################
 getpos(d::DiracVector, s::State) = get(d.basis, s)
-function get(d::DiracVector, s::State, notfound)
-	try
-		return d[getpos(d, s)]
-	catch
-		return notfound
-	end
-end
-
+get(d::DiracVector, s::State, notfound) = in(s,d.basis) ? d[getpos(d, s)] : notfound
 get(d::DiracVector, s::State) = d[getpos(d, s)]
 in(s::State, d::DiracVector) = in(s, d.basis)
 
@@ -199,20 +197,19 @@ kron{K<:Ket, B<:Bra}(a::State{K}, b::DiracVector{B}) = dmat(b.coeffs, basis(a), 
 kron{K<:Ket, B<:Bra}(a::DiracVector{K}, b::DiracVector{B}) = dmat(a.coeffs*b.coeffs, a.basis, b.basis)
 kron{K<:Ket, B<:Bra}(a::DiracVector{B}, b::DiracVector{K}) = kron(b,a)
 
+kron(c::DiracCoeff, s::State) = dvec([c], basis(s))
+kron(s::State, c::DiracCoeff) = kron(c,s)
+
 *{K<:Ket, B<:Bra}(a::DiracVector{K}, b::DiracVector{B}) = kron(a,b)
 *{K<:Ket, B<:Bra}(a::State{K}, b::DiracVector{B}) = kron(a,b)
 *{K<:Ket, B<:Bra}(a::DiracVector{K}, b::State{B}) = kron(a,b)
-
-*{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = inner(a,b)
-*{B<:Bra, K<:Ket}(a::DiracVector{B}, b::State{K}) = inner(a,b)
-*{B<:Bra, K<:Ket}(a::State{B}, b::DiracVector{K}) = inner(a,b)
-
-kron(c::DiracCoeff, s::State) = dvec([c], basis(s))
-kron(s::State, c::DiracCoeff) = kron(c,s)
 *(c::DiracCoeff, s::State) = kron(c,s)
 *(s::State, c::DiracCoeff) = kron(c,s)
 -(s::State) = kron(-1,s)
 
+*{B<:Bra, K<:Ket}(a::DiracVector{B}, b::DiracVector{K}) = inner(a,b)
+*{B<:Bra, K<:Ket}(a::DiracVector{B}, b::State{K}) = inner(a,b)
+*{B<:Bra, K<:Ket}(a::State{B}, b::DiracVector{K}) = inner(a,b)
 
 function addstate!(d,s)
 	d[getpos(d,s)] = 1+get(d, s)
@@ -271,15 +268,6 @@ for t=(:Bra,:Ket)
 	-{S1<:($t),S2<:($t)}(d::DiracVector{S1}, s::State{S2}) = d+(-s)
 	-{S1<:($t),S2<:($t)}(s::State{S1}, d::DiracVector{S2}) = s+(-d)
 	-{S1<:($t),S2<:($t)}(a::DiracVector{S1}, b::DiracVector{S2}) = a+(-b)
-	end
-	for op=(:+,:-,:kron)
-		@eval begin 
-		($op){S<:($t),I<:InnerProduct}(a::DiracVector{S,I}, b::State{S}) = ($op)(convert(DiracVector{S, ScalarExpr}, a), b)
-		($op){S<:($t),I<:InnerProduct}(a::State{S}, b::DiracVector{S,I}) = ($op)(a, convert(DiracVector{S, ScalarExpr}, b))
-		($op){S<:($t),I<:InnerProduct}(a::DiracVector{S,I}, b::DiracVector{S,I}) = ($op)(convert(DiracVector{S, ScalarExpr}, a), convert(DiracVector{S, ScalarExpr}, b))
-		($op){S<:($t),I<:InnerProduct, N<:Union(ScalarExpr,Number)}(a::DiracVector{S,I}, b::DiracVector{S,N}) = ($op)(convert(DiracVector{S, ScalarExpr}, a), b)
-		($op){S<:($t),I<:InnerProduct, N<:Union(ScalarExpr,Number)}(a::DiracVector{S,N}, b::DiracVector{S,I}) = ($op)(a, convert(DiracVector{S, ScalarExpr}, b))
-		end
 	end
 end
 

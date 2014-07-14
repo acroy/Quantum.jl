@@ -91,6 +91,7 @@ module Quantum
 		   Tensor,
 		   AbstractBasis,
 		   AbstractScalar,
+		   InnerProduct,
 		   ScalarExpr,
 		   Basis,
 		   DiracVector,

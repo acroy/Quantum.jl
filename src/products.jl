@@ -7,9 +7,10 @@ immutable OuterProduct{K<:Ket,B<:Bra} <: AbstractOperator
 	bra::State{B}
 end
 
-immutable InnerProduct{B<:Bra, K<:Ket} <: AbstractScalar
-	bra::State{B}
-	ket::State{K}
+immutable InnerProduct <: AbstractScalar
+	bra::State
+	ket::State
+	InnerProduct{B<:Bra,K<:Ket}(b::State{B}, k::State{K}) = new(b,k)
 end
 
 promote_rule{N<:Number, I<:InnerProduct}(::Type{I}, ::Type{N}) = ScalarExpr
@@ -32,6 +33,8 @@ bsym(i::InnerProduct) = [bsym(i.bra), bsym(i.ket)]
 label(i::InnerProduct) = [label(i.bra), label(o.ket)]
 conj(i::InnerProduct) = InnerProduct(i.ket', i.bra')
 ctranspose(o::OuterProduct) = OuterProduct(o.bra', o.ket')
+ctranspose(i::InnerProduct) = conj(i)
+
 isdual(a::OuterProduct, b::OuterProduct) = isdual(a.ket, b.bra) && isdual(b.ket, a.bra)
 isdual(a::InnerProduct, b::InnerProduct) = isdual(a.ket, b.bra) && isdual(b.ket, a.bra)
 

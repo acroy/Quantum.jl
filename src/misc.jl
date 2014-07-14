@@ -1,12 +1,9 @@
+zero(::Type{ScalarExpr}) = scalar(0)
 
-zero{A<:AbstractScalar}(::Type{A}) = scalar(0)
-
-#necessary for SparseMatrixCSC{Any} to function properly;
-#the fact that Any is often inferenced when ScalarExpr
-#should be inferenced is a Bad Thing. As a result, in the future
-#the below zeros should be removed as soon as the inferencing issue 
-#is fixed
-zero(::Type{Any}) = 0
+qsparse(arr::AbstractArray) = sparse(arr)
+qsparse(arr::Array{InnerProduct}) = sparse(convert(Array{ScalarExpr}, arr))
+qsparse(arr::Array{Union(InnerProduct, Int)}) = sparse(convert(Array{ScalarExpr}, arr))
+qsparse(arr::Array{Union(Int, InnerProduct)}) = sparse(convert(Array{ScalarExpr}, arr))
 
 orient_error(a,b) = error("Multiplication $(typeof(a))*$(typeof(b)) is undefined. Perhaps you meant to use kron($(typeof(a)), $(typeof(b)))?")
 

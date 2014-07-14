@@ -10,8 +10,11 @@ immutable Bra{b,T} <: State{Bra{b,T}}
 	label::T
 end
 
-ket{T}(b,label::T) = Ket{b,T}(label)
-bra{T}(b,label::T) = Bra{b,T}(label)
+Ket{T}(b,label::T) = Ket{b,T}(label)
+ket(b,label) = Ket(b,label)
+
+Bra{T}(b,label::T) = Bra{b,T}(label)
+bra(b,label) = Bra(b,label)
 
 typealias Single Union(Bra, Ket)
 
@@ -155,16 +158,16 @@ show{B<:Bra}(io::IO, s::State{B}) = print(io, "$lang $(reprlabel(s)) |")
 #Arithmetic Operations###############
 #####################################
 
-inner(x::Bra, y::Ket) = InnerProduct(x, y)
-inner{b,T1,T2}(x::Bra{b,T1}, y::Ket{b,T2}) = labeldelta(x,y)
+inner(x::Bra, y::Ket) = InnerProduct(x,y)
+inner{b,T1,T2}(x::Bra{b,T1}, y::Ket{b,T2}) = labeldelta(x, y)
 inner{b,T1,T2}(x::Tensor{Bra{b,T1}}, y::Tensor{Ket{b,T2}}) = labeldelta(x,y)
 inner{b,T}(x::Bra{b}, y::Tensor{Ket{b,T}}) = labeldelta(x,y[1]) * tensor(y.states[2:end])
 inner{b,T}(x::Tensor{Bra{b,T}}, y::Ket{b}) = tensor(y.states[2:end]) * labeldelta(x[1],y)
+inner{K<:Ket}(a::Bra, b::Tensor{K}) = inner(a,b[1])*tensor(b[2:end]...)
+inner{B<:Bra}(a::Tensor{B}, b::Ket) = inner(a[1],b)*tensor(a[2:end]...)
 
 inner{K<:Ket}(a::Bra, b::Tensor{K}, i::Int) = inner(a, b[i])*tensor(vcat(b[1:i-1], b[i+1:end])...)
 inner{B<:Bra}(a::Tensor{B}, b::Ket, i::Int) = tensor(vcat(a[1:i-1], a[i+1:end])...)*inner(a[i], b)
-inner{K<:Ket}(a::Bra, b::Tensor{K}) = inner(a,b[1])*tensor(b[2:end]...)
-inner{B<:Bra}(a::Tensor{B}, b::Ket) = inner(a[1],b)*tensor(a[2:end]...)
 
 function inner{B<:Bra,K<:Ket,S<:Single}(a::Tensor{B}, b::Tensor{K}, i::Int, target::Type{S}=Ket)
 	if target<:Ket

@@ -52,11 +52,11 @@ constructors for `Bra`s and `Ket`s:
 	ket{T}(b,label::T) = Ket{b,T}(label)
 	bra{T}(b,label::T) = Bra{b,T}(label)
 
-The above definition allows for each state to store a basis
-identifier as a type parameter, as well as a label as a unique 
-identifier within the basis it belongs to. Because the type
-of the label is parameterized, `Bra` and `Ket` objects are 
-as compact as the object that serves as their label!
+The above definition allows for each state to store a basis identifier `b` as
+a type parameter, as well as a label that serves as a unique identifier
+within the basis it belongs to. Because the type of the label is
+parameterized, `Bra` and `Ket` objects are as compact as the object that
+serves as their label!
 
 __Examples__
 
@@ -64,7 +64,7 @@ It's easy to construct `Ket`s using the above constructors:
 
 	julia> using Quantum
 	
-	julia> ket(:N,1)
+	julia> ket(:N,1) # ket(b, label) -> Ket{b,typeof(label)}(label) -> Ket{:N,Int}(1)
 	| 1:N ⟩
 
 	julia> typeof(ans)
@@ -250,7 +250,7 @@ later in this documentation.
 	⟨ "1":S |  1:N ⟩
 
 	julia> typeof(ans)
-	InnerProduct{Bra{:S,ASCIIString},Ket{:N,Int64}} (constructor with 1 method)
+	InnerProduct (constructor with 1 method)
 
 Inner products involving `Tensor` states can be ambiguous 
 without specifying which factor states are acting on each other. 
@@ -293,7 +293,7 @@ basis:
 	| "c":C, "d":D ⟩
 
 	julia> inner(tb,tk)
-	ScalarExpr(:(⟨ "a":A |  "c":C ⟩ * ⟨ "b":B |  "d":D ⟩))
+	ScalarExpr(:((1 * ⟨ "a":A | "c":C ⟩) * ⟨ "b":B | "d":D ⟩))
 
 The `ScalarExpr` object returned above is Quantum.jl's mechanism 
 for dealing with arithmetic operations involving `InnerProduct`s, 
@@ -309,20 +309,20 @@ To accomplish this, Quantum.jl allows the user to pass
 position arguments to `inner` in order to specify which 
 states are acting on which.
 
-For example, recalling that a scalar times a state yields a `DiracVector{typeof(state), typeof(scalar)}`:
+For example, recalling that a scalar times a state yields a `DiracVector`:
 
 	julia> inner(xv[1]', tv[1], 2) # ⟨ (1:N)_2 | (1:N)_1, ("1":S)_2 ⟩
-	1x1 DiracVector{Ket{:N,Int64},InnerProduct{Bra{:N,Int64},Ket{:S,ASCIIString}}}
-	 ⟨ 1:N |  "1":S ⟩  | 1:N ⟩
+	1x1 DiracVector{Ket{:N,Int64},ScalarExpr}
+	 ScalarExpr(:(1 * ⟨ 1:N | "1":S ⟩))  | 1:N ⟩
 
 In cases where one is taking the inner product between a `Tensor` state and a single
 state, the index argument is always referring to the factor of the `Tensor` state
 that the single state is to act upon:
 
 	julia> inner(tv[1]', xv[1], 2) # ⟨ (1:N)_1, ("1":S)_2 | (1:N)_2 ⟩
-	1x1 DiracVector{Bra{:N,Int64},InnerProduct{Bra{:S,ASCIIString},Ket{:N,Int64}}}
+	1x1 DiracVector{Bra{:N,Int64},ScalarExpr}
 	 ⟨ 1:N |
-	 ⟨ "1":S |  1:N ⟩
+	 ScalarExpr(:(1 * ⟨ "1":S | 1:N ⟩))
 
 In the case of taking the inner product of two `Tensor` states, one
 can specify both the index argument, and which state the index argument
@@ -330,13 +330,13 @@ is referring to by passing `Ket` or `Bra` as the fourth argument (the
 index targets the `Ket` state by default):
 
 	julia> inner(tb, tk, 2) # (⟨ "a":A, "b":B |)_2 | ("c":C)_1, ("d":D)_2 ⟩->⟨ "a":A, "b":B | "d":D ⟩ | "c":C ⟩
-	ScalarExpr(:(⟨ "a":A | "d":D ⟩ * ⟨ "b":B | "c":C ⟩))
+	ScalarExpr(:((1 * ⟨ "a":A | "d":D ⟩) * ⟨ "b":B | "c":C ⟩))
 
 	julia> inner(tb, tk, 2) == inner(tb, tk, 2, Ket) #Ket is targeted by default
 	true
 
 	julia> inner(tb, tk, 2, Bra) # ⟨ ("a":A)_1, ("b":B)_2 | (| ("c":C), ("d":D) ⟩)_2->⟨ "a":A | ⟨ "b":B | "c":C, "d":D ⟩
-	ScalarExpr(:(⟨ "b":B | "c":C ⟩ * ⟨ "a":A | "d":D ⟩))
+	ScalarExpr(:((1 * ⟨ "b":B | "c":C ⟩) * ⟨ "a":A | "d":D ⟩))
 
 __Kronecker Product (`kron`)__
 
@@ -645,9 +645,11 @@ A `DiracVector` is the representation of a state in a
 basis. It stores the basis alongside a corresponding 
 sparse vector of coefficients. 
 
-The `DiracVector{S<:State, T}` inherits the state parameter of 
-its associated basis, and is also parameterized by the element
-type of its coeffcient array. 
+A `DiracVector{S<:State, T<:Union(Number, ScalarExpr)}` 
+inherits the state parameter of its associated basis, and 
+is also parameterized by the element type of its coefficient array. 
+The element type of the coefficient array must be either numeric
+or `ScalarExpr`.
 
 It is enforced that a `DiracVector` with a `Ket` basis has
 a column vector of coefficients, while a `DiracVector` with a
@@ -763,13 +765,13 @@ to be part of the same basis:
 	 in basis at /Users/jarrettrevels/data/repos/quantum/src/basis.jl:23
 	 in + at /Users/jarrettrevels/data/repos/quantum/src/diracvector.jl:278
 
-Since the element type of a `DiracVector` is `T<:Any`, 
-it is possible to use anything as a coefficient, including
-`InnerProduct`s and `ScalarExpr`s:
+It is possible to use `InnerProduct`s and `ScalarExpr`s as 
+coefficient (though the former are always converted to the 
+latter for the purpose of generalizing future calculations):
 
 	julia> (bra(:S,"1")*ket(:N, 1)) * ket(:N,1)
-	1x1 DiracVector{Ket{:N,Int64},InnerProduct{Bra{:S,ASCIIString},Ket{:N,Int64}}}
-	 ⟨ "1":S | 1:N ⟩  | 1:N ⟩
+	1x1 DiracVector{Ket{:N,Int64},ScalarExpr}
+	 ScalarExpr(:(1 * ⟨ "1":S | 1:N ⟩))  | 1:N ⟩
 
 	julia> ans+ans
 	1x1 DiracVector{Ket{:N,Int64},ScalarExpr}
@@ -899,14 +901,15 @@ and performing linear algebraic arithmetic:
 	 1
 
 	julia> bra(:G,:g)*o #⟨ :g:G | 1:N ⟩⟨ "a":S |
-	1x1 DiracVector{Bra{:S,ASCIIString},InnerProduct{Bra{:G,Symbol},Ket{:N,Int64}}}
+	1x1 DiracVector{Bra{:S,ASCIIString},ScalarExpr}
 	 ⟨ "a":S |
-	 ⟨ :g:G | 1:N ⟩
+	 ScalarExpr(:(1 * ⟨ :g:G | 1:N ⟩))
 
 	julia> o*o
-	1x1 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},InnerProduct{Bra{:S,ASCIIString},Ket{:N,Int64}}}
+	1x1 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},ScalarExpr}
 	         ⟨ "a":S |
-	  | 1:N ⟩  ⟨ "a":S | 1:N ⟩
+	  | 1:N ⟩  ScalarExpr(:(1 * ⟨ "a":S | 1:N ⟩))
+
 
 	julia> o-ket(:N,2)*bra(:S,"b")
 	2x2 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Float64}
@@ -941,8 +944,8 @@ an operator in a basis of `OuterProduct`s, just
 like a `DiracVector` serves as a representation 
 of a general state in a basis of eigenstates.
 
-A `DiracMatrix` explicitly stores its "ket" basis,
-"bra" basis, and a coefficient array. 
+A `DiracMatrix{K<:Ket, B<:Bra, T<:Union(Number, ScalarExpr)}` 
+explicitly stores its "ket" basis, "bra" basis, and a coefficient array. 
 
 __Example__
 
@@ -1060,7 +1063,7 @@ Mixed basis products resolve themselves appropriately using `InnerProduct`s
 and `ScalarExpr`s:
 
 	julia> dm*(ket(:A,"a")*bra(:B,"b"))
-	2x1 DiracMatrix{Ket{:N,Int64},Bra{:B,ASCIIString},Any}
+	2x1 DiracMatrix{Ket{:N,Int64},Bra{:B,ASCIIString},ScalarExpr}
 	         ⟨ "b":B |
 	  | 1:N ⟩  ScalarExpr(:(1 * ⟨ "a":S | "a":A ⟩ + 1 * 0))
 	  | 2:N ⟩  ScalarExpr(:(1 * 0 + 1 * ⟨ "b":S | "a":A ⟩))
@@ -1088,198 +1091,257 @@ the "row" basis and "column" basis are duals of each other:
 	  | 2:N ⟩  0.0       1.0       0.0
 	  | 3:N ⟩  0.0       0.0       1.0
 
+It is also possible to use functional definitions to construct a `DiracMatrix`
+by passing function arguments to `dmat`. For example, consider the lowering operator 
+`a`, which can be defined as 
 
-<!--
-5. OperatorRep 
---- 
-__Description__
+	`a | n:N ⟩ = eigval(| n:N ⟩) eigstate(| n:N ⟩) = sqrt(n) | n-1:N ⟩`.
 
-An `OperatorRep` is the representation of an abstract operator in a basis. It is 
-a matrix of complex coefficients. 
+Here, we split the functions that define `a`'s action on the `N` basis by defining 
+the function returning the eigeinvalue and the function returning the eigenstate 
+separately. These functions separate can be passed to `dmat` as anonymous functions,
+as well as the basis that you wish the operator to be defined on (currently, this
+method of constructing `DiracMatrix` objects only works when the "ket" basis and 
+"bra" basis are duals of each other):
 
-__Definition__
+	julia> a = DiracMatrix(n->sqrt(label(n)), n->ket(:N,label(n)-1), basis(:N, [1:10]))
+	10x10 DiracMatrix{Ket{:N,Int64},Bra{:N,Int64},Float64}
+	           ⟨ 1:N |   ⟨ 2:N |   ⟨ 3:N |  …   ⟨ 8:N |   ⟨ 9:N |   ⟨ 10:N |
+	  | 1:N ⟩   0.0       1.41421   0.0          0.0       0.0       0.0
+	  | 2:N ⟩   0.0       0.0       1.73205      0.0       0.0       0.0
+	  | 3:N ⟩   0.0       0.0       0.0          0.0       0.0       0.0
+	  | 4:N ⟩   0.0       0.0       0.0          0.0       0.0       0.0
+	  | 5:N ⟩   0.0       0.0       0.0       …  0.0       0.0       0.0
+	  | 6:N ⟩   0.0       0.0       0.0          0.0       0.0       0.0
+	  | 7:N ⟩   0.0       0.0       0.0          2.82843   0.0       0.0
+	  | 8:N ⟩   0.0       0.0       0.0          0.0       3.0       0.0
+	  | 9:N ⟩   0.0       0.0       0.0          0.0       0.0       3.16228
+	  | 10:N ⟩  0.0       0.0       0.0       …  0.0       0.0       0.0
 
-	type OperatorRep <: Quantum
-		coeffs::Matrix{Complex{Float64}}
-		row_basis::AbstractBasis{Ket}
-		col_basis::AbstractBasis{Bra}
-	end
+	julia> filternz(a*ket(:N,2)) #using filternz to remove all zeros from output DiracVector
+	1x1 DiracVector{Ket{:N,Int64},Float64}
+	 1.41421  | 1:N ⟩
 
-Note that it is possible for an object of type `OperatorRep` to have separate bases corresponding
-to the rows and columns of a matrix. While such a construction would be quite strange, 
-it would not be invalid under the rules of linear algebra, and implementing it does not
-cost much.
+	julia> filternz(a*ket(:N,3))
+	1x1 DiracVector{Ket{:N,Int64},Float64}
+	 1.73205  | 2:N ⟩
 
-__Constructors__
+	julia> filternz(a'*ket(:N,2)) # a' | 2:N ⟩
+	1x1 DiracVector{Ket{:N,Int64},Float64}
+	 1.73205  | 3:N ⟩
 
-	OperatorRep{N<:Number}(coeffs::Matrix{N}, b::AbstractBasis)
-	OperatorRep{N<:Number}(coeffs::Matrix{N}, row_basis::AbstractBasis{Ket}, col_basis::AbstractBasis{Bra})
-	OperatorRep(coeff_func::Function, label_func::Function, b::AbstractBasis)
+	julia> filternz(a'*ket(:N,3))
+	1x1 DiracVector{Ket{:N,Int64},Float64}
+	 2.0  | 4:N ⟩
 
-This last constructor allows an instance of `OperatorRep` to be constructed by defining the action 
-of an abstract operator on the states of the basis (see below for examples).
+	julia> a'*ket(:N,10) #takes us out of the basis we defined the operator on, result is zero vector
+	10x1 DiracVector{Ket{:N,Int64},Float64}
+	 0.0  | 1:N ⟩
+	 0.0  | 2:N ⟩
+	 0.0  | 3:N ⟩
+	 0.0  | 4:N ⟩
+	 0.0  | 5:N ⟩
+	 0.0  | 6:N ⟩
+	 0.0  | 7:N ⟩
+	 0.0  | 8:N ⟩
+	 0.0  | 9:N ⟩
+	 0.0  | 10:N ⟩
 
-__Methods and Examples__
+###4.3  Array-like/Dict-like Operations on `DiracMatrix`
 
-We've already seen in the previous section that one can construct an operator representation by taking
-the outer product of two state representations. Let's try constructing an `OperatorRep` functionally instead. First, we'll define `xb` as an excitation basis:
+`DiracMatrix` objects have a bunch of array functions defined on them, just like `DiracVector`s.
+Those functions (`map`, `getindex`, `setindex!`, etc.) all work as expected. 
 
-	julia> xb = Basis("xb", [1:10])
-	Basis{Ket} xb:
-	| 1 ⟩
-	| 2 ⟩
-	| 3 ⟩
-	| 4 ⟩
-	| 5 ⟩
-	| 6 ⟩
-	| 7 ⟩
-	| 8 ⟩
-	| 9 ⟩
-	| 10 ⟩  
+The `get` function can still be used to find coefficients associated with
+specific states, by passing individual `Ket`s and `Bra`s or whole
+`OuterProduct`s:
 
-Now, let's define the raising operator represented in `xb` as `r| n ⟩ = coeff_func(n) | label_func(n) ⟩ = sqrt(n+1) | n+1 ⟩`:
+	julia> dm = dmat(reshape([1:9],3,3), basis(:N, [1:3]), basis(:S, ["a,","b","c"])')
+	3x3 DiracMatrix{Ket{:N,Int64},Bra{:S,ASCIIString},Int64}
+	          ⟨ "a,":S |   ⟨ "b":S |   ⟨ "c":S |
+	  | 1:N ⟩  1            4           7
+	  | 2:N ⟩  2            5           8
+	  | 3:N ⟩  3            6           9
 
-	julia> rrep = OperatorRep(n->sqrt(n[1]+1), n->n[1]+1, xb)
+	julia> get(dm, ket(:N,2),bra(:S, "c"))
+	8
 
-	OperatorRep:
-	                     ⟨ 1 |  …               ⟨ 9 |           ⟨ 10 |
-	  | 1 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
-	  | 2 ⟩   1.41421+0.0im              0.0+0.0im       0.0+0.0im
-	  | 3 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
-	  | 4 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
-	  | 5 ⟩       0.0+0.0im       …      0.0+0.0im       0.0+0.0im
-	  | 6 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
-	  | 7 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
-	  | 8 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
-	  | 9 ⟩       0.0+0.0im              0.0+0.0im       0.0+0.0im
-	  | 10 ⟩      0.0+0.0im       …  3.16228+0.0im       0.0+0.0im
+	julia> get(dm, ket(:N,2),bra(:S, "c"),0)
+	8
 
-	julia> rrep*xb[2]
-	StateRep{Ket} | #undef ; xb ⟩:
-	     0.0+0.0im  | 1 ⟩
-	     0.0+0.0im  | 2 ⟩
-	 1.73205+0.0im  | 3 ⟩
-	     0.0+0.0im  | 4 ⟩
-	     0.0+0.0im  | 5 ⟩
-	     0.0+0.0im  | 6 ⟩
-	     0.0+0.0im  | 7 ⟩
-	     0.0+0.0im  | 8 ⟩
-	     0.0+0.0im  | 9 ⟩
-	     0.0+0.0im  | 10 ⟩
-
-	julia> rrep*xb[10]
-	StateRep{Ket} | #undef ; xb ⟩:
-	(all coefficients are zero)
-
-In the second operation, `r| 10 ⟩ = sqrt(11) | 11 ⟩` produces an eigenvector
-`| 11 ⟩` that, while an eigenstate of the abstract operator `r`, is not an
-eigenvector of the matrix `rrep`. In this way, functionally constructed
-instances of `OperatorRep` are consistent with the limitation that 
-`Basis` objects be finite dimensional subspaces of an abstract infinite 
-dimensional Hilbert space.
-
-Another feature of QuantumJL's `OperatorRep` implementation is a function 
-that computes the partial trace, which is useful for performing entanglement
-calculations:
-
-	julia> q = StateRep(:q, normalize([1,1]), Basis("b", [0,1]))
-	StateRep{Ket} | :q ; b ⟩:
-	 0.707107+0.0im  | 0 ⟩
-	 0.707107+0.0im  | 1 ⟩
-
-	julia> qq = q*q
-	StateRep{Ket} | :q,:q ; b ⊗ b ⟩:
-	 0.5+0.0im  | 0,0 ⟩
-	 0.5+0.0im  | 0,1 ⟩
-	 0.5+0.0im  | 1,0 ⟩
-	 0.5+0.0im  | 1,1 ⟩
-
-	julia> qq[2:3] = 0
+	julia> get(dm, ket(:N,2),bra(:G, :g),0)
 	0
 
-	julia> normalize!(qq)
-	StateRep{Ket} | :q,:q ; b ⊗ b ⟩:
-	 0.707107+0.0im  | 0,0 ⟩
-	      0.0+0.0im  | 0,1 ⟩
-	      0.0+0.0im  | 1,0 ⟩
-	 0.707107+0.0im  | 1,1 ⟩
+For `DiracMatrix` objects, `get` can also return `DiracVector`s:
 
-	julia> qop = qq*qq'
-	OperatorRep:
-	                  ⟨ 0,0 |  …           ⟨ 1,0 |           ⟨ 1,1 |
-	  | 0,0 ⟩  0.5+0.0im            0.0+0.0im         0.5+0.0im
-	  | 0,1 ⟩  0.0+0.0im            0.0+0.0im         0.0+0.0im
-	  | 1,0 ⟩  0.0+0.0im            0.0+0.0im         0.0+0.0im
-	  | 1,1 ⟩  0.5+0.0im            0.0+0.0im         0.5+0.0im
+	julia> get(dm, ket(:N,2))
+	1x3 DiracVector{Bra{:S,ASCIIString},Int64}
+	  ⟨ "a,":S |   ⟨ "b":S |   ⟨ "c":S |
+	 2            5           8
 
-	julia> ptrace(qop,1)
-	OperatorRep:
-	                ⟨ 0 |           ⟨ 1 |
-	  | 0 ⟩  0.5+0.0im       0.0+0.0im
-	  | 1 ⟩  0.0+0.0im       0.5+0.0im
+	julia> get(dm, bra(:S,"b"))
+	3x1 DiracVector{Ket{:N,Int64},Int64}
+	 4  | 1:N ⟩
+	 5  | 2:N ⟩
+	 6  | 3:N ⟩
 
-	julia> trace(ptrace(qop,1)^2)
-	0.5000000000000002 + 0.0im
+###4.4 Density Matrices and the Partial Trace
 
-6. Functions
----
+Here is an example of constructing a Bell state, then constructing a density matrix, 
+and finally an entanglement calculation using `ptrace`:
 
-The following is a list of functions that are implemented in 
-QuantumJL, not including overloaded functions 
-like `filter`, `trace`, `get`, etc.:
+	julia> q = 1/sqrt(2)*ket(:Q,0) + 1/sqrt(2)*ket(:Q,1)
+	2x1 DiracVector{Ket{:Q,Int64},Float64}
+	 0.707107  | 0:Q ⟩
+	 0.707107  | 1:Q ⟩
 
-	kind,
-	statevec,
-	tensor,
-	statejoin,
-	labeldelta,
-	separate,
-	state,
-	normalize!,
-	normalize,
-	mapmatch!,
-	mapmatch,
-	filtercoeffs, 
-	filtercoeffs!,
-	filterstates,
-	filterstates!,
-	samebasis,
-	findstates,
-	commutator,
-	ptrace
+	julia> s = 1/sqrt(2)*ket(:S,"a") + 1/sqrt(2)*ket(:S,"b")
+	2x1 DiracVector{Ket{:S,ASCIIString},Float64}
+	 0.707107  | "a":S ⟩
+	 0.707107  | "b":S ⟩
 
-The following is a list of functions imported from `Base` that are overloaded
-for the types defined in QuantumJL:
+	julia> qs = kron(q,s)
+	4x1 DiracVector{Ket{b,T},Float64}
+	 0.5  | 0:Q, "a":S ⟩
+	 0.5  | 0:Q, "b":S ⟩
+	 0.5  | 1:Q, "a":S ⟩
+	 0.5  | 1:Q, "b":S ⟩
 
-	show,
-	showcompact,
-	repr,
-	norm,
-	convert,	
-	getindex,
-	setindex!,
-	ndims,
-	size,
-	length,
-	slice,
-	(.+),
-	(.^),
-	(.-),
-	^,
-	*,
-	in,
-	setdiff,
-	get,
-	!,
-	exp,
-	map,
-	map!,
-	filter,
-	isequal,
-	copy,
-	hash,
-	isequal,
-	endof,
-	start,
-	find,
-	trace -->
+	julia> qs[2:3] = 0; qs=normalize(qs) #now we have a Bell state
+	4x1 DiracVector{Ket{b,T},Float64}
+	 0.707107  | 0:Q, "a":S ⟩
+	 0.0       | 0:Q, "b":S ⟩
+	 0.0       | 1:Q, "a":S ⟩
+	 0.707107  | 1:Q, "b":S ⟩
+
+	julia> qsdm=qs*qs'
+	4x4 DiracMatrix{Ket{b,T},Bra{b,T},Float64}
+	                 ⟨ 0:Q, "a":S |  …   ⟨ 1:Q, "a":S |   ⟨ 1:Q, "b":S |
+	  | 0:Q, "a":S ⟩  0.5                 0.0              0.5
+	  | 0:Q, "b":S ⟩  0.0                 0.0              0.0
+	  | 1:Q, "a":S ⟩  0.0                 0.0              0.0
+	  | 1:Q, "b":S ⟩  0.5                 0.0              0.5
+
+	julia> ptrace(qsdm, 1) #trace out the first system
+	2x2 DiracMatrix{Ket{:S,ASCIIString},Bra{:S,ASCIIString},Any}
+	            ⟨ "a":S |   ⟨ "b":S |
+	  | "a":S ⟩  0.5         0
+	  | "b":S ⟩  0           0.5
+
+	julia> trace(ans^2)
+	0.4999999999999998
+
+Note that I didn't need to use two separate bases here - I could have
+done `kron(q,q)` just as easily. I merely chose to use the `:S` basis
+to help illustrate the behavior of `ptrace`.
+
+###4.5 A Note on Functions as Operators
+
+As an alternative to `DiracMatrix` objects, one could just define a Julia
+function on types of `State`s. This allows one to set up the input->output
+definition of an operator without having to pay the storage costs of a
+`DiracMatrix` for very large bases. For example:
+
+	julia> lower(s::Ket{:N,Int}) = sqrt(label(s)) * ket(:N,label(s)-1)
+	lower (generic function with 1 method)
+
+	julia> lower(ket(:N,10))
+	1x1 DiracVector{Ket{:N,Int64},Float64}
+	 3.16228  | 9:N ⟩
+
+	julia> lower(ket(:N,1000))
+	1x1 DiracVector{Ket{:N,Int64},Float64}
+	 31.6228  | 999:N ⟩
+
+	julia> lower(ket(:N,10000000))
+	1x1 DiracVector{Ket{:N,Int64},Float64}
+	 3162.28  | 9999999:N ⟩
+
+If you wanted operator-like behavior, you could overload the function for `Bra`s 
+as well:
+
+	#mimicking the action of the lowering operator on bras
+	julia> lower(s::Bra{:N, Int}) = sqrt(label(s)+1) * bra(:N, label(s)+1)
+	lower (generic function with 2 methods)
+
+	julia> bra(:N,2)*a
+	1x10 DiracVector{Bra{:N,Int64},Float64}
+	  ⟨ 1:N |   ⟨ 2:N |   ⟨ 3:N |   ⟨ 4:N |  …   ⟨ 8:N |   ⟨ 9:N |   ⟨ 10:N |
+	 0.0       0.0       1.73205   0.0          0.0       0.0       0.0
+
+	julia> lower(bra(:N,2))
+	1x1 DiracVector{Bra{:N,Int64},Float64}
+	  ⟨ 3:N |
+	 1.73205
+
+The obvious downside to this is that Julia functions don't behave
+like matrices/operators in the normal sense, so it's not possible to
+*idiomatically* carry out multiplicative operations or operations that 
+rely on a tensor product structure. In the future, Quantum.jl will 
+hopefully provide an `Operator` type or something similar that
+will allow such idiomatic functional behavior. 
+
+##5. Abstract Scalars and `qeval`
+
+This section explains two types of objects that have 
+already been featured extensively in previous examples:
+`InnerProduct` and `ScalarExpr`.
+
+###5.1 `InnerProduct`
+
+As seen in previous examples, an `InnerProduct` is the 
+result of multiplying a `Bra` and `Ket` of two different bases:
+
+	julia> i=bra(:N, 1)*ket(:S, "a")
+	⟨ 1:N | "a":S ⟩
+
+Since an `InnerProduct` is a representation of a complex number,
+one can take it's complex conjugate:
+
+	julia> i'
+	⟨ "a":S | 1:N ⟩
+
+It can also be used as a coeffcient for `DiracVector`s and `DiracMatrix`s, but
+
+	julia> i*ket(:G,:g)
+	1x1 DiracVector{Ket{:G,Symbol},ScalarExpr}
+	 ScalarExpr(:(1 * ⟨ 1:N | "a":S ⟩))  | :g:G ⟩
+
+	julia> i*ket(:G,:g)*bra(:F,"f")
+	1x1 DiracMatrix{Ket{:G,Symbol},Bra{:F,ASCIIString},ScalarExpr}
+	          ⟨ "f":F |
+	  | :g:G ⟩  ScalarExpr(:(1 * ⟨ 1:N | "a":S ⟩))
+
+As you can see, an `InnerProduct` will automatically be converted to a `ScalarExpr` when it is
+used as a coefficient of a `Dirac` object. This is mainly because all numeric values can be explicitly
+converted to type `ScalarExpr`, while the same is not true of `InnerProduct`. This distinction is especially 
+significant for use with sparse matrices, as `zero(::Type{ScalarExpr})` is well-defined, while 
+`zero(::Type{ScalarExpr})` is not.
+
+The function `qeval` can be used to evaluate `InnerProduct`s by passing it 
+a function of the form `f(b::(B<:Bra), k::(K<:Ket)) = (N<:Number)`:
+
+	julia> f(b,k) = label(b) + label(k)*im
+	f (generic function with 1 method)
+
+	julia> qeval(f, bra(:N,1)*ket(:G,3))
+	1 + 3im
+
+	julia> qeval(f, bra(:N,5)*ket(:G,1.23))
+	5.0 + 1.23im
+
+###5.2 `ScalarExpr`
+
+__Description__
+`ScalarExpr` objects are used in Quantum.jl to represent calculations 
+involving numbers and `InnerProduct`s. As its name implies, a `ScalarExpr` is
+simply a container of an `Expr` that would evaluate to a number if all `InnerProduct`s
+contained in the `Expr` are evaluated to numbers.
+
+Evaluation of operations on a `ScalarExpr` is almost entirely lazy, with the exception of
+a few idempotent or easily invertible functions (e.g. `-`, `abs`, `conj`).
+
+__Examples__
+
+#TODO
+
