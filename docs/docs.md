@@ -31,7 +31,7 @@ types.
 
 ##1. States and Their Products
 ###1.1 Eigenkets and Eigenbras
-__Description__
+#####Description
 
 Quantum.jl is built on a system of eigenstates - objects which 
 are either of type `Bra` or `Ket`, and are parameterized
