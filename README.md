@@ -31,7 +31,7 @@ popular quantum libraries like QuTiP in order to more quickly offer up a host of
 optimized features, such as continuous space support, visualization systems, 
 and common algorithms used in quantum mechanics.
 
-For more information, check out Quantum.jl's documentation can be found [here](https://github.com/jrevels/Quantum.jl/blob/master/docs/docs.md) or
+For more information, check out [Quantum.jl's documentation](https://github.com/jrevels/Quantum.jl/blob/master/docs/docs.md) or
 the [Quantum.jl API](https://github.com/jrevels/Quantum.jl/blob/master/docs/api.md) (W.I.P.).
 
 Features
