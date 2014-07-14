@@ -1,53 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](http://doctoc.herokuapp.com/)*
-
-- [Quantum.jl Documentation](#quantumjl-documentation)
-  - [0. Abstract Types](#0-abstract-types)
-  - [1. States and Their Products](#1-states-and-their-products)
-    - [1.1 Eigenkets and Eigenbras](#11-eigenkets-and-eigenbras)
-        - [Description](#description)
-        - [Examples](#examples)
-    - [1.2 Tensor Product States](#12-tensor-product-states)
-        - [Description](#description-1)
-        - [Examples](#examples-1)
-    - [1.3 Other State Products: `kron`, `inner`, and `*`](#13-other-state-products-kron-inner-and-)
-        - [Inner Product (`inner`)](#inner-product-inner)
-        - [Kronecker Product (`kron`)](#kronecker-product-kron)
-        - [Vector Multiplication (`*`)](#vector-multiplication-)
-  - [2. `Basis` and `TensorBasis`](#2-basis-and-tensorbasis)
-    - [2.1 `Basis`](#21-basis)
-        - [Description](#description-2)
-        - [Examples](#examples-2)
-    - [2.2 `TensorBasis`](#22-tensorbasis)
-        - [Description](#description-3)
-        - [Examples](#examples-3)
-  - [3. State Representations](#3-state-representations)
-    - [3.1 `DiracVector`](#31-diracvector)
-        - [Description](#description-4)
-        - [Examples](#examples-4)
-    - [3.2  Array-like/Dict-like Operations on `DiracVector`s](#32--array-likedict-like-operations-on-diracvectors)
-  - [4. Operators and Density Matrices](#4-operators-and-density-matrices)
-    - [4.1 `OuterProduct`](#41-outerproduct)
-        - [Description](#description-5)
-        - [Examples](#examples-5)
-    - [4.2 `DiracMatrix`](#42-diracmatrix)
-        - [Description](#description-6)
-        - [Examples](#examples-6)
-    - [4.3  Array-like/Dict-like Operations on `DiracMatrix`](#43--array-likedict-like-operations-on-diracmatrix)
-    - [4.4 Density Matrices and the Partial Trace](#44-density-matrices-and-the-partial-trace)
-    - [4.5 A Note on Functions as Operators](#45-a-note-on-functions-as-operators)
-  - [5. Abstract Scalars and `qeval`](#5-abstract-scalars-and-qeval)
-    - [5.1 `InnerProduct`](#51-innerproduct)
-    - [5.2 `ScalarExpr`](#52-scalarexpr)
-        - [Description](#description-7)
-        - [Examples](#examples-7)
-        - [Supported Arithmetic using `ScalarExpr`](#supported-arithmetic-using-scalarexpr)
-        - [`qeval` with `DiracVector` and `DiracMatrix`](#qeval-with-diracvector-and-diracmatrix)
-  - [6. Fock Space Functions](#6-fock-space-functions)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 Quantum.jl Documentation
 ===
 
@@ -59,6 +9,55 @@ other.
 
 For more explicit information on the functions provided by Quantum.jl not
 covered in this file, see [Quantum.jl's API](/docs/api.md).
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](http://doctoc.herokuapp.com/)*
+
+- [0. Abstract Types](#0-abstract-types)
+- [1. States and Their Products](#1-states-and-their-products)
+  - [1.1 Eigenkets and Eigenbras](#11-eigenkets-and-eigenbras)
+      - [Description](#description)
+      - [Examples](#examples)
+  - [1.2 Tensor Product States](#12-tensor-product-states)
+      - [Description](#description-1)
+      - [Examples](#examples-1)
+  - [1.3 Other State Products: `kron`, `inner`, and `*`](#13-other-state-products-kron-inner-and-)
+      - [Inner Product (`inner`)](#inner-product-inner)
+      - [Kronecker Product (`kron`)](#kronecker-product-kron)
+      - [Vector Multiplication (`*`)](#vector-multiplication-)
+- [2. `Basis` and `TensorBasis`](#2-basis-and-tensorbasis)
+  - [2.1 `Basis`](#21-basis)
+      - [Description](#description-2)
+      - [Examples](#examples-2)
+  - [2.2 `TensorBasis`](#22-tensorbasis)
+      - [Description](#description-3)
+      - [Examples](#examples-3)
+- [3. State Representations](#3-state-representations)
+  - [3.1 `DiracVector`](#31-diracvector)
+      - [Description](#description-4)
+      - [Examples](#examples-4)
+  - [3.2  Array-like/Dict-like Operations on `DiracVector`s](#32--array-likedict-like-operations-on-diracvectors)
+- [4. Operators and Density Matrices](#4-operators-and-density-matrices)
+  - [4.1 `OuterProduct`](#41-outerproduct)
+      - [Description](#description-5)
+      - [Examples](#examples-5)
+  - [4.2 `DiracMatrix`](#42-diracmatrix)
+      - [Description](#description-6)
+      - [Examples](#examples-6)
+  - [4.3  Array-like/Dict-like Operations on `DiracMatrix`](#43--array-likedict-like-operations-on-diracmatrix)
+  - [4.4 Density Matrices and the Partial Trace](#44-density-matrices-and-the-partial-trace)
+  - [4.5 A Note on Functions as Operators](#45-a-note-on-functions-as-operators)
+- [5. Abstract Scalars and `qeval`](#5-abstract-scalars-and-qeval)
+  - [5.1 `InnerProduct`](#51-innerproduct)
+  - [5.2 `ScalarExpr`](#52-scalarexpr)
+      - [Description](#description-7)
+      - [Examples](#examples-7)
+      - [Supported Arithmetic using `ScalarExpr`](#supported-arithmetic-using-scalarexpr)
+      - [`qeval` with `DiracVector` and `DiracMatrix`](#qeval-with-diracvector-and-diracmatrix)
+- [6. Fock Space Functions](#6-fock-space-functions)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ##0. Abstract Types
 
