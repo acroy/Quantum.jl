@@ -32,7 +32,7 @@ optimized features, such as continuous space support, visualization systems,
 and common algorithms used in quantum mechanics.
 
 For more information, check out Quantum.jl's documentation can be found [here](https://github.com/jrevels/Quantum.jl/blob/master/docs/docs.md) or
-the [Quantum.jl API](https://github.com/jrevels/Quantum.jl/blob/master/docs/api.md (W.I.P.).
+the [Quantum.jl API](https://github.com/jrevels/Quantum.jl/blob/master/docs/api.md) (W.I.P.).
 
 Features
 ==========
@@ -60,7 +60,6 @@ Features
 	- ScalarExpr objects for delayed calculation of mixed-basis inner products. ScalarExpr
 	  objects support all basic arithmetic operations. 
 	- The ability to perform mixed basis calculation via the use of ScalarExprs and InnerProducts
-	- Fleshed out examples can be find in Quantum.jl's [documentation](https://github.com/jrevels/Quantum.jl/blob/master/docs/docs.md)
 
 ###In The Works:
 	- Code clean-up/organization
