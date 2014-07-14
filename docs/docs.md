@@ -1301,7 +1301,7 @@ one can take it's complex conjugate:
 	julia> i'
 	⟨ "a":S | 1:N ⟩
 
-It can also be used as a coeffcient for `DiracVector`s and `DiracMatrix`s, but
+It can also be used as a coeffcient for `DiracVector`s and `DiracMatrix`s:
 
 	julia> i*ket(:G,:g)
 	1x1 DiracVector{Ket{:G,Symbol},ScalarExpr}
@@ -1319,7 +1319,7 @@ significant for use with sparse matrices, as `zero(::Type{ScalarExpr})` is well-
 `zero(::Type{ScalarExpr})` is not.
 
 The function `qeval` can be used to evaluate `InnerProduct`s by passing it 
-a function of the form `f(b::(B<:Bra), k::(K<:Ket)) = (N<:Number)`:
+an arbitrary function of the form `f(b::(B<:Bra), k::(K<:Ket)) = (N<:Number)`:
 
 	julia> f(b,k) = label(b) + label(k)*im
 	f (generic function with 1 method)
@@ -1343,5 +1343,51 @@ a few idempotent or easily invertible functions (e.g. `-`, `abs`, `conj`).
 
 __Examples__
 
-#TODO
+Any numeric quantity or `InnerProduct` can be converted to a `ScalarExpr` using `scalar`:
+
+	julia> scalar(1)
+	ScalarExpr(:(1 * 1))
+
+	julia> scalar(0)
+	ScalarExpr(:(1 * 0))
+
+	julia> scalar(3+4.2im)
+	ScalarExpr(:(1 * 3.0 + 4.2im))
+
+	julia> scalar(bra(:N,1)*ket(:G,:g))
+	ScalarExpr(:(1 * ⟨ 1:N | :g:G ⟩))
+
+`ScalarExpr` objects can be used in a variety of arithmetic 
+calculations involving numbers and `InnerProduct`s:
+
+	julia> abs(3*ans + ans^2 * ans/(bra(:K,:k)*ket(:H,"h")))
+	ScalarExpr(:(abs(3 * (1 * ⟨ 1:N | :g:G ⟩) + ((1 * ⟨ 1:N | :g:G ⟩)^2 * (1 * ⟨ 1:N | :g:G ⟩)) / ⟨ :k:K | "h":H ⟩)))
+
+`qeval` can be used to evaluate the `InnerProduct`s in the a `ScalarExpr`:
+
+	julia> qeval((b,k)->2.341, ans) #evaluate all to the same number for trivial checking
+	12.503281000000001
+
+	julia> abs(3*2.341 + 2.341^2 * 2.341/(2.341))
+	12.503281000000001
+
+__Supported Arithmetic using `ScalarExpr`__
+
+It is fairly easy to add support for simple functions; if
+you desire support to be added for a function not on the 
+below list, feel free to submit an issue or pull request.
+
+List of supported arithmetic operations on `ScalarExpr`:
+
+	^
+	*
+	/
+	+
+	-
+	abs
+	exp
+	conj,ctranspose
+
+__`qeval` with `DiracVector` and `DiracMatrix`__
+
 
