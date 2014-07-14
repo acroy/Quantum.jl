@@ -31,9 +31,8 @@ popular quantum libraries like QuTiP in order to more quickly offer up a host of
 optimized features, such as continuous space support, visualization systems, 
 and common algorithms used in quantum mechanics.
 
-By the time Quantum.jl is released (in a week or two), it will 
-have decent documentation and be registered as an actual Julia package for ease of
-use - so stay tuned!
+For more information, check out Quantum.jl's documentation can be found [here](https://github.com/jrevels/Quantum.jl/blob/master/docs/docs.md) or
+the [Quantum.jl API](https://github.com/jrevels/Quantum.jl/blob/master/docs/api.md (W.I.P.).
 
 Features
 ==========
@@ -44,7 +43,7 @@ Features
 	- Application of arbitrary selection rules to extract subspaces from most types of 
 	  Quantum.jl collection objects. Related methods:
 	  	- filter
-	  	- map/map!
+	  	- map
 	  	- filtercoeffs
 	 	- filterstates
 	 	- find/findstates
@@ -58,14 +57,15 @@ Features
 		- commutator of DiracMatrices
 		- trace/partial trace, normalization, kron, and more
 		- arithmetic operations between Dirac types and generic arrays
-	- ScalarExpr objects for delayed calculation of mixed basis inner products. ScalarExpr
+	- ScalarExpr objects for delayed calculation of mixed-basis inner products. ScalarExpr
 	  objects support all basic arithmetic operations. 
 	- The ability to perform mixed basis calculation via the use of ScalarExprs and InnerProducts
+	- Fleshed out examples can be find in Quantum.jl's [documentation](https://github.com/jrevels/Quantum.jl/blob/master/docs/docs.md)
 
 ###In The Works:
-	- Documentation
+	- Code clean-up/organization
+	- Write up the API 
 	- registration of Quantum.jl as Julia package
-	- More Tests
 
 ###Post-Release Goals/Ideas:
 	- More mixed-basis functionality for addition of Dirac objects
