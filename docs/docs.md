@@ -58,7 +58,7 @@ within the basis it belongs to. Because the type of the label is
 parameterized, `Bra` and `Ket` objects are as compact as the object that
 serves as their label!
 
-__Examples__
+#####Examples
 
 It's easy to construct `Ket`s using the above constructors:
 
@@ -102,7 +102,7 @@ To get the dual of an eigenstate, use the `ctranspose` function (the
 
 ###1.2 Tensor Product States
 
-__Description__
+#####Description
 
 States of the same "kind" (i.e. multiple `Bra`s, or multiple `Ket`s) 
 can serve as factors of a tensor product state, the definition of 
@@ -118,7 +118,7 @@ As you can see, "kind" homogeneity is enforced via the inner constructors,
 and a `Tensor` object is parameterized by the element type of the `Vector` that
 stores its factors. 
 
-__Examples__
+#####Examples
 
 To take the tensor product of multiple states, use the `tensor` function:
 
@@ -230,7 +230,7 @@ states using `svec`, a convenience function provided by Quantum.jl:
 	 | 2:N, "2":S ⟩
 	 | 3:N, "3":S ⟩
 
-__Inner Product (`inner`)__
+#####Inner Product (`inner`)
 
 Taking the inner product between a `State{B<:Bra}` and
 a `State{K<:Ket}` results in a number if both are of 
@@ -338,7 +338,7 @@ index targets the `Ket` state by default):
 	julia> inner(tb, tk, 2, Bra) # ⟨ ("a":A)_1, ("b":B)_2 | (| ("c":C), ("d":D) ⟩)_2->⟨ "a":A | ⟨ "b":B | "c":C, "d":D ⟩
 	ScalarExpr(:((1 * ⟨ "b":B | "c":C ⟩) * ⟨ "a":A | "d":D ⟩))
 
-__Kronecker Product (`kron`)__
+#####Kronecker Product (`kron`)
 
 Taking the kronecker product of two states results in 
 a `Tensor` state if the states are of the same kind, and
@@ -363,7 +363,7 @@ covered more thoroughly in the DiracMatrix section):
 	julia> kron(tv[1]', tv[2]')
 	⟨ 1:N, "1":S, 2:N, "2":S |
 
-__Vector Multiplication (`*`)__
+#####Vector Multiplication (`*`)
 
 The `*` operator refers to standard vector multiplication. Thus,
 `*(a::State{B<:Bra}, b::State{K<:Ket})` will return an `InnerProduct`,
@@ -397,7 +397,7 @@ that operation, you should use `tensor` or `kron` instead:
 
 ###2.1 `Basis`
 
-__Description__
+#####Description
 The linear representations provided by Quantum.jl rely on collections
 of `State` objects that form `Basis` objects. The sections on `DiracVector`
 and `DiracMatrix` types will make this apparent, but for now, let's get a 
@@ -423,7 +423,7 @@ The third and final constraint on the states contained in a `Basis` is
 that the states must be unique. If they are not, Quantum.jl automatically
 filters out the unique states in the collection provided and uses those.
 
-__Examples__
+#####Examples
 
 One can use the `basis` function to construct `Basis` objects in much
 the same way as we used `svec` in section 1.3:
@@ -555,7 +555,7 @@ states and the values are their position in the collection:
 
 ###2.2 `TensorBasis`
 
-__Description__
+#####Description
 
 Multi-component descriptions of quantum systems often make use of a separable
 tensor product structure. We've already introduced the tensor product state
@@ -574,7 +574,7 @@ of their component bases. Each component `Basis` of a `TensorBasis` must,
 obviously, be a valid basis in and of itself, and the constraint on state
 uniqueness is similarly enforced for `TensorBasis` objects, as well.
 
-__Examples__
+#####Examples
 
 The easiest and most efficient way to construct a `TensorBasis` is 
 to pass `Basis` objects to the `tensor` function (using the `b`
@@ -639,7 +639,7 @@ product contains the states that make up the original
 ##3. State Representations: `DiracVector`
 
 ###3.1 Introduction 
-__Description__ 
+#####Description 
 
 A `DiracVector` is the representation of a state in a
 basis. It stores the basis alongside a corresponding 
@@ -661,7 +661,7 @@ real difference is that the vector's basis is
 explicitly stored and transformed along with the
 `Vector` itself. 
 
-__Example__
+#####Examples
 
 A natural way to construct a `DiracVector` is to
 simply add states together (recall from section 
@@ -871,7 +871,7 @@ associated with a state by doing the following:
 
 ###4.1 `OuterProduct`
 
-__Description__
+#####Description
 
 Taking the outer product of two states results in
 an `OuterProduct` object, which is essentially 
@@ -879,7 +879,7 @@ Quantum.jl's projection operator. `OuterProduct`s
 form the building blocks of operators represented 
 as `DiracMatrix` objects. 
 
-__Example__
+#####Examples
 
 Like states, `OuterProduct`s have a consistent
 behavior for taking products, conjugate transposes,
@@ -937,7 +937,7 @@ and performing linear algebraic arithmetic:
 
 ###4.2 `DiracMatrix`
 
-__Description__
+#####Description
 
 A `DiracMatrix` serves as a representation of 
 an operator in a basis of `OuterProduct`s, just 
@@ -947,7 +947,7 @@ of a general state in a basis of eigenstates.
 A `DiracMatrix{K<:Ket, B<:Bra, T<:Union(Number, ScalarExpr)}` 
 explicitly stores its "ket" basis, "bra" basis, and a coefficient array. 
 
-__Example__
+#####Examples
 
 Constructing a `DiracMatrix` can be done simply 
 by adding `OuterProducts`:
@@ -1332,7 +1332,7 @@ an arbitrary function of the form `f(b::(B<:Bra), k::(K<:Ket)) = (N<:Number)`:
 
 ###5.2 `ScalarExpr`
 
-__Description__
+#####Description
 `ScalarExpr` objects are used in Quantum.jl to represent calculations 
 involving numbers and `InnerProduct`s. As its name implies, a `ScalarExpr` is
 simply a container of an `Expr` that would evaluate to a number if all `InnerProduct`s
@@ -1341,7 +1341,7 @@ contained in the `Expr` are evaluated to numbers.
 Evaluation of operations on a `ScalarExpr` is almost entirely lazy, with the exception of
 a few idempotent or easily invertible functions (e.g. `-`, `abs`, `conj`).
 
-__Examples__
+#####Examples
 
 Any numeric quantity or `InnerProduct` can be converted to a `ScalarExpr` using `scalar`:
 
@@ -1371,7 +1371,7 @@ calculations involving numbers and `InnerProduct`s:
 	julia> abs(3*2.341 + 2.341^2 * 2.341/(2.341))
 	12.503281000000001
 
-__Supported Arithmetic using `ScalarExpr`__
+#####Supported Arithmetic using `ScalarExpr`
 
 It is fairly easy to add `ScalarExpr` support for simple functions. 
 If you desire support to be added for a function not on the 
@@ -1388,7 +1388,7 @@ List of supported arithmetic operations on `ScalarExpr`:
 	exp
 	conj,ctranspose
 
-__`qeval` with `DiracVector` and `DiracMatrix`__
+#####`qeval` with `DiracVector` and `DiracMatrix`
 
 Consider the following:
 	
