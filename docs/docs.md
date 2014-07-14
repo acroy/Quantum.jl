@@ -1496,7 +1496,7 @@ The same kind of thing could be done with a `DiracVector` if one were so incline
 ##6. Fock Space Functions
 
 For convenience, Quantum.jl provides a variety of functions associated with 
-constructing and manipulating bases of Fock states. 
+constructing and manipulating Fock states. 
 
 The first is `fbasis`:
 
