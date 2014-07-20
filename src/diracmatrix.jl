@@ -108,20 +108,51 @@ function showcompact(io::IO, dm::DiracMatrix)
 end
 
 function show(io::IO, dm::DiracMatrix)
-	println(io, summary(dm))
-	table = cell(length(dm.rowb)+1, length(dm.colb)+1)	
-	for i = 1:length(dm.rowb)
-		table[i+1,1] = dm.rowb[i]
+	if length(dm) > 1000000
+		showsp(io, dm)
+	else
+		#the below is horribly inefficient for large cases,
+		#hence the if statement
+		println(io, summary(dm))
+		table = cell(length(dm.rowb)+1, length(dm.colb)+1)	
+		for i = 1:length(dm.rowb)
+			table[i+1,1] = dm.rowb[i]
+		end
+		for j = 1:length(dm.colb)
+			table[1,j+1] = dm.colb[j]
+		end
+		table[1,1] = 0
+		table[2:end, 2:end] = dm.coeffs
+		temp_io = IOBuffer()
+		show(temp_io, table)
+		io_str = takebuf_string(temp_io)
+		print(io, io_str[searchindex(io_str, "\n")+3:end])
 	end
-	for j = 1:length(dm.colb)
-		table[1,j+1] = dm.colb[j]
-	end
-	table[1,1] = 0
-	table[2:end, 2:end] = dm.coeffs
-	temp_io = IOBuffer()
-	show(temp_io, table)
-	io_str = takebuf_string(temp_io)
-	print(io, io_str[searchindex(io_str, "\n")+3:end])
+end
+
+function showsp{K<:Ket,B<:Bra,T<:Union(Float64,Int)}(io::IO, dm::DiracMatrix{K,B,T})
+	numpad = length("$(round(maximum(dm.coeffs.nzval), 4))")
+	showsp(io, dm, print_el = ((io,el)->print(io, rpad("$(round(el, 4))", numpad))))
+end
+
+function showsp(io::IO, dm::DiracMatrix; print_el=((io,el)->showcompact(io, el)))
+ 	print(io, "$(size(dm,1))x$(size(dm,2)) DiracMatrix with $(nnz(dm)) $(eltype(dm)) entries: ")
+	rows = Base.tty_rows()
+	S = dm.coeffs
+    half_screen_rows = div(rows - 8, 2)
+    pad = ndigits(max(S.m,S.n))
+    k = 0
+    sep = "\n\t"
+    for col = 1:S.n, k = S.colptr[col] : (S.colptr[col+1]-1)
+        if k < half_screen_rows || k > nnz(S)-half_screen_rows
+            print(io, sep, '[', rpad(S.rowval[k], pad), ", ", lpad(col, pad), "]  =  ")
+            print_el(io, S.nzval[k])
+            print(io, sep, "$(dm.rowb[S.rowval[k]])$(dm.colb[col])")
+        elseif k == half_screen_rows
+            print(io, sep, '\u22ee')
+        end
+        k += 1
+    end
 end
 
 #####################################

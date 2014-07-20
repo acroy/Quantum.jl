@@ -129,5 +129,6 @@ module Quantum
 		   ptrace,
 		   scalar,
 		   actop,
-		   filternz
+		   filternz,
+		   showsp
 end
