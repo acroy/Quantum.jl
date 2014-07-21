@@ -132,10 +132,12 @@ end
 
 function showsp{K<:Ket,B<:Bra,T<:Union(Float64,Int)}(io::IO, dm::DiracMatrix{K,B,T})
 	numpad = length("$(round(maximum(dm.coeffs.nzval), 4))")
-	showsp(io, dm, print_el = ((io,el)->print(io, rpad("$(round(el, 4))", numpad))))
+	showsp_dmat(io, dm, print_el = ((io,el)->print(io, rpad("$(round(el, 4))", numpad))))
 end
 
-function showsp(io::IO, dm::DiracMatrix; print_el=((io,el)->showcompact(io, el)))
+showsp(io::IO, dm::DiracMatrix) = showsp_dmat(io, dm)
+
+function showsp_dmat(io::IO, dm::DiracMatrix; print_el=((io,el)->showcompact(io, el)))
  	print(io, "$(size(dm,1))x$(size(dm,2)) DiracMatrix with $(nnz(dm)) $(eltype(dm)) entries: ")
 	rows = Base.tty_rows()
 	S = dm.coeffs
@@ -147,7 +149,7 @@ function showsp(io::IO, dm::DiracMatrix; print_el=((io,el)->showcompact(io, el))
         if k < half_screen_rows || k > nnz(S)-half_screen_rows
             print(io, sep, '[', rpad(S.rowval[k], pad), ", ", lpad(col, pad), "]  =  ")
             print_el(io, S.nzval[k])
-            print(io, sep, "$(dm.rowb[S.rowval[k]])$(dm.colb[col])")
+            print(io, "  $(dm.rowb[S.rowval[k]])$(dm.colb[col])")
         elseif k == half_screen_rows
             print(io, sep, '\u22ee')
         end

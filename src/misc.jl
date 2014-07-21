@@ -5,6 +5,8 @@ qsparse(arr::Array{InnerProduct}) = sparse(convert(Array{ScalarExpr}, arr))
 qsparse(arr::Array{Union(InnerProduct, Int)}) = sparse(convert(Array{ScalarExpr}, arr))
 qsparse(arr::Array{Union(Int, InnerProduct)}) = sparse(convert(Array{ScalarExpr}, arr))
 
+showsp(x) = showsp(STDOUT::IO, x)
+
 orient_error(a,b) = error("Multiplication $(typeof(a))*$(typeof(b)) is undefined. Perhaps you meant to use kron($(typeof(a)), $(typeof(b)))?")
 
 samebasis(a::Dirac, b::Dirac)= bsym(a)==bsym(b)

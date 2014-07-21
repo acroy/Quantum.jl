@@ -124,6 +124,34 @@ function show{S}(io::IO, d::DiracVector{S})
 	end
 end
 
+function showsp{S<:Union(Bra, Ket),T<:Union(Float64,Int)}(io::IO, dv::DiracVector{S,T})
+	numpad = length("$(round(maximum(dv.coeffs.nzval), 4))")
+	showsp_dv(io, dv, print_el = ((io,el)->print(io, rpad("$(round(el, 4))", numpad))))
+end
+
+showsp(io::IO, dv::DiracVector) = showsp_dmat(io, dv)
+
+function showsp_dv(io::IO, dv::DiracVector; print_el=((io,el)->showcompact(io, el)))
+ 	print(io, "$(size(dv,1))x$(size(dv,2)) DiracVector with $(nnz(dv)) $(eltype(dv)) entries: ")
+	rows = Base.tty_rows()
+	S = dv.coeffs
+    half_screen_rows = div(rows - 8, 2)
+    pad = ndigits(max(S.m,S.n))
+    k = 0
+    sep = "\n\t"
+    for col = 1:S.n, k = S.colptr[col] : (S.colptr[col+1]-1)
+        if k < half_screen_rows || k > nnz(S)-half_screen_rows
+            print(io, sep, '[', rpad(S.rowval[k], pad), ", ", lpad(col, pad), "]  =  ")
+            print_el(io, S.nzval[k])
+            print(io, "  $(dv.basis[S.rowval[k]])")
+        elseif k == half_screen_rows
+            print(io, sep, '\u22ee')
+        end
+        k += 1
+    end
+end
+
+
 #####################################
 #Function-passing Functions##########
 #####################################
