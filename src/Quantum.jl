@@ -61,12 +61,12 @@ module Quantum
 	#####################################
 	#abstract types######################
 	#####################################
-	abstract Dirac
-	abstract AbstractScalar <: Dirac
-	abstract AbstractOperator <: Dirac
-	abstract State{S} <: Dirac
+	abstract type Dirac end
+	abstract type AbstractScalar<:Dirac end
+	abstract type AbstractOperator<:Dirac end
+	abstract type State{S}<:Dirac end
 
-	typealias DiracCoeff Union(Number, AbstractScalar)
+	const = DiracCoeff Union(Number, AbstractScalar)
 
 	#####################################
 	#includes############################
